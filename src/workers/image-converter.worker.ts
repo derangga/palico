@@ -44,11 +44,17 @@ async function handle(req: WorkerRequest): Promise<{
 		};
 	}
 
+	// Output at the resize target when provided, else at source dimensions.
+	const outW = req.targetWidth ?? width;
+	const outH = req.targetHeight ?? height;
+
 	try {
-		const canvas = new OffscreenCanvas(width, height);
+		const canvas = new OffscreenCanvas(outW, outH);
 		const ctx = canvas.getContext("2d");
 		if (!ctx) throw new Error("Could not get a 2D canvas context.");
-		ctx.drawImage(bitmap, 0, 0);
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = "high";
+		ctx.drawImage(bitmap, 0, 0, outW, outH);
 		bitmap.close();
 
 		const blob = await canvas.convertToBlob({
@@ -62,8 +68,8 @@ async function handle(req: WorkerRequest): Promise<{
 				id: req.id,
 				ok: true,
 				buffer,
-				width,
-				height,
+				width: outW,
+				height: outH,
 				size: buffer.byteLength,
 			},
 			transfer: [buffer],

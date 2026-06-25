@@ -1,26 +1,13 @@
 import { Effect, Either } from "effect";
 
-import {
-	type ConvertError,
-	DecodeError,
-	DimensionsTooLargeError,
-	EncodeError,
-	FileTooLargeError,
-	WorkerError,
-} from "./errors.ts";
+import { type ConvertError, DecodeError, FileTooLargeError } from "./errors.ts";
 import {
 	DEFAULT_QUALITY,
 	formatMeta,
-	MAX_DIMENSION,
 	MAX_FILE_BYTES,
 	type OutputFormat,
-	type WorkerResponse,
 } from "./types.ts";
-
-const workerUrl = new URL(
-	"../../workers/image-converter.worker.ts",
-	import.meta.url,
-);
+import { runImageWorker } from "./worker-client.ts";
 
 export interface ConvertInput {
 	readonly id: string;
@@ -57,96 +44,6 @@ const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
 			)
 		: Effect.void;
 
-// Spin up a one-shot worker, transfer the bytes in, await the single response,
-// and guarantee termination via acquireRelease (covers success, failure, interrupt).
-const runInWorker = (params: {
-	readonly id: string;
-	readonly fileName: string;
-	readonly buffer: ArrayBuffer;
-	readonly sourceType: string;
-	readonly format: OutputFormat;
-	readonly mime: string;
-	readonly quality: number;
-}): Effect.Effect<ConvertOutput, ConvertError> =>
-	Effect.acquireUseRelease(
-		Effect.sync(() => new Worker(workerUrl, { type: "module" })),
-		(worker) =>
-			Effect.async<ConvertOutput, ConvertError>((resume) => {
-				worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-					const res = event.data;
-					if (res.ok) {
-						resume(
-							Effect.succeed({
-								id: params.id,
-								blob: new Blob([res.buffer], { type: params.mime }),
-								width: res.width,
-								height: res.height,
-								size: res.size,
-							}),
-						);
-						return;
-					}
-					switch (res.reason) {
-						case "dimensions":
-							resume(
-								Effect.fail(
-									new DimensionsTooLargeError({
-										fileName: params.fileName,
-										width: res.width ?? 0,
-										height: res.height ?? 0,
-										limit: MAX_DIMENSION,
-										message: res.message,
-									}),
-								),
-							);
-							break;
-						case "decode":
-							resume(
-								Effect.fail(
-									new DecodeError({
-										fileName: params.fileName,
-										message: res.message,
-									}),
-								),
-							);
-							break;
-						default:
-							resume(
-								Effect.fail(
-									new EncodeError({
-										fileName: params.fileName,
-										format: params.format,
-										message: res.message,
-									}),
-								),
-							);
-					}
-				};
-				worker.onerror = (event) => {
-					resume(
-						Effect.fail(
-							new WorkerError({
-								fileName: params.fileName,
-								message: event.message || "Image worker crashed.",
-							}),
-						),
-					);
-				};
-				worker.postMessage(
-					{
-						id: params.id,
-						buffer: params.buffer,
-						sourceType: params.sourceType,
-						mime: params.mime,
-						quality: params.quality,
-						maxDimension: MAX_DIMENSION,
-					},
-					[params.buffer],
-				);
-			}),
-		(worker) => Effect.sync(() => worker.terminate()),
-	);
-
 const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 	input: ConvertInput,
 ) {
@@ -160,7 +57,7 @@ const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
-	return yield* runInWorker({
+	return yield* runImageWorker({
 		id: input.id,
 		fileName: input.file.name,
 		buffer,

@@ -41,6 +41,13 @@ export const outputFileName = (originalName: string, ext: string) => {
 	return `${base || "image"}.${ext}`;
 };
 
+// Map a source MIME type to a known output format. Only jpg/png/webp can be
+// re-encoded reliably by OffscreenCanvas.convertToBlob, so anything else
+// (gif, bmp, avif, …) falls back to PNG — used by the resizer to keep the
+// source format where possible.
+export const sourceFormatMeta = (mime: string) =>
+	OUTPUT_FORMATS.find((f) => f.mime === mime) ?? formatMeta("png");
+
 // --- Worker message protocol ---
 
 export interface WorkerRequest {
@@ -50,6 +57,10 @@ export interface WorkerRequest {
 	readonly mime: string;
 	readonly quality: number;
 	readonly maxDimension: number;
+	// Optional resize target. When omitted, the image is encoded at its source
+	// dimensions (converter); when present, it is scaled to these (resizer).
+	readonly targetWidth?: number;
+	readonly targetHeight?: number;
 }
 
 export type WorkerResponse =
