@@ -81,3 +81,5 @@ export type ConvertError =
 	| DecodeError
 	| EncodeError
 	| WorkerError;
+
+export type FaviconError = FileTooLargeError | DecodeError | EncodeError;

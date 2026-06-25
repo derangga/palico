@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResizerRouteImport } from './routes/resizer'
+import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const ResizerRoute = ResizerRouteImport.update({
   id: '/resizer',
   path: '/resizer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaviconGeneratorRoute = FaviconGeneratorRouteImport.update({
+  id: '/favicon-generator',
+  path: '/favicon-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConverterRoute = ConverterRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/background-removal' | '/converter' | '/resizer'
+  fullPaths:
+    | '/'
+    | '/background-removal'
+    | '/converter'
+    | '/favicon-generator'
+    | '/resizer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/background-removal' | '/converter' | '/resizer'
-  id: '__root__' | '/' | '/background-removal' | '/converter' | '/resizer'
+  to:
+    | '/'
+    | '/background-removal'
+    | '/converter'
+    | '/favicon-generator'
+    | '/resizer'
+  id:
+    | '__root__'
+    | '/'
+    | '/background-removal'
+    | '/converter'
+    | '/favicon-generator'
+    | '/resizer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackgroundRemovalRoute: typeof BackgroundRemovalRoute
   ConverterRoute: typeof ConverterRoute
+  FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   ResizerRoute: typeof ResizerRoute
 }
 
@@ -76,6 +102,13 @@ declare module '@tanstack/react-router' {
       path: '/resizer'
       fullPath: '/resizer'
       preLoaderRoute: typeof ResizerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favicon-generator': {
+      id: '/favicon-generator'
+      path: '/favicon-generator'
+      fullPath: '/favicon-generator'
+      preLoaderRoute: typeof FaviconGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/converter': {
@@ -106,6 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackgroundRemovalRoute: BackgroundRemovalRoute,
   ConverterRoute: ConverterRoute,
+  FaviconGeneratorRoute: FaviconGeneratorRoute,
   ResizerRoute: ResizerRoute,
 }
 export const routeTree = rootRouteImport

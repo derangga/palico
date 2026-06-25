@@ -5,6 +5,7 @@ import {
 	Lock,
 	Scaling,
 	ShieldCheck,
+	Star,
 	Zap,
 } from "lucide-react";
 
@@ -28,6 +29,12 @@ const tools = [
 		icon: Eraser,
 		label: "Remove\nBackground",
 		className: "border-sky-400/40 bg-sky-500/20 text-sky-300",
+	},
+	{
+		to: "/favicon-generator",
+		icon: Star,
+		label: "Favicon\nGenerator",
+		className: "border-amber-400/40 bg-amber-500/20 text-amber-300",
 	},
 ] as const;
 

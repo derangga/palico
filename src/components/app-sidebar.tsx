@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Eraser, Home, ImageIcon, Scaling } from "lucide-react";
+import { Eraser, Home, ImageIcon, Scaling, Star } from "lucide-react";
 
 import {
 	Sidebar,
@@ -19,6 +19,7 @@ const navItems = [
 	{ to: "/converter", label: "Image Converter", icon: ImageIcon },
 	{ to: "/resizer", label: "Image Resizer", icon: Scaling },
 	{ to: "/background-removal", label: "Remove Background", icon: Eraser },
+	{ to: "/favicon-generator", label: "Favicon Generator", icon: Star },
 ] as const;
 
 export function AppSidebar() {
