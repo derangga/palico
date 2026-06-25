@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "palico",
+  "project_id": "d06706f7-02fb-4dfb-99a8-e15cfeb2adc0"
+}
