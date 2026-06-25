@@ -1,98 +1,58 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-	Eraser,
-	ImageIcon,
-	Lock,
-	Scaling,
-	ShieldCheck,
-	Star,
-	Zap,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Lock, ShieldCheck, Zap } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Home });
 
-const tools = [
-	{
-		to: "/converter",
-		icon: ImageIcon,
-		label: "Image\nConverter",
-		className: "border-orange-400/40 bg-orange-500/20 text-orange-300",
-	},
-	{
-		to: "/resizer",
-		icon: Scaling,
-		label: "Image\nResizer",
-		className: "border-emerald-400/40 bg-emerald-500/20 text-emerald-300",
-	},
-	{
-		to: "/background-removal",
-		icon: Eraser,
-		label: "Remove\nBackground",
-		className: "border-sky-400/40 bg-sky-500/20 text-sky-300",
-	},
-	{
-		to: "/favicon-generator",
-		icon: Star,
-		label: "Favicon\nGenerator",
-		className: "border-amber-400/40 bg-amber-500/20 text-amber-300",
-	},
-] as const;
-
-const badges = [
-	{ icon: ShieldCheck, label: "Offline First" },
-	{ icon: Lock, label: "Private & Secure" },
-	{ icon: Zap, label: "Fast & Lightweight" },
+const pills = [
+  { icon: ShieldCheck, label: "Offline First" },
+  { icon: Lock, label: "Private & Secure" },
+  { icon: Zap, label: "Fast & Lightweight" },
 ] as const;
 
 function Home() {
-	return (
-		<section
-			className="relative flex min-h-[calc(100svh-3.5rem)] w-full flex-col items-start justify-center overflow-hidden px-6 py-16 text-left text-secondary-foreground sm:px-16"
-			style={{
-				backgroundImage: "url(/palico.png)",
-				backgroundSize: "cover",
-				backgroundPosition: "center",
-			}}
-		>
-			<div className="relative mt-32 flex flex-col items-center">
-				{/* Title + tagline */}
-				<p className="mt-3 font-display text-3xl text-secondary-foreground drop-shadow sm:text-5xl">
-					Your Daily Offline Toolkit
-				</p>
+  return (
+    <section className="flex min-h-[calc(100svh-3.5rem)] w-full items-center px-6 py-16 sm:px-12 lg:px-16">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        {/* Left: text stack */}
+        <div className="flex flex-col items-start">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs">
+            <ShieldCheck className="size-3.5 text-primary" />
+            Privacy Guaranteed
+          </span>
 
-				{/* Tool tiles */}
-				<div className="mt-12 flex items-start justify-start gap-10 sm:gap-16">
-					{tools.map((tool) => (
-						<Link
-							key={tool.to}
-							to={tool.to}
-							className="group flex w-24 flex-col items-center gap-2.5"
-						>
-							<span
-								className={`flex size-16 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-sm transition-transform group-hover:-translate-y-0.5 ${tool.className}`}
-							>
-								<tool.icon className="size-7" />
-							</span>
-							<span className="text-sm font-medium leading-tight whitespace-pre-line drop-shadow text-center">
-								{tool.label}
-							</span>
-						</Link>
-					))}
-				</div>
+          <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            Your Daily <span className="text-primary">Offline</span>
+            <br />
+            Toolkit
+          </h1>
 
-				{/* Trust badges */}
-				<div className="mt-12 flex flex-wrap items-center justify-start gap-3">
-					{badges.map((badge) => (
-						<span
-							key={badge.label}
-							className="inline-flex items-center gap-2 rounded-full border border-amber-900/15 bg-amber-50/70 px-4 py-2 text-sm font-medium text-amber-950 shadow-sm backdrop-blur-sm"
-						>
-							<badge.icon className="size-4 text-amber-700" />
-							{badge.label}
-						</span>
-					))}
-				</div>
-			</div>
-		</section>
-	);
+          <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
+            100% on-device. No uploads, no tracking, pure privacy. Transform
+            your files without them ever leaving your browser.
+          </p>
+
+          <ul className="mt-8 flex flex-wrap gap-3">
+            {pills.map((pill) => (
+              <li
+                key={pill.label}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-xs"
+              >
+                <pill.icon className="size-4 text-primary" />
+                {pill.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Right: illustration card */}
+        <div className="aspect-4/5 w-full overflow-hidden rounded-2xl border border-border bg-secondary shadow-lg lg:aspect-square">
+          <img
+            src="/palico.png"
+            alt="Palico, your offline toolkit companion"
+            className="h-full w-full scale-125 object-cover object-top-right"
+          />
+        </div>
+      </div>
+    </section>
+  );
 }
