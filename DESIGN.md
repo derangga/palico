@@ -17,11 +17,11 @@ colors:
   espresso-night: "oklch(0.2747 0.0139 57.6523)"
 typography:
   display:
-    fontFamily: "Londrina Shadow, cursive"
+    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(1.875rem, 5vw, 3rem)"
-    fontWeight: 400
+    fontWeight: 900
     lineHeight: 1.05
-    letterSpacing: "normal"
+    letterSpacing: "-0.01em"
   headline:
     fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.5rem"
@@ -94,8 +94,9 @@ the ad-laden converter sites it competes with: no banner ads, no fake download
 buttons, no cold enterprise chrome. The whole surface is bathed in warm cream
 (`oklch(0.9582 0.0152 90.2357)`), text is a soft espresso brown rather than
 hard black, corners are barely rounded, and shadows are gentle and warm-tinted.
-The playful Londrina Shadow display font gives it character without tipping
-into childishness; everything else is the friendly, highly legible Nunito.
+Typography is a single voice — Nunito throughout — leaning on weight and scale
+to carry character rather than a second display face. The result is friendly
+and highly legible without tipping into childishness.
 
 The system explicitly rejects three things. **Sketchy converter sites**: there
 are no dark patterns, ambiguous buttons, or upload-to-server anxieties — the
@@ -112,7 +113,7 @@ sprayed across every control.
 **Key Characteristics:**
 - Warm cream surfaces with espresso-brown ink, never pure white or pure black.
 - A single muted caramel accent — used for actions and state, not decoration.
-- Playful Londrina Shadow display, friendly Nunito everywhere else.
+- A single typeface — Nunito across the whole product, with weight and scale doing the heavy lifting.
 - Tight, near-square radii (0–4px) and soft, warm-tinted shadows.
 - Privacy and trust are felt through restraint and clarity, not claimed in fine print.
 
@@ -148,21 +149,22 @@ A warm, low-chroma palette anchored in the 64–90° hue band (caramel/sand/crea
 
 ## 3. Typography
 
-**Display Font:** Londrina Shadow (with `cursive` fallback)
-**Body Font:** Nunito Variable (with `ui-sans-serif, system-ui, sans-serif`)
+**Type Family:** Nunito Variable (with `ui-sans-serif, system-ui, sans-serif`)
 **Mono Font:** IBM Plex Mono (for any numeric/dimension readouts)
 
-**Character:** Londrina Shadow is a playful, slightly theatrical display face — it carries all of palico's personality and appears sparingly (the home hero tagline). Nunito is rounded, warm, and exceptionally legible at small sizes, which makes it right for a dense tool UI. The pairing contrasts on a clear axis (decorative display vs. humanist sans), so they never compete.
+**Character:** Nunito is rounded, warm, and exceptionally legible at small sizes, which makes it right for a dense tool UI. The whole product runs on one variable face — personality is carried by weight (200 → 900) and scale, not by a second display font. Heroes lean on heavy weight at a large clamp size; body copy stays at a calm 400; labels and titles step up to 600/700 for emphasis.
 
 ### Hierarchy
-- **Display** (Londrina Shadow, 400, `clamp(1.875rem, 5vw, 3rem)`, lh 1.05): Hero taglines and signature brand moments only. Never in UI labels, buttons, or data.
+- **Display** (Nunito, 900, `clamp(1.875rem, 5vw, 3rem)`, lh 1.05, tracking `-0.01em`): Hero taglines and signature brand moments. Heavy weight + large scale is what makes this tier feel "loud" — keep it sparse.
 - **Headline** (Nunito, 700, 1.5rem, lh 1.2): Page/section titles.
 - **Title** (Nunito, 600, 1.125rem, lh 1.3): Card and panel headers.
 - **Body** (Nunito, 400, 0.875rem, lh 1.5): Default UI and prose text. Cap prose at 65–75ch.
 - **Label** (Nunito, 600, 0.875rem, lh 1.4): Buttons, form labels, nav items, badges.
 
 ### Named Rules
-**The Display-Stays-Home Rule.** Londrina Shadow is for brand moments, never for functional UI. A button, a table header, or a form label rendered in the display font is always wrong — it belongs to Nunito.
+**The One-Family Rule.** Every piece of text is Nunito. There is no second display face — if a hero feels flat, raise the weight to 900 and the scale, don't reach for another typeface.
+
+**The Weight-Earns-Emphasis Rule.** Hierarchy is established by weight and scale, not by color, italics, or decoration. Body is 400, titles 600, headlines 700, display 900 — the steps are deliberate and shouldn't be filled in.
 
 **The Fixed-Scale Rule.** Outside the hero, type sizes are fixed rem values, not fluid clamps. Users view this tool at a consistent DPI; a heading that shrinks inside a panel looks broken, not responsive.
 
@@ -217,7 +219,7 @@ Built on Base UI primitives with a shadcn-derived structure. The feel across all
 - **Do** keep one job, few clicks per tool; sensible defaults, advanced options tucked away until wanted.
 - **Do** use Espresso Ink on Cream/Card Cream for text, and verify Muted Ink hits ≥4.5:1 before using it for body copy.
 - **Do** tint every shadow warm brown (`hsl(28 13% 20%)`).
-- **Do** reserve Londrina Shadow for brand moments and keep all functional UI in Nunito.
+- **Do** keep typography single-family — Nunito everywhere — and use weight (400/600/700/900) to step the hierarchy.
 - **Do** give every control a real focus-visible state (3px caramel ring) and a `prefers-reduced-motion` alternative.
 
 ### Don't:
@@ -227,4 +229,4 @@ Built on Base UI primitives with a shadcn-derived structure. The feel across all
 - **Don't** use Brick Red for anything but destruction and error.
 - **Don't** hardcode off-palette colors like `orange-300`/`emerald-300` (as the current home tiles do) — ground everything in the warm tokens.
 - **Don't** nest cards, or use a `border-left`/`border-right` colored stripe as a card or alert accent.
-- **Don't** put the display font in buttons, labels, or data.
+- **Don't** introduce a second typeface for brand moments — if a hero needs more weight, push the Nunito Display tier (900 + larger scale), don't reach for a display face.

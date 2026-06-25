@@ -40,6 +40,6 @@ Persist durable knowledge with `bd remember`.
 Two root files define the product and visual system — read them before doing UI work:
 
 - **[PRODUCT.md](PRODUCT.md):** register, users, purpose, brand personality, anti-references, design principles.
-- **[DESIGN.md](DESIGN.md):** the visual system — OKLCH tokens, typography (Londrina Shadow display + Nunito body), elevation, component specs, and do's/don'ts.
+- **[DESIGN.md](DESIGN.md):** the visual system — OKLCH tokens, typography (Nunito single-family, weight + scale for hierarchy), elevation, component specs, and do's/don'ts.
 
 The `/impeccable` skill reads both to keep new UI on-brand.

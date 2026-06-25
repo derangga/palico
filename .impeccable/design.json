@@ -10,8 +10,8 @@
       "brick-destructive": { "role": "tertiary", "displayName": "Brick Red", "canonical": "oklch(0.5471 0.1438 32.9149)", "tonalRamp": ["oklch(0.30 0.10 33)", "oklch(0.40 0.13 33)", "oklch(0.4851 0.14 33)", "oklch(0.5471 0.1438 33)", "oklch(0.62 0.14 33)", "oklch(0.72 0.12 33)", "oklch(0.83 0.08 33)", "oklch(0.93 0.04 33)"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Londrina Shadow. Hero taglines and brand moments only — never functional UI." },
-      "body": { "displayName": "Body", "purpose": "Nunito. Default UI and prose; cap prose at 65-75ch." }
+      "display": { "displayName": "Display", "purpose": "Nunito 900 at a large clamp size. Hero taglines and brand moments — weight + scale carry character, no second typeface." },
+      "body": { "displayName": "Body", "purpose": "Nunito 400. Default UI and prose; cap prose at 65-75ch." }
     },
     "shadows": [
       { "name": "xs", "value": "2px 3px 5px 0px hsl(28 13% 20% / 0.06)", "purpose": "Resting lift for outline buttons, inputs, chips." },
@@ -80,11 +80,11 @@
   ],
   "narrative": {
     "northStar": "The Friendly Desk Toy",
-    "overview": "palico is a delightful little utility that lives on your desk — a warm, personable image toolkit you reach for without thinking. It is the opposite of the ad-laden converter sites it competes with: no banner ads, no fake download buttons, no cold enterprise chrome. The whole surface is bathed in warm cream, text is a soft espresso brown rather than hard black, corners are barely rounded, and shadows are gentle and warm-tinted. The playful Londrina Shadow display font gives it character without tipping into childishness; everything else is the friendly, highly legible Nunito. The system rejects sketchy converter sites, cold enterprise SaaS, and flashy over-animation. Warmth is the differentiator, and the tool disappears into the task — personality is reserved for moments, not sprayed across every control.",
+    "overview": "palico is a delightful little utility that lives on your desk — a warm, personable image toolkit you reach for without thinking. It is the opposite of the ad-laden converter sites it competes with: no banner ads, no fake download buttons, no cold enterprise chrome. The whole surface is bathed in warm cream, text is a soft espresso brown rather than hard black, corners are barely rounded, and shadows are gentle and warm-tinted. Typography is a single voice — Nunito throughout — leaning on weight and scale to carry character rather than a second display face. The result is friendly and highly legible without tipping into childishness. The system rejects sketchy converter sites, cold enterprise SaaS, and flashy over-animation. Warmth is the differentiator, and the tool disappears into the task — personality is reserved for moments, not sprayed across every control.",
     "keyCharacteristics": [
       "Warm cream surfaces with espresso-brown ink, never pure white or pure black.",
       "A single muted caramel accent — used for actions and state, not decoration.",
-      "Playful Londrina Shadow display, friendly Nunito everywhere else.",
+      "A single typeface — Nunito across the whole product, with weight and scale doing the heavy lifting.",
       "Tight, near-square radii (0–4px) and soft, warm-tinted shadows.",
       "Privacy and trust are felt through restraint and clarity, not claimed in fine print."
     ],
@@ -92,7 +92,8 @@
       { "name": "The One Warm Accent Rule", "body": "There is exactly one accent — Muted Caramel. It marks actions, selection, and focus. It is never used for decoration, and never appears on inactive states.", "section": "colors" },
       { "name": "The No-Pure-Black, No-Pure-White Rule", "body": "Text is Espresso Ink, never #000. Surfaces are Cream or Card Cream, never #fff. Pure neutrals read as cold and break the warmth.", "section": "colors" },
       { "name": "The Stoplight Rule", "body": "Brick Red is reserved for destruction and error. Seeing it anywhere else is a bug.", "section": "colors" },
-      { "name": "The Display-Stays-Home Rule", "body": "Londrina Shadow is for brand moments, never for functional UI. Buttons, headers, labels, and data belong to Nunito.", "section": "typography" },
+      { "name": "The One-Family Rule", "body": "Every piece of text is Nunito. There is no second display face — if a hero feels flat, raise the weight to 900 and the scale, don't reach for another typeface.", "section": "typography" },
+      { "name": "The Weight-Earns-Emphasis Rule", "body": "Hierarchy is established by weight and scale, not by color, italics, or decoration. Body 400, titles 600, headlines 700, display 900.", "section": "typography" },
       { "name": "The Fixed-Scale Rule", "body": "Outside the hero, type sizes are fixed rem values, not fluid clamps.", "section": "typography" },
       { "name": "The Warm-Shadow Rule", "body": "Every shadow is tinted warm brown (hsl(28 13% 20%)), never neutral gray or black.", "section": "elevation" }
     ],
@@ -101,7 +102,7 @@
       "Do keep one job, few clicks per tool; sensible defaults, advanced options tucked away until wanted.",
       "Do use Espresso Ink on Cream/Card Cream for text, and verify Muted Ink hits ≥4.5:1 before using it for body copy.",
       "Do tint every shadow warm brown (hsl(28 13% 20%)).",
-      "Do reserve Londrina Shadow for brand moments and keep all functional UI in Nunito.",
+      "Do keep typography single-family — Nunito everywhere — and use weight (400/600/700/900) to step the hierarchy.",
       "Do give every control a real focus-visible state (3px caramel ring) and a prefers-reduced-motion alternative."
     ],
     "donts": [
@@ -111,7 +112,7 @@
       "Don't use Brick Red for anything but destruction and error.",
       "Don't hardcode off-palette colors like orange-300/emerald-300 (as the current home tiles do) — ground everything in the warm tokens.",
       "Don't nest cards, or use a border-left/border-right colored stripe as a card or alert accent.",
-      "Don't put the display font in buttons, labels, or data."
+      "Don't introduce a second typeface for brand moments — if a hero needs more weight, push the Nunito Display tier (900 + larger scale), don't reach for a display face."
     ]
   }
 }

@@ -25,10 +25,11 @@ next time they need a quick image fix.
 ## Brand Personality
 
 Warm, friendly, and characterful — a helpful daily companion, not a piece of
-enterprise software. Three words: **warm, trustworthy, effortless**. The
-playful display voice (Londrina Shadow) and warm cream palette are part of the
-identity and should be preserved. The personality is approachable without
-being childish, and confident without being cold.
+enterprise software. Three words: **warm, trustworthy, effortless**. The warm
+cream palette and a single, friendly typographic voice (Nunito, leaning on
+weight and scale for emphasis) are part of the identity and should be
+preserved. The personality is approachable without being childish, and
+confident without being cold.
 
 ## Anti-references
 
