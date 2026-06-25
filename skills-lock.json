@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "effect-best-practices": {
+      "source": "derangga/laundry-app",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/effect-best-practices/SKILL.md",
+      "computedHash": "eabd1dfbd996816e8c11cbe27a212d312832b97c4ec1b4b2ee37ff4440abf70d"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "f321507f77702a54af1db66549ec1685fc625390d06c57d7949cdcda8eb1b5c7"
+    },
+    "to-issues": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/to-issues/SKILL.md",
+      "computedHash": "4e2a11d35f018490d42a79234432f779d7131b9920373ef24cfbc68229bfef6c"
+    }
+  }
+}
