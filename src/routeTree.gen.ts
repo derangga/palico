@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as ConverterRouteImport } from './routes/converter'
+import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ResizerRoute = ResizerRouteImport.update({
@@ -23,6 +24,11 @@ const ConverterRoute = ConverterRouteImport.update({
   path: '/converter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BackgroundRemovalRoute = BackgroundRemovalRouteImport.update({
+  id: '/background-removal',
+  path: '/background-removal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +37,34 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
   '/resizer': typeof ResizerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/converter' | '/resizer'
+  fullPaths: '/' | '/background-removal' | '/converter' | '/resizer'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/converter' | '/resizer'
-  id: '__root__' | '/' | '/converter' | '/resizer'
+  to: '/' | '/background-removal' | '/converter' | '/resizer'
+  id: '__root__' | '/' | '/background-removal' | '/converter' | '/resizer'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BackgroundRemovalRoute: typeof BackgroundRemovalRoute
   ConverterRoute: typeof ConverterRoute
   ResizerRoute: typeof ResizerRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConverterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/background-removal': {
+      id: '/background-removal'
+      path: '/background-removal'
+      fullPath: '/background-removal'
+      preLoaderRoute: typeof BackgroundRemovalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BackgroundRemovalRoute: BackgroundRemovalRoute,
   ConverterRoute: ConverterRoute,
   ResizerRoute: ResizerRoute,
 }

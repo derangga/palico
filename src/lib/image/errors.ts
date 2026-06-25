@@ -53,6 +53,28 @@ export class ZipError extends Schema.TaggedError<ZipError>()("ZipError", {
 	message: Schema.String,
 }) {}
 
+export class ModelLoadError extends Schema.TaggedError<ModelLoadError>()(
+	"ModelLoadError",
+	{
+		message: Schema.String,
+	},
+) {}
+
+export class InferenceError extends Schema.TaggedError<InferenceError>()(
+	"InferenceError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
+export type BackgroundRemovalError =
+	| FileTooLargeError
+	| DecodeError
+	| ModelLoadError
+	| InferenceError
+	| EncodeError;
+
 export type ConvertError =
 	| FileTooLargeError
 	| DimensionsTooLargeError
