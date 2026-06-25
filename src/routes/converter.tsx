@@ -87,6 +87,8 @@ function ConverterPage() {
 	const [items, setItems] = useState<Item[]>([]);
 	const [format, setFormat] = useState<OutputFormat>("webp");
 	const [isRunning, setIsRunning] = useState(false);
+	const [batchTotal, setBatchTotal] = useState(0);
+	const [batchDone, setBatchDone] = useState(0);
 
 	const meta = formatMeta(format);
 	const convertable = items.filter(
@@ -158,6 +160,8 @@ function ConverterPage() {
 		);
 		if (targets.length === 0) return;
 		setIsRunning(true);
+		setBatchTotal(targets.length);
+		setBatchDone(0);
 
 		const ext = meta.ext;
 		const label = meta.label;
@@ -167,7 +171,7 @@ function ConverterPage() {
 			format,
 		}));
 
-		const onProgress = (update: ProgressUpdate) =>
+		const onProgress = (update: ProgressUpdate) => {
 			setItems((prev) =>
 				prev.map((item) =>
 					item.id === update.id
@@ -185,6 +189,10 @@ function ConverterPage() {
 						: item,
 				),
 			);
+			if (update.status === "done" || update.status === "error") {
+				setBatchDone((n) => n + 1);
+			}
+		};
 
 		const outputs = await Effect.runPromise(convertImages(inputs, onProgress));
 		setIsRunning(false);
@@ -321,7 +329,9 @@ function ConverterPage() {
 							{convertable.length > 0 && (
 								<Button onClick={handleConvert} disabled={isRunning}>
 									{isRunning ? <Loader2 className="animate-spin" /> : null}
-									Convert {convertable.length}
+									{isRunning
+										? `Converting ${batchDone} / ${batchTotal}`
+										: `Convert ${convertable.length}`}
 								</Button>
 							)}
 						</div>

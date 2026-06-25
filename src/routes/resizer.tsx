@@ -10,7 +10,7 @@ import {
 	UploadCloud,
 	X,
 } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "#/components/ui/button.tsx";
@@ -60,6 +60,7 @@ const toInt = (v: string) => {
 function ResizerPage() {
 	const inputId = useId();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const abortRef = useRef<AbortController | null>(null);
 
 	const [source, setSource] = useState<Source | null>(null);
 	const [mode, setMode] = useState<Mode>("pixels");
@@ -211,6 +212,8 @@ function ResizerPage() {
 		setStatus("processing");
 		setErrorMsg(null);
 
+		const ac = new AbortController();
+		abortRef.current = ac;
 		const exit = await Effect.runPromiseExit(
 			resizeImage({
 				id: crypto.randomUUID(),
@@ -218,12 +221,20 @@ function ResizerPage() {
 				targetWidth: outW,
 				targetHeight: outH,
 			}),
+			{ signal: ac.signal },
 		);
+		abortRef.current = null;
 
 		if (exit._tag === "Success") {
 			setResult(exit.value);
 			setStatus("done");
 			toast.success(`Resized to ${exit.value.width}×${exit.value.height}px.`);
+			return;
+		}
+
+		// Cancellation: acquireUseRelease has already terminated the worker.
+		if (exit.cause._tag === "Interrupt") {
+			setStatus("idle");
 			return;
 		}
 
@@ -237,6 +248,20 @@ function ResizerPage() {
 		setStatus("error");
 		toast.error(message);
 	}
+
+	function handleCancel() {
+		abortRef.current?.abort();
+	}
+
+	const previewUrl = useMemo(
+		() => (result ? URL.createObjectURL(result.blob) : null),
+		[result],
+	);
+	useEffect(() => {
+		return () => {
+			if (previewUrl) URL.revokeObjectURL(previewUrl);
+		};
+	}, [previewUrl]);
 
 	const sourceFormatLabel = source
 		? sourceFormatMeta(source.file.type).label
@@ -437,13 +462,20 @@ function ResizerPage() {
 						)}
 
 						<div className="mt-4 flex items-center justify-end gap-2">
-							<Button
-								variant="ghost"
-								onClick={reset}
-								disabled={status === "processing"}
-							>
-								Clear
-							</Button>
+							{status === "processing" ? (
+								<>
+									<p className="mr-auto text-xs text-muted-foreground">
+										Large images can take a few seconds…
+									</p>
+									<Button variant="ghost" onClick={handleCancel}>
+										Cancel
+									</Button>
+								</>
+							) : (
+								<Button variant="ghost" onClick={reset}>
+									Clear
+								</Button>
+							)}
 							<Button onClick={handleResize} disabled={!canResize}>
 								{status === "processing" ? (
 									<Loader2 className="animate-spin" />
@@ -456,7 +488,15 @@ function ResizerPage() {
 					{/* Result */}
 					{status === "done" && result && (
 						<div className="mt-4 flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-							<CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+							{previewUrl ? (
+								<img
+									src={previewUrl}
+									alt=""
+									className="size-12 shrink-0 rounded object-cover"
+								/>
+							) : (
+								<CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+							)}
 							<p className="min-w-0 flex-1 text-sm">
 								Resized to{" "}
 								<span className="font-medium">

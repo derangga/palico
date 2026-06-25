@@ -31,11 +31,9 @@ export function AppSidebar() {
             <span className="text-lg leading-none">🐾</span>
           </div>
           <div className="grid flex-1 leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-base font-bold">
-              Palico
-            </span>
+            <span className="text-base font-bold">Palico</span>
             <span className="text-muted-foreground text-xs">
-              Offline image tools
+              Client first tools
             </span>
           </div>
         </div>
