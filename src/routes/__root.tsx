@@ -4,6 +4,7 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
@@ -38,7 +39,16 @@ export const Route = createRootRoute({
   shellComponent: RootDocument,
 });
 
+const PAGE_TITLES: Record<string, string> = {
+  "/": "Home",
+  "/converter": "Image Converter",
+  "/resizer": "Image Resizer",
+};
+
 function RootLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pageTitle = PAGE_TITLES[pathname] ?? "Palico";
+
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -46,7 +56,7 @@ function RootLayout() {
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/70 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger />
           <span className="text-sm font-semibold">
-            Palico
+            {pageTitle}
           </span>
         </header>
         <div className="flex-1">
