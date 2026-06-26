@@ -13,11 +13,6 @@ import {
 	type WorkerResponse,
 } from "./types.ts";
 
-const workerUrl = new URL(
-	"../../workers/image-converter.worker.ts",
-	import.meta.url,
-);
-
 export const WorkerOutput = Schema.Struct({
 	id: Schema.String,
 	blob: Schema.instanceOf(Blob),
@@ -43,7 +38,17 @@ export const runImageWorker = (params: {
 	readonly targetHeight?: number;
 }): Effect.Effect<WorkerOutput, ConvertError> =>
 	Effect.acquireUseRelease(
-		Effect.sync(() => new Worker(workerUrl, { type: "module" })),
+		Effect.sync(
+			() =>
+				// The `new URL(...)` MUST stay inline inside `new Worker(...)` so Vite's
+				// static analysis detects and bundles the worker. Hoisting it to a
+				// variable makes the production build inline the raw .ts as a data: URL,
+				// which the browser can't parse → "Image worker crashed."
+				new Worker(
+					new URL("../../workers/image-converter.worker.ts", import.meta.url),
+					{ type: "module" },
+				),
+		),
 		(worker) =>
 			Effect.async<WorkerOutput, ConvertError>((resume) => {
 				worker.onmessage = (event: MessageEvent<WorkerResponse>) => {

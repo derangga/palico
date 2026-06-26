@@ -116,13 +116,14 @@ function ConverterPage() {
 			accepted.push({ id: crypto.randomUUID(), file, status: "ready" });
 		}
 
-		setItems((prev) => {
-			const room = MAX_FILES - prev.length;
-			if (accepted.length > room) {
-				toast.error(`You can convert up to ${MAX_FILES} images at a time.`);
-			}
-			return [...prev, ...accepted.slice(0, Math.max(room, 0))];
-		});
+		const room = Math.max(MAX_FILES - items.length, 0);
+		if (accepted.length > room) {
+			toast.error(`You can convert up to ${MAX_FILES} images at a time.`);
+		}
+		setItems((prev) => [
+			...prev,
+			...accepted.slice(0, Math.max(MAX_FILES - prev.length, 0)),
+		]);
 	}
 
 	function removeItem(id: string) {

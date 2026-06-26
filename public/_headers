@@ -1,0 +1,10 @@
+# Cloudflare Workers Assets serves /assets/* directly, bypassing src/server.ts,
+# so the COOP/COEP headers set there never reach these files. The document is
+# cross-origin isolated (Cross-Origin-Embedder-Policy: require-corp), and a
+# module worker can only be loaded into such a context if its own script
+# response carries a matching COEP header — otherwise the browser blocks it with
+# net::ERR_BLOCKED_BY_RESPONSE ("Image worker crashed."). Tag every built asset
+# so the image-converter worker (and other bundled workers) load under COEP.
+/assets/*
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
