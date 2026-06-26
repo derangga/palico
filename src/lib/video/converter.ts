@@ -7,7 +7,7 @@
 import { fetchFile } from "@ffmpeg/util";
 import { Effect, Either, Schema } from "effect";
 
-import { type EngineHandle, getEngine } from "./engine.ts";
+import { disposeEngine, type EngineHandle, getEngine } from "./engine.ts";
 import {
   type ConvertVideoError,
   EngineNotLoadedError,
@@ -109,15 +109,26 @@ const convertOne = (
         }),
     });
 
-    // Subscribe to ffmpeg's progress event for the duration of this exec.
-    // acquireUseRelease guarantees the listener is removed even on failure,
-    // so events from a later file's exec can't bleed into this row's bar.
+    // Capture ffmpeg's stderr for the duration of this exec. exitCode -1 (the
+    // core's default) means it aborted before a clean exit; the bare code is
+    // useless on its own, so we keep the tail of the log to surface the real
+    // reason (unknown encoder, demux failure, OOM, …) on the error channel.
+    const logLines: string[] = [];
+
+    // Subscribe to ffmpeg's progress + log events for the duration of this
+    // exec. acquireUseRelease guarantees both listeners are removed even on
+    // failure, so events from a later file's exec can't bleed into this row.
     const exitCode = yield* Effect.acquireUseRelease(
       Effect.sync(() => {
-        const handler = ({ progress }: { progress: number }) =>
+        const onProgress = ({ progress }: { progress: number }) =>
           emitPercent(Math.max(0, Math.min(100, Math.round(progress * 100))));
-        ffmpeg.on("progress", handler);
-        return handler;
+        const onLog = ({ message }: { type: string; message: string }) => {
+          logLines.push(message);
+          if (logLines.length > 64) logLines.shift();
+        };
+        ffmpeg.on("progress", onProgress);
+        ffmpeg.on("log", onLog);
+        return { onProgress, onLog };
       }),
       () =>
         Effect.tryPromise({
@@ -136,14 +147,36 @@ const convertOne = (
                 cause instanceof Error ? cause.message : "Encoder threw.",
             }),
         }),
-      (handler) => Effect.sync(() => ffmpeg.off("progress", handler)),
+      ({ onProgress, onLog }) =>
+        Effect.sync(() => {
+          ffmpeg.off("progress", onProgress);
+          ffmpeg.off("log", onLog);
+        }),
     );
 
     if (exitCode !== 0) {
+      // An emscripten OOM/abort leaves the wasm instance permanently
+      // unusable. Dispose the singleton so the next conversion re-inits a
+      // fresh worker (otherwise the tool is bricked until a page reload),
+      // and surface an honest, actionable message instead of the raw log.
+      const oom = /aborted\(|out of memory|\boom\b/i.test(logLines.join("\n"));
+      if (oom) {
+        yield* disposeEngine;
+        return yield* new VideoEncodeError({
+          fileName: input.file.name,
+          format: input.format,
+          message:
+            "Your device ran out of memory — this video is too large or high-resolution to convert in the browser. Try a shorter clip or a lower-resolution copy.",
+        });
+      }
+
+      const tail = logLines.slice(-8).join(" / ").trim();
       return yield* new VideoEncodeError({
         fileName: input.file.name,
         format: input.format,
-        message: `Encoder exited with code ${exitCode}.`,
+        message: tail
+          ? `Encoder exited with code ${exitCode}. ${tail}`
+          : `Encoder exited with code ${exitCode}.`,
       });
     }
 
@@ -201,17 +234,36 @@ const convertOne = (
 // The Effect fails with EngineNotLoadedError when the singleton hasn't been
 // initialized; per-file decode/encode failures are caught with Effect.either
 // so one bad input never aborts the batch.
+//
+// `isCancelled` lets the caller stop the batch: when the route terminates the
+// worker (palico-zfy), `terminate()` rejects the in-flight `exec` — caught
+// here as a VideoEncodeError — and every queued file then short-circuits
+// without emitting a spurious "error" row. The route discards the result and
+// resets the UI, so cancelled/partial outcomes are never surfaced.
 export const convertVideos = (
   inputs: ReadonlyArray<ConvertVideoInput>,
   onProgress: (update: VideoProgressUpdate) => void,
+  isCancelled: () => boolean = () => false,
 ): Effect.Effect<ReadonlyArray<ConvertVideoOutput>, EngineNotLoadedError> =>
   Effect.gen(function* () {
     const ffmpeg = yield* getEngine;
 
     const results = yield* Effect.forEach(
       inputs,
-      (input) =>
+      (
+        input,
+      ): Effect.Effect<Either.Either<ConvertVideoOutput, ConvertVideoError>> =>
         Effect.gen(function* () {
+          // Already cancelled before this file started — skip silently.
+          if (isCancelled()) {
+            return Either.left(
+              new VideoEncodeError({
+                fileName: input.file.name,
+                format: input.format,
+                message: "Cancelled.",
+              }),
+            );
+          }
           yield* emitProgress(onProgress, {
             id: input.id,
             status: "processing",
@@ -226,6 +278,11 @@ export const convertVideos = (
               }),
             ),
           );
+          // Cancelled mid-encode (terminate() rejected the exec): swallow the
+          // outcome without emitting, so the UI stays clean for the reset.
+          if (isCancelled()) {
+            return outcome;
+          }
           if (Either.isRight(outcome)) {
             yield* emitProgress(onProgress, {
               id: input.id,

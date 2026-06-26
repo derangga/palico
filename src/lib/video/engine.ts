@@ -19,19 +19,22 @@ import { EngineLoadError, EngineNotLoadedError } from "./errors.ts";
 // Structural view of the loaded ffmpeg instance. Exposed instead of the
 // `FFmpeg` class so converter.ts can stay type-only against this contract
 // (no value-level @ffmpeg/* dependency at the type position).
+type ProgressHandler = (e: { progress: number }) => void;
+type LogHandler = (e: { type: string; message: string }) => void;
+
 export interface EngineHandle {
   readonly readFile: (name: string) => Promise<Uint8Array | string>;
   readonly writeFile: (name: string, data: Uint8Array) => Promise<unknown>;
   readonly deleteFile: (name: string) => Promise<unknown>;
   readonly exec: (args: string[]) => Promise<number>;
-  readonly on: (
-    event: "progress",
-    handler: (e: { progress: number }) => void,
-  ) => void;
-  readonly off: (
-    event: "progress",
-    handler: (e: { progress: number }) => void,
-  ) => void;
+  readonly on: {
+    (event: "progress", handler: ProgressHandler): void;
+    (event: "log", handler: LogHandler): void;
+  };
+  readonly off: {
+    (event: "progress", handler: ProgressHandler): void;
+    (event: "log", handler: LogHandler): void;
+  };
 }
 
 // Module-singleton via Ref. Initialization is a constant; every read and
