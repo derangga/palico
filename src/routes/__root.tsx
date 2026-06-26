@@ -45,6 +45,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/resizer": "Image Resizer",
   "/background-removal": "Remove Background",
   "/favicon-generator": "Favicon Generator",
+  "/video-converter": "Video Converter",
 };
 
 function RootLayout() {
