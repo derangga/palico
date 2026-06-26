@@ -1,34 +1,59 @@
-import { Effect, Either } from "effect";
+import { Effect, Either, Schema } from "effect";
 
-import { type ConvertError, DecodeError, FileTooLargeError } from "./errors.ts";
+import {
+	DecodeError,
+	DimensionsTooLargeError,
+	EncodeError,
+	FileTooLargeError,
+	WorkerError,
+} from "./errors.ts";
 import {
 	DEFAULT_QUALITY,
 	formatMeta,
 	MAX_FILE_BYTES,
-	type OutputFormat,
+	OutputFormat,
 } from "./types.ts";
 import { runImageWorker } from "./worker-client.ts";
 
-export interface ConvertInput {
-	readonly id: string;
-	readonly file: File;
-	readonly format: OutputFormat;
-}
+export const ConvertInput = Schema.Struct({
+	id: Schema.String,
+	file: Schema.instanceOf(File),
+	format: OutputFormat,
+});
+export type ConvertInput = Schema.Schema.Type<typeof ConvertInput>;
 
-export interface ConvertOutput {
-	readonly id: string;
-	readonly blob: Blob;
-	readonly width: number;
-	readonly height: number;
-	readonly size: number;
-}
+export const ConvertOutput = Schema.Struct({
+	id: Schema.String,
+	blob: Schema.instanceOf(Blob),
+	width: Schema.Number,
+	height: Schema.Number,
+	size: Schema.Number,
+});
+export type ConvertOutput = Schema.Schema.Type<typeof ConvertOutput>;
 
-export interface ProgressUpdate {
-	readonly id: string;
-	readonly status: "processing" | "done" | "error";
-	readonly output?: ConvertOutput;
-	readonly error?: ConvertError;
-}
+export const ProgressUpdate = Schema.Union(
+	Schema.Struct({
+		id: Schema.String,
+		status: Schema.Literal("processing"),
+	}),
+	Schema.Struct({
+		id: Schema.String,
+		status: Schema.Literal("done"),
+		output: ConvertOutput,
+	}),
+	Schema.Struct({
+		id: Schema.String,
+		status: Schema.Literal("error"),
+		error: Schema.Union(
+			FileTooLargeError,
+			DimensionsTooLargeError,
+			DecodeError,
+			EncodeError,
+			WorkerError,
+		),
+	}),
+);
+export type ProgressUpdate = Schema.Schema.Type<typeof ProgressUpdate>;
 
 const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
 	file.size > MAX_FILE_BYTES

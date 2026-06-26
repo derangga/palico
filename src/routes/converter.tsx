@@ -173,21 +173,28 @@ function ConverterPage() {
 
 		const onProgress = (update: ProgressUpdate) => {
 			setItems((prev) =>
-				prev.map((item) =>
-					item.id === update.id
-						? {
-								...item,
-								status: update.status,
-								outBlob: update.output?.blob ?? item.outBlob,
-								outSize: update.output?.size ?? item.outSize,
-								outName: update.output
-									? outputFileName(item.file.name, ext)
-									: item.outName,
-								outLabel: update.output ? label : item.outLabel,
-								message: update.error?.message,
-							}
-						: item,
-				),
+				prev.map((item) => {
+					if (item.id !== update.id) return item;
+					if (update.status === "done") {
+						return {
+							...item,
+							status: update.status,
+							outBlob: update.output.blob,
+							outSize: update.output.size,
+							outName: outputFileName(item.file.name, ext),
+							outLabel: label,
+							message: undefined,
+						};
+					}
+					if (update.status === "error") {
+						return {
+							...item,
+							status: update.status,
+							message: update.error.message,
+						};
+					}
+					return { ...item, status: update.status };
+				}),
 			);
 			if (update.status === "done" || update.status === "error") {
 				setBatchDone((n) => n + 1);
