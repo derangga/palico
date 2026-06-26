@@ -1,17 +1,19 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { DecodeError, EncodeError, FileTooLargeError } from "./errors.ts";
 import { MAX_FILE_BYTES } from "./types.ts";
 import { createZip } from "./zip.ts";
 
-export interface FaviconAsset {
-	readonly name: string;
-	readonly size: number;
-	readonly mime: string;
-	readonly blob: Blob;
-	readonly bytes: Uint8Array;
-}
+export const FaviconAsset = Schema.Struct({
+	name: Schema.String,
+	size: Schema.Number,
+	mime: Schema.String,
+	blob: Schema.instanceOf(Blob),
+	bytes: Schema.Uint8ArrayFromSelf,
+});
+export type FaviconAsset = Schema.Schema.Type<typeof FaviconAsset>;
 
+// File-local — not migrated to Schema (internal config, never crosses a boundary).
 interface PngSpec {
 	readonly name: string;
 	readonly size: number;

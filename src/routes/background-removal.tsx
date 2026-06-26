@@ -106,7 +106,7 @@ function BackgroundRemovalPage() {
 	async function proceed() {
 		if (!source) return;
 		setStatus("processing");
-		setProgress({ stage: "downloading" });
+		setProgress({ stage: "downloading", percent: 0 });
 
 		const exit = await Effect.runPromiseExit(
 			removeBackground({ file: source, onProgress: setProgress }),

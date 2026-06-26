@@ -1,6 +1,8 @@
 // Shared constants and types for the client-side image pipeline.
 // Used by both the main-thread Effect orchestration and the Web Worker executor.
 
+import { Schema } from "effect";
+
 export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per file
 export const MAX_DIMENSION = 8000; // px, longest side
@@ -9,7 +11,8 @@ export const MAX_DIMENSION = 8000; // px, longest side
 // the converter's job is format conversion, not quality tuning.
 export const DEFAULT_QUALITY = 0.92;
 
-export type OutputFormat = "jpeg" | "png" | "webp";
+export const OutputFormat = Schema.Literal("jpeg", "png", "webp");
+export type OutputFormat = Schema.Schema.Type<typeof OutputFormat>;
 
 export const OUTPUT_FORMATS: ReadonlyArray<{
 	value: OutputFormat;
@@ -50,33 +53,36 @@ export const sourceFormatMeta = (mime: string) =>
 
 // --- Worker message protocol ---
 
-export interface WorkerRequest {
-	readonly id: string;
-	readonly buffer: ArrayBuffer;
-	readonly sourceType: string;
-	readonly mime: string;
-	readonly quality: number;
-	readonly maxDimension: number;
+export const WorkerRequest = Schema.Struct({
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+	sourceType: Schema.String,
+	mime: Schema.String,
+	quality: Schema.Number,
+	maxDimension: Schema.Number,
 	// Optional resize target. When omitted, the image is encoded at its source
 	// dimensions (converter); when present, it is scaled to these (resizer).
-	readonly targetWidth?: number;
-	readonly targetHeight?: number;
-}
+	targetWidth: Schema.optional(Schema.Number),
+	targetHeight: Schema.optional(Schema.Number),
+});
+export type WorkerRequest = Schema.Schema.Type<typeof WorkerRequest>;
 
-export type WorkerResponse =
-	| {
-			readonly id: string;
-			readonly ok: true;
-			readonly buffer: ArrayBuffer;
-			readonly width: number;
-			readonly height: number;
-			readonly size: number;
-	  }
-	| {
-			readonly id: string;
-			readonly ok: false;
-			readonly reason: "decode" | "dimensions" | "encode";
-			readonly message: string;
-			readonly width?: number;
-			readonly height?: number;
-	  };
+export const WorkerResponse = Schema.Union(
+	Schema.Struct({
+		id: Schema.String,
+		ok: Schema.Literal(true),
+		buffer: Schema.instanceOf(ArrayBuffer),
+		width: Schema.Number,
+		height: Schema.Number,
+		size: Schema.Number,
+	}),
+	Schema.Struct({
+		id: Schema.String,
+		ok: Schema.Literal(false),
+		reason: Schema.Literal("decode", "dimensions", "encode"),
+		message: Schema.String,
+		width: Schema.optional(Schema.Number),
+		height: Schema.optional(Schema.Number),
+	}),
+);
+export type WorkerResponse = Schema.Schema.Type<typeof WorkerResponse>;

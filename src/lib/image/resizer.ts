@@ -1,15 +1,16 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import { type ConvertError, DecodeError, FileTooLargeError } from "./errors.ts";
 import { DEFAULT_QUALITY, MAX_FILE_BYTES, sourceFormatMeta } from "./types.ts";
 import { runImageWorker, type WorkerOutput } from "./worker-client.ts";
 
-export interface ResizeInput {
-	readonly id: string;
-	readonly file: File;
-	readonly targetWidth: number;
-	readonly targetHeight: number;
-}
+export const ResizeInput = Schema.Struct({
+	id: Schema.String,
+	file: Schema.instanceOf(File),
+	targetWidth: Schema.Number,
+	targetHeight: Schema.Number,
+});
+export type ResizeInput = Schema.Schema.Type<typeof ResizeInput>;
 
 export type ResizeOutput = WorkerOutput;
 

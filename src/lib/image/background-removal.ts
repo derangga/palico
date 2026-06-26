@@ -3,7 +3,7 @@ import type {
 	ProgressInfo,
 	RawImage,
 } from "@huggingface/transformers";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import {
 	type BackgroundRemovalError,
@@ -25,13 +25,27 @@ type SegmentationModel = (
 	input: string,
 ) => Promise<ImageSegmentationPipelineOutput[]>;
 
-export interface RemoveProgress {
-	readonly stage: "downloading" | "processing";
-	readonly percent?: number;
-}
+export const RemoveProgress = Schema.Union(
+	Schema.Struct({
+		stage: Schema.Literal("downloading"),
+		percent: Schema.Number,
+	}),
+	Schema.Struct({
+		stage: Schema.Literal("processing"),
+	}),
+);
+export type RemoveProgress = Schema.Schema.Type<typeof RemoveProgress>;
 
-export interface RemoveBackgroundInput {
-	readonly file: File;
+// Schema-derived data slice — the callback below can't be schema'd, so the
+// input as a whole stays a TS type while `file` rides on the schema.
+export const RemoveBackgroundData = Schema.Struct({
+	file: Schema.instanceOf(File),
+});
+export type RemoveBackgroundData = Schema.Schema.Type<
+	typeof RemoveBackgroundData
+>;
+
+export interface RemoveBackgroundInput extends RemoveBackgroundData {
 	readonly onProgress?: (p: RemoveProgress) => void;
 }
 

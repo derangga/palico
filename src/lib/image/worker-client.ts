@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 
 import {
 	type ConvertError,
@@ -18,13 +18,14 @@ const workerUrl = new URL(
 	import.meta.url,
 );
 
-export interface WorkerOutput {
-	readonly id: string;
-	readonly blob: Blob;
-	readonly width: number;
-	readonly height: number;
-	readonly size: number;
-}
+export const WorkerOutput = Schema.Struct({
+	id: Schema.String,
+	blob: Schema.instanceOf(Blob),
+	width: Schema.Number,
+	height: Schema.Number,
+	size: Schema.Number,
+});
+export type WorkerOutput = Schema.Schema.Type<typeof WorkerOutput>;
 
 // Spin up a one-shot worker, transfer the bytes in, await the single response,
 // and guarantee termination via acquireUseRelease (covers success, failure,
