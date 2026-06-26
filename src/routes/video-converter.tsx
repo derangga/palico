@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Either } from "effect";
 import {
+	Ban,
 	CheckCircle2,
 	CircleAlert,
+	Clock,
 	Download,
 	Film,
 	Loader2,
@@ -24,6 +26,7 @@ import {
 	AlertDialogTitle,
 } from "#/components/ui/alert-dialog.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { Checkbox } from "#/components/ui/checkbox.tsx";
 import {
 	Select,
 	SelectContent,
@@ -36,6 +39,18 @@ import {
 	isEngineCached,
 	type LoadPhase,
 } from "#/lib/video/cache.ts";
+import {
+	checkFileSize,
+	classifyDevice,
+	estimateMinutes,
+	MAX_FILES,
+	MB,
+	processTimeWarningLevel,
+} from "#/lib/video/limits.ts";
+import {
+	getSuppressSmallWarning,
+	setSuppressSmallWarning,
+} from "#/lib/video/preferences.ts";
 import {
 	parseVideoOutputFormat,
 	VIDEO_OUTPUT_FORMATS,
@@ -60,8 +75,6 @@ interface Item {
 	message?: string;
 }
 
-const MB = 1024 * 1024;
-
 function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
 	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
@@ -75,6 +88,15 @@ function downloadBlob(blob: Blob, name: string) {
 	a.download = name;
 	a.click();
 	URL.revokeObjectURL(url);
+}
+
+// Reads client globals and delegates to the pure classifier. Only ever called
+// from user-event handlers, so navigator/window are safe (no SSR access).
+function deviceClass() {
+	return classifyDevice({
+		userAgent: navigator.userAgent,
+		viewportWidth: window.innerWidth,
+	});
 }
 
 function VideoConverterPage() {
@@ -294,16 +316,45 @@ function ConverterShell() {
 	const [isRunning, setIsRunning] = useState(false);
 	const [batchTotal, setBatchTotal] = useState(0);
 	const [batchDone, setBatchDone] = useState(0);
+	// Process-time warning dialog: `pending` holds the targets awaiting the
+	// user's confirmation; null means no dialog is open.
+	const [pending, setPending] = useState<Item[] | null>(null);
+	const [dontShowAgain, setDontShowAgain] = useState(false);
+	// Cancellation: `confirmCancel` opens the confirm dialog; `cancelling`
+	// disables the button during the terminate window (guards double-terminate
+	// / button-mashing). The mutable token is read by the running batch via a
+	// closure so it can short-circuit once cancellation is signalled.
+	const [confirmCancel, setConfirmCancel] = useState(false);
+	const [cancelling, setCancelling] = useState(false);
+	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
 		const accepted: Item[] = [];
+
+		const device = deviceClass();
 
 		for (const file of Array.from(fileList)) {
 			if (!file.type.startsWith("video/")) {
 				toast.error(`"${file.name}" is not a video.`);
 				continue;
 			}
+
+			const verdict = checkFileSize(file.size, device);
+			if (verdict.kind === "rejected") {
+				// Rejected files never enter the queue, so conversion never runs
+				// on them — no engine work is triggered.
+				toast.error(
+					`"${file.name}" is ${formatBytes(file.size)} — over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB; for larger files, please use a desktop video editor.`,
+				);
+				continue;
+			}
+			if (verdict.kind === "warn") {
+				toast(
+					`"${file.name}" is ${formatBytes(file.size)}. This may take several minutes to convert.`,
+				);
+			}
+
 			accepted.push({
 				id: `${file.name}-${file.size}-${file.lastModified}-${accepted.length}`,
 				file,
@@ -312,7 +363,13 @@ function ConverterShell() {
 		}
 
 		if (accepted.length > 0) {
-			setItems((prev) => [...prev, ...accepted]);
+			setItems((prev) => {
+				const room = MAX_FILES - prev.length;
+				if (accepted.length > room) {
+					toast.error(`You can convert up to ${MAX_FILES} videos at a time.`);
+				}
+				return [...prev, ...accepted.slice(0, Math.max(room, 0))];
+			});
 		}
 	}
 
@@ -346,12 +403,47 @@ function ConverterShell() {
 		);
 	}
 
-	async function handleConvert() {
+	// Decide whether the process-time dialog must gate this conversion, based
+	// on the largest queued file:
+	//   "always"      → ≥50MB, show regardless of preference
+	//   "suppressible" → 20–50MB, show unless the user opted out
+	//   "none"         → <20MB, convert immediately
+	function handleConvert() {
 		const targets = items.filter(
 			(i) => i.status === "ready" || i.status === "error",
 		);
 		if (targets.length === 0) return;
 
+		const largest = Math.max(...targets.map((t) => t.file.size));
+		const level = processTimeWarningLevel(largest);
+
+		if (level === "none") {
+			void runConversion(targets);
+			return;
+		}
+		if (level === "suppressible") {
+			const suppressed = Effect.runSync(getSuppressSmallWarning);
+			if (suppressed) {
+				void runConversion(targets);
+				return;
+			}
+		}
+
+		setDontShowAgain(false);
+		setPending(targets);
+	}
+
+	function confirmPending() {
+		const targets = pending;
+		setPending(null);
+		if (!targets) return;
+		if (dontShowAgain) Effect.runSync(setSuppressSmallWarning(true));
+		void runConversion(targets);
+	}
+
+	async function runConversion(targets: Item[]) {
+		const token = { cancelled: false };
+		cancelTokenRef.current = token;
 		setIsRunning(true);
 		setBatchTotal(targets.length);
 		setBatchDone(0);
@@ -367,46 +459,61 @@ function ConverterShell() {
 		try {
 			// Dynamic import keeps @ffmpeg/* out of the route bundle. Engine.ts
 			// holds the loaded singleton; converter.ts calls into it.
+			// loadEngine is idempotent — a no-op when the engine is already
+			// loaded, and a fast cache-backed re-init after a prior cancel
+			// terminated the worker.
+			const { loadEngine } = await import("#/lib/video/engine.ts");
+			await Effect.runPromise(loadEngine(() => {}));
+			if (token.cancelled) return;
+
 			const { convertVideos } = await import("#/lib/video/converter.ts");
 
 			const outputs = await Effect.runPromise(
-				convertVideos(inputs, (update) => {
-					setItems((prev) =>
-						prev.map((item) => {
-							if (item.id !== update.id) return item;
-							if (update.status === "processing") {
+				convertVideos(
+					inputs,
+					(update) => {
+						setItems((prev) =>
+							prev.map((item) => {
+								if (item.id !== update.id) return item;
+								if (update.status === "processing") {
+									return {
+										...item,
+										status: "processing",
+										percent: update.percent,
+										message: undefined,
+									};
+								}
+								if (update.status === "done") {
+									return {
+										...item,
+										status: "done",
+										percent: 100,
+										outBlob: update.output.blob,
+										outName: update.output.name,
+										outSize: update.output.size,
+										outLabel: formatLabel,
+										message: undefined,
+									};
+								}
 								return {
 									...item,
-									status: "processing",
-									percent: update.percent,
-									message: undefined,
+									status: "error",
+									percent: undefined,
+									message: update.error.message,
 								};
-							}
-							if (update.status === "done") {
-								return {
-									...item,
-									status: "done",
-									percent: 100,
-									outBlob: update.output.blob,
-									outName: update.output.name,
-									outSize: update.output.size,
-									outLabel: formatLabel,
-									message: undefined,
-								};
-							}
-							return {
-								...item,
-								status: "error",
-								percent: undefined,
-								message: update.error.message,
-							};
-						}),
-					);
-					if (update.status === "done" || update.status === "error") {
-						setBatchDone((n) => n + 1);
-					}
-				}),
+							}),
+						);
+						if (update.status === "done" || update.status === "error") {
+							setBatchDone((n) => n + 1);
+						}
+					},
+					() => token.cancelled,
+				),
 			);
+
+			// A cancel that landed while the batch was draining owns the UI
+			// reset — don't clobber it with success/failure toasts.
+			if (token.cancelled) return;
 
 			const ok = outputs.length;
 			const failed = inputs.length - ok;
@@ -421,13 +528,45 @@ function ConverterShell() {
 				);
 			}
 		} catch (err) {
+			if (token.cancelled) return;
 			toast.error(
 				err instanceof Error
 					? err.message
 					: "Video conversion failed unexpectedly.",
 			);
 		} finally {
+			if (!token.cancelled) setIsRunning(false);
+		}
+	}
+
+	// Confirmed cancellation: kill the worker (terminate() rejects the in-flight
+	// exec, which the pipeline catches), then reset queued/in-flight rows to
+	// "ready" while keeping any already-finished downloads. The next Convert
+	// re-inits the engine from cache.
+	async function cancelConversion() {
+		cancelTokenRef.current.cancelled = true;
+		setConfirmCancel(false);
+		setCancelling(true);
+		try {
+			const { disposeEngine } = await import("#/lib/video/engine.ts");
+			await Effect.runPromise(disposeEngine);
+		} finally {
+			setItems((prev) =>
+				prev.map((item) =>
+					item.status === "processing" || item.status === "ready"
+						? {
+								...item,
+								status: "ready",
+								percent: undefined,
+								message: undefined,
+							}
+						: item,
+				),
+			);
+			setBatchTotal(0);
+			setBatchDone(0);
 			setIsRunning(false);
+			setCancelling(false);
 		}
 	}
 
@@ -451,7 +590,8 @@ function ConverterShell() {
 				<h1 className="text-2xl font-bold">Video Converter</h1>
 				<p className="mt-1 text-sm text-muted-foreground">
 					Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your
-					browser. Files convert one at a time to keep memory in check.
+					browser. Files convert one at a time to keep memory in check, up to{" "}
+					{MAX_FILES} per batch.
 				</p>
 			</div>
 
@@ -526,9 +666,21 @@ function ConverterShell() {
 						</div>
 
 						<div className="ml-auto flex gap-2">
-							<Button variant="ghost" onClick={reset} disabled={isRunning}>
-								Clear
-							</Button>
+							{isRunning ? (
+								<Button
+									variant="outline"
+									onClick={() => setConfirmCancel(true)}
+									disabled={cancelling}
+									className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+								>
+									{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
+									{cancelling ? "Cancelling…" : "Cancel"}
+								</Button>
+							) : (
+								<Button variant="ghost" onClick={reset}>
+									Clear
+								</Button>
+							)}
 							<Button
 								onClick={handleConvert}
 								disabled={isRunning || convertable.length === 0}
@@ -601,7 +753,119 @@ function ConverterShell() {
 					</ul>
 				</>
 			)}
+
+			<ProcessTimeDialog
+				pending={pending}
+				format={format}
+				dontShowAgain={dontShowAgain}
+				onDontShowAgainChange={setDontShowAgain}
+				onCancel={() => setPending(null)}
+				onConfirm={confirmPending}
+			/>
+
+			<AlertDialog
+				open={confirmCancel}
+				onOpenChange={(open) => {
+					if (!open) setConfirmCancel(false);
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogMedia>
+							<Ban />
+						</AlertDialogMedia>
+						<AlertDialogTitle>Cancel conversion?</AlertDialogTitle>
+						<AlertDialogDescription>
+							The current file and any remaining files in the queue will not be
+							converted. Videos you&apos;ve already downloaded stay available.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Keep converting</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={cancelConversion}
+							className="bg-destructive text-white hover:bg-destructive/90"
+						>
+							<Ban />
+							Cancel conversion
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
+	);
+}
+
+interface ProcessTimeDialogProps {
+	pending: Item[] | null;
+	format: VideoOutputFormat;
+	dontShowAgain: boolean;
+	onDontShowAgainChange: (value: boolean) => void;
+	onCancel: () => void;
+	onConfirm: () => void;
+}
+
+function ProcessTimeDialog({
+	pending,
+	format,
+	dontShowAgain,
+	onDontShowAgainChange,
+	onCancel,
+	onConfirm,
+}: ProcessTimeDialogProps) {
+	const checkboxId = useId();
+	const largest = pending ? Math.max(...pending.map((t) => t.file.size)) : 0;
+	// Files ≥50MB always warn — the checkbox can't suppress them, so hide it.
+	const suppressible = largest < 50 * MB;
+	const minutes = estimateMinutes(largest, format);
+	const formatLabel =
+		VIDEO_OUTPUT_FORMATS.find((f) => f.value === format)?.label ??
+		format.toUpperCase();
+
+	return (
+		<AlertDialog
+			open={pending !== null}
+			onOpenChange={(open) => {
+				if (!open) onCancel();
+			}}
+		>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogMedia>
+						<Clock />
+					</AlertDialogMedia>
+					<AlertDialogTitle>This one will take a few minutes</AlertDialogTitle>
+					<AlertDialogDescription>
+						This file is ~{Math.round(largest / MB)} MB. Converting to{" "}
+						{formatLabel} typically takes{" "}
+						{minutes === 1 ? "about a minute" : `~${minutes} minutes`} on this
+						hardware. Everything runs on your device — please keep this tab
+						open.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				{suppressible && (
+					<label
+						htmlFor={checkboxId}
+						className="flex items-center gap-2 text-sm text-muted-foreground"
+					>
+						<Checkbox
+							id={checkboxId}
+							checked={dontShowAgain}
+							onCheckedChange={(checked) =>
+								onDontShowAgainChange(checked === true)
+							}
+						/>
+						Don&apos;t show this again for files under 50 MB
+					</label>
+				)}
+				<AlertDialogFooter>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction onClick={onConfirm}>
+						Convert anyway
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
 	);
 }
 

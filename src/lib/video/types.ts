@@ -59,43 +59,32 @@ export const parseVideoOutputFormat = (
 // MP4/MOV/MKV share H.264 (libx264) + AAC — broadest playback compatibility.
 // WebM uses VP9 + Opus (modern, royalty-free). AVI uses MPEG-4 ASP + MP3 for
 // compatibility with the kind of tooling that still asks for AVI.
+// H.264 for mp4/mov/mkv. Tuned for ffmpeg.wasm's FIXED memory ceiling rather
+// than for the smallest file: `core-mt` aborts with OOM on high-resolution
+// inputs (e.g. 4K phone video) under heavier settings. `-preset veryfast`
+// drops libx264's reference frames / rc-lookahead (the dominant memory
+// consumers at `medium`), and `-threads 2` caps the per-thread frame buffers
+// that auto-threading would otherwise multiply by the core count. `-crf 23`
+// keeps quality reasonable.
+const H264_ARGS: readonly string[] = [
+	"-c:v",
+	"libx264",
+	"-preset",
+	"veryfast",
+	"-crf",
+	"23",
+	"-threads",
+	"2",
+	"-c:a",
+	"aac",
+	"-b:a",
+	"128k",
+];
+
 export const ENCODER_ARGS: Record<VideoOutputFormat, readonly string[]> = {
-	mp4: [
-		"-c:v",
-		"libx264",
-		"-preset",
-		"medium",
-		"-crf",
-		"23",
-		"-c:a",
-		"aac",
-		"-b:a",
-		"128k",
-	],
-	mov: [
-		"-c:v",
-		"libx264",
-		"-preset",
-		"medium",
-		"-crf",
-		"23",
-		"-c:a",
-		"aac",
-		"-b:a",
-		"128k",
-	],
-	mkv: [
-		"-c:v",
-		"libx264",
-		"-preset",
-		"medium",
-		"-crf",
-		"23",
-		"-c:a",
-		"aac",
-		"-b:a",
-		"128k",
-	],
+	mp4: H264_ARGS,
+	mov: H264_ARGS,
+	mkv: H264_ARGS,
 	webm: ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-c:a", "libopus"],
 	avi: ["-c:v", "mpeg4", "-q:v", "5", "-c:a", "libmp3lame"],
 };
