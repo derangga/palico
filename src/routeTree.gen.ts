@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
@@ -16,6 +17,11 @@ import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VideoCutterRoute = VideoCutterRouteImport.update({
+  id: '/video-cutter',
+  path: '/video-cutter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VideoConverterRoute = VideoConverterRouteImport.update({
   id: '/video-converter',
   path: '/video-converter',
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
+  '/video-cutter': typeof VideoCutterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
+  '/video-cutter': typeof VideoCutterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,6 +79,7 @@ export interface FileRoutesById {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
+  '/video-cutter': typeof VideoCutterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -81,6 +90,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
+    | '/video-cutter'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,6 +99,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
+    | '/video-cutter'
   id:
     | '__root__'
     | '/'
@@ -97,6 +108,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
+    | '/video-cutter'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,10 +118,18 @@ export interface RootRouteChildren {
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   ResizerRoute: typeof ResizerRoute
   VideoConverterRoute: typeof VideoConverterRoute
+  VideoCutterRoute: typeof VideoCutterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/video-cutter': {
+      id: '/video-cutter'
+      path: '/video-cutter'
+      fullPath: '/video-cutter'
+      preLoaderRoute: typeof VideoCutterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/video-converter': {
       id: '/video-converter'
       path: '/video-converter'
@@ -162,6 +182,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   ResizerRoute: ResizerRoute,
   VideoConverterRoute: VideoConverterRoute,
+  VideoCutterRoute: VideoCutterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

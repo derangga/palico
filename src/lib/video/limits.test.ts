@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	checkCutterFileSize,
 	checkFileSize,
 	classifyDevice,
 	estimateMinutes,
@@ -80,6 +81,36 @@ describe("checkFileSize", () => {
 		expect(checkFileSize(201 * MB, "mobile")).toEqual({
 			kind: "rejected",
 			capMB: 200,
+		});
+	});
+});
+
+describe("checkCutterFileSize", () => {
+	it("applies the larger desktop cutter caps (warn 500MB / hard 1GB)", () => {
+		expect(checkCutterFileSize(500 * MB, "desktop")).toEqual({ kind: "ok" });
+		expect(checkCutterFileSize(501 * MB, "desktop")).toEqual({
+			kind: "warn",
+			warnMB: 500,
+		});
+		expect(checkCutterFileSize(1024 * MB, "desktop")).toEqual({
+			kind: "warn",
+			warnMB: 500,
+		});
+		expect(checkCutterFileSize(1025 * MB, "desktop")).toEqual({
+			kind: "rejected",
+			capMB: 1024,
+		});
+	});
+
+	it("applies the lower mobile cutter caps (warn 200MB / hard 500MB)", () => {
+		expect(checkCutterFileSize(200 * MB, "mobile")).toEqual({ kind: "ok" });
+		expect(checkCutterFileSize(201 * MB, "mobile")).toEqual({
+			kind: "warn",
+			warnMB: 200,
+		});
+		expect(checkCutterFileSize(501 * MB, "mobile")).toEqual({
+			kind: "rejected",
+			capMB: 500,
 		});
 	});
 });

@@ -35,6 +35,19 @@ export const CAPS: Record<
 	mobile: { warnBytes: 100 * MB, hardBytes: 200 * MB },
 };
 
+// Video cutter caps. Trimming uses stream copy (`-c copy`), which never decodes
+// frames — memory is dominated by the file living in ffmpeg.wasm's in-memory FS
+// (input + output), not by encoder buffers. So the cutter tolerates much larger
+// files than the re-encoding converter, but there is still a real ceiling: a
+// ~2GB wasm heap can't hold an arbitrarily large file plus its output.
+export const CUTTER_CAPS: Record<
+	DeviceClass,
+	{ readonly warnBytes: number; readonly hardBytes: number }
+> = {
+	desktop: { warnBytes: 500 * MB, hardBytes: 1024 * MB },
+	mobile: { warnBytes: 200 * MB, hardBytes: 500 * MB },
+};
+
 // Process-time dialog thresholds (tiered):
 //   < SHOW       → no dialog (these convert quickly)
 //   SHOW..FLOOR  → dialog shown, but suppressible via "don't show again"
@@ -67,19 +80,29 @@ export const SizeVerdict = Schema.Union(
 );
 export type SizeVerdict = Schema.Schema.Type<typeof SizeVerdict>;
 
-export const checkFileSize = (
+const verdictFor = (
 	bytes: number,
-	device: DeviceClass,
+	caps: { readonly warnBytes: number; readonly hardBytes: number },
 ): SizeVerdict => {
-	const { warnBytes, hardBytes } = CAPS[device];
-	if (bytes > hardBytes) {
-		return { kind: "rejected", capMB: Math.round(hardBytes / MB) };
+	if (bytes > caps.hardBytes) {
+		return { kind: "rejected", capMB: Math.round(caps.hardBytes / MB) };
 	}
-	if (bytes > warnBytes) {
-		return { kind: "warn", warnMB: Math.round(warnBytes / MB) };
+	if (bytes > caps.warnBytes) {
+		return { kind: "warn", warnMB: Math.round(caps.warnBytes / MB) };
 	}
 	return { kind: "ok" };
 };
+
+export const checkFileSize = (
+	bytes: number,
+	device: DeviceClass,
+): SizeVerdict => verdictFor(bytes, CAPS[device]);
+
+// Same verdict shape as the converter, but against the cutter's larger caps.
+export const checkCutterFileSize = (
+	bytes: number,
+	device: DeviceClass,
+): SizeVerdict => verdictFor(bytes, CUTTER_CAPS[device]);
 
 // Rough v1 throughput per output codec (MB of source processed per minute on
 // typical mid-range hardware). libx264 (mp4/mov/mkv) is the baseline; VP9
