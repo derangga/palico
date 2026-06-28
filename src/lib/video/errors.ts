@@ -29,6 +29,17 @@ export class VideoEncodeError extends Schema.TaggedError<VideoEncodeError>()(
 	},
 ) {}
 
+// The video cutter never re-encodes (stream copy only), so an "encode" error
+// would mislead. A dedicated reason keeps the failure honest: a copy can still
+// fail to demux/remux, run out of memory, or abort the wasm instance.
+export class VideoTrimError extends Schema.TaggedError<VideoTrimError>()(
+	"VideoTrimError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 // Surfaces from the engine loader (cache.ts / engine.ts). `stage` mirrors the
 // LoadPhase that was in flight when the failure landed, so the UI can keep
 // the user oriented even after a mid-flight error.
