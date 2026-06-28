@@ -222,6 +222,22 @@ const aggregateDownloadProgress = (
 	};
 };
 
+// True once the model has been built and cached in this session's module Ref.
+// Lets the route skip the consent gate on SPA re-navigation (the Ref outlives
+// the unmounted component, though not a full page reload).
+export const isModelLoaded: Effect.Effect<boolean> = Ref.get(modelRef).pipe(
+	Effect.map(Option.isSome),
+);
+
+// Download and build the model without running inference, so the route can
+// front the one-time download with a consent gate before any image is picked
+// (mirrors video loadEngine). The model is memoized in modelRef, so the later
+// removeBackground call reuses it instantly.
+export const loadBackgroundModel = (
+	onProgress?: (p: RemoveProgress) => void,
+): Effect.Effect<void, ModelLoadError> =>
+	loadPipeline(aggregateDownloadProgress(onProgress)).pipe(Effect.asVoid);
+
 export const removeBackground = (
 	input: RemoveBackgroundInput,
 ): Effect.Effect<Blob, BackgroundRemovalError> =>
