@@ -3,7 +3,7 @@ import type {
 	ProgressInfo,
 	RawImage,
 } from "@huggingface/transformers";
-import { Effect, Schema } from "effect";
+import { Effect, Option, Ref, Schema } from "effect";
 
 import {
 	type BackgroundRemovalError,
@@ -80,25 +80,27 @@ const buildPipeline = (
 		catch: toModelLoadError,
 	});
 
-// Success-only module memo (no Layer system on the client). Failures are not
-// cached so the user can retry by clicking Proceed again.
-let cachedModel: SegmentationModel | null = null;
+// Success-only module memo (no Layer system on the client). Held in a Ref so the
+// cache stays inside the Effect graph instead of a mutable `let` — mirrors the
+// engine singleton in video/engine.ts. Failures never reach Ref.set, so the user
+// can retry by clicking Proceed again.
+const modelRef = Ref.unsafeMake<Option.Option<SegmentationModel>>(
+	Option.none(),
+);
 
 const loadPipeline = (
 	onEvent: (e: ProgressInfo) => void,
 ): Effect.Effect<SegmentationModel, ModelLoadError> =>
-	Effect.suspend(() =>
-		cachedModel
-			? Effect.succeed(cachedModel)
-			: buildPipeline("webgpu", onEvent).pipe(
-					Effect.orElse(() => buildPipeline("wasm", onEvent)),
-					Effect.tap((model) =>
-						Effect.sync(() => {
-							cachedModel = model;
-						}),
-					),
-				),
-	);
+	Effect.gen(function* () {
+		const cached = yield* Ref.get(modelRef);
+		if (Option.isSome(cached)) return cached.value;
+
+		const model = yield* buildPipeline("webgpu", onEvent).pipe(
+			Effect.orElse(() => buildPipeline("wasm", onEvent)),
+		);
+		yield* Ref.set(modelRef, Option.some(model));
+		return model;
+	});
 
 const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
 	file.size > MAX_FILE_BYTES
@@ -190,20 +192,45 @@ const composeCutout = async (
 	});
 };
 
+// transformers.js reports download progress per file, and the model is several
+// files: the tiny metadata files (config / preprocessor) finish in one chunk and
+// each fire a single "progress" event at 100% before the large weights file even
+// starts, so forwarding raw per-file percent spikes the bar to 100% then resets
+// to 0%. Aggregate by bytes across files instead (same approach as video/engine.ts).
+// Sub-MB metadata files are excluded so the bar tracks the weights download and
+// climbs monotonically — without their totals up front they would still spike.
+const MIN_PROGRESS_BYTES = 1024 * 1024;
+
+const aggregateDownloadProgress = (
+	onProgress: ((p: RemoveProgress) => void) | undefined,
+): ((e: ProgressInfo) => void) => {
+	const perFile = new Map<string, { loaded: number; total: number }>();
+	return (e) => {
+		if (e.status !== "progress" || e.total < MIN_PROGRESS_BYTES) return;
+		perFile.set(e.file, { loaded: e.loaded, total: e.total });
+		let loaded = 0;
+		let total = 0;
+		for (const f of perFile.values()) {
+			loaded += f.loaded;
+			total += f.total;
+		}
+		if (total === 0) return;
+		onProgress?.({
+			stage: "downloading",
+			percent: Math.min(100, Math.round((loaded / total) * 100)),
+		});
+	};
+};
+
 export const removeBackground = (
 	input: RemoveBackgroundInput,
 ): Effect.Effect<Blob, BackgroundRemovalError> =>
 	Effect.gen(function* () {
 		yield* validateSize(input.file);
 
-		const model = yield* loadPipeline((e) => {
-			if (e.status === "progress") {
-				input.onProgress?.({
-					stage: "downloading",
-					percent: Math.round(e.progress),
-				});
-			}
-		});
+		const model = yield* loadPipeline(
+			aggregateDownloadProgress(input.onProgress),
+		);
 
 		return yield* useSourceUrl(input.file, (sourceUrl) =>
 			Effect.gen(function* () {

@@ -4,6 +4,7 @@ import { Download, ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { DownloadConsentDialog } from "#/components/download-consent-dialog.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Empty,
@@ -18,6 +19,9 @@ import {
 	removeBackground,
 } from "#/lib/image/background-removal.ts";
 import type { BackgroundRemovalError } from "#/lib/image/errors.ts";
+
+// One-time download the consent gate negotiates before the model is fetched.
+const MODEL_SIZE_LABEL = "~180MB";
 
 function userMessageFor(failure: BackgroundRemovalError | undefined): string {
 	switch (failure?._tag) {
@@ -56,6 +60,11 @@ function BackgroundRemovalPage() {
 	const [result, setResult] = useState<Blob | null>(null);
 	const [status, setStatus] = useState<Status>("idle");
 	const [progress, setProgress] = useState<RemoveProgress | null>(null);
+	const [consentOpen, setConsentOpen] = useState(false);
+	// True once the model has downloaded this session (it lives in a module Ref).
+	// Lets repeat images skip the consent gate. We can't cheaply detect a prior
+	// visit's browser-cached model, so a fresh page load shows the gate again.
+	const [modelLoaded, setModelLoaded] = useState(false);
 
 	const sourceUrl = useMemo(
 		() => (source ? URL.createObjectURL(source) : null),
@@ -103,13 +112,37 @@ function BackgroundRemovalPage() {
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
-	async function proceed() {
+	// Proceed gates on the one-time model download: show consent on first use,
+	// then run straight through once the model is loaded for the session.
+	function proceed() {
+		if (!source) return;
+		if (modelLoaded) {
+			void runRemoval();
+			return;
+		}
+		setConsentOpen(true);
+	}
+
+	function confirmDownload() {
+		setConsentOpen(false);
+		void runRemoval();
+	}
+
+	async function runRemoval() {
 		if (!source) return;
 		setStatus("processing");
 		setProgress({ stage: "downloading", percent: 0 });
 
 		const exit = await Effect.runPromiseExit(
-			removeBackground({ file: source, onProgress: setProgress }),
+			removeBackground({
+				file: source,
+				onProgress: (p) => {
+					// Download finished once inference starts — the model is now cached
+					// in the module Ref, so later images skip the consent gate.
+					if (p.stage === "processing") setModelLoaded(true);
+					setProgress(p);
+				},
+			}),
 		);
 
 		setProgress(null);
@@ -127,10 +160,14 @@ function BackgroundRemovalPage() {
 	}
 
 	const processing = status === "processing";
-	const loaderLabel =
-		progress?.stage === "downloading"
-			? `Preparing tools${progress.percent !== undefined ? ` ${progress.percent}%` : "…"}`
-			: "Removing background…";
+	const downloading = progress?.stage === "downloading";
+	const progressLabel = downloading
+		? `Downloading model ${progress.percent ?? 0}%`
+		: "Removing background…";
+	const progressPercent = downloading ? (progress.percent ?? 0) : 100;
+	const progressHint = downloading
+		? "Fetching the model. Your browser caches it for next time."
+		: "Running the model on your device. This can take a few seconds.";
 
 	return (
 		<div className="mx-auto w-full max-w-3xl px-6 py-10">
@@ -183,21 +220,30 @@ function BackgroundRemovalPage() {
 					<p className="mt-3 truncate text-xs text-muted-foreground">
 						{source.name}
 					</p>
-					<div className="mt-4 flex items-center justify-end gap-2">
-						<Button variant="ghost" onClick={reset} disabled={processing}>
-							Clear
-						</Button>
-						<Button onClick={proceed} disabled={processing}>
-							{processing ? (
-								<>
-									<Loader2 className="animate-spin" />
-									{loaderLabel}
-								</>
-							) : (
-								"Proceed"
-							)}
-						</Button>
-					</div>
+					{processing ? (
+						<div className="mt-4 rounded-lg border bg-muted/40 p-4">
+							<div className="flex items-center gap-3">
+								<Loader2 className="size-5 shrink-0 animate-spin text-primary" />
+								<p className="text-sm font-medium">{progressLabel}</p>
+							</div>
+							<div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+								<div
+									className="h-full bg-primary transition-[width] duration-150 ease-out"
+									style={{ width: `${progressPercent}%` }}
+								/>
+							</div>
+							<p className="mt-3 text-xs text-muted-foreground">
+								{progressHint}
+							</p>
+						</div>
+					) : (
+						<div className="mt-4 flex items-center justify-end gap-2">
+							<Button variant="ghost" onClick={reset}>
+								Clear
+							</Button>
+							<Button onClick={proceed}>Proceed</Button>
+						</div>
+					)}
 				</div>
 			) : (
 				<div className="rounded-xl border bg-card p-4">
@@ -257,6 +303,22 @@ function BackgroundRemovalPage() {
 					</div>
 				</div>
 			)}
+
+			<DownloadConsentDialog
+				open={consentOpen}
+				onOpenChange={setConsentOpen}
+				onConfirm={confirmDownload}
+				icon={<ImageIcon />}
+				title={`Download the background tool (${MODEL_SIZE_LABEL})`}
+				description={
+					<>
+						Background removal runs entirely on your device, but it needs a
+						one-time {MODEL_SIZE_LABEL} AI model. Your browser caches it after
+						the first download, so future use is faster. Nothing leaves your
+						browser.
+					</>
+				}
+			/>
 		</div>
 	);
 }
