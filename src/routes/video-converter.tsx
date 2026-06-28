@@ -14,6 +14,7 @@ import {
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { DownloadConsentDialog } from "#/components/download-consent-dialog.tsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -210,36 +211,23 @@ function EnginePanel({
           title="Preparing video tools"
           body="Checking for a cached engine…"
         />
-        <AlertDialog
+        <DownloadConsentDialog
           open={dialogOpen}
           onOpenChange={(open) => {
             if (!open) onDecline();
           }}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogMedia>
-                <Film />
-              </AlertDialogMedia>
-              <AlertDialogTitle>
-                Download the video engine ({ENGINE_SIZE_LABEL})
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Video conversion runs entirely on your device, but the engine
-                itself is a one-time {ENGINE_SIZE_LABEL} download. It is cached
-                after the first load, so return visits are instant. Nothing
-                leaves your browser.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Maybe later</AlertDialogCancel>
-              <AlertDialogAction onClick={onStart}>
-                <Download />
-                Yes, download
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          onConfirm={onStart}
+          icon={<Film />}
+          title={`Download the video engine (${ENGINE_SIZE_LABEL})`}
+          description={
+            <>
+              Video conversion runs entirely on your device, but the engine
+              itself is a one-time {ENGINE_SIZE_LABEL} download. It is cached
+              after the first load, so return visits are instant. Nothing leaves
+              your browser.
+            </>
+          }
+        />
       </>
     );
   }
