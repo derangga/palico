@@ -145,29 +145,29 @@ sequenceDiagram
     participant User
     participant Shell as CutterShell
     participant Engine as engine.ts
-    participant Trim as trim.ts (trimVideo)
+    participant Trim as trim.ts
     participant FF as FFmpeg Worker
 
     User->>Shell: click Proceed
-    Shell->>Engine: loadEngine() (idempotent, fast if cached)
-    Shell->>Trim: trimVideo({file, startSec, endSec}, isCancelled)
-    Trim->>Engine: getEngine (fails if not loaded)
-    Trim->>FF: writeFile(input.<ext>, bytes)
-    Trim->>FF: on("log")  %% no "progress": -c copy emits none
-    Trim->>FF: exec(["-ss", start, "-i", input, "-t", dur, "-c", "copy", "-avoid_negative_ts", "make_zero", output])
+    Shell->>Engine: loadEngine, idempotent and fast if cached
+    Shell->>Trim: trimVideo with file, startSec, endSec
+    Trim->>Engine: getEngine, fails if not loaded
+    Trim->>FF: writeFile staged input bytes
+    Trim->>FF: subscribe to log only, no progress on stream copy
+    Trim->>FF: exec the stream copy trim command
     FF-->>Trim: exit code
     alt exit code 0
-        Trim->>FF: readFile(output) -> Uint8Array
-        Trim->>FF: deleteFile(input), deleteFile(output)
-        Trim-->>Shell: { blob, size, name } (name = "<base>-trimmed.<ext>")
-        Shell->>User: result card with Save button (no auto-download)
+        Trim->>FF: readFile output bytes
+        Trim->>FF: deleteFile input and output
+        Trim-->>Shell: blob, size, and a trimmed file name
+        Shell->>User: result card with a Save button, no auto download
     else exit code non zero
         Trim->>Trim: inspect captured log
-        alt OOM / abort detected
-            Trim->>Engine: disposeEngine (worker is dead)
-            Trim-->>Shell: VideoTrimError (out of memory message)
+        alt OOM or abort detected
+            Trim->>Engine: disposeEngine, worker is dead
+            Trim-->>Shell: VideoTrimError, out of memory message
         else other failure
-            Trim-->>Shell: VideoTrimError (code + log tail)
+            Trim-->>Shell: VideoTrimError, code and log tail
         end
     end
 ```
@@ -246,17 +246,17 @@ soon as a file is picked:
 sequenceDiagram
     participant Route as CutterShell
     participant Thumbs as thumbnails.ts
-    participant V as offscreen <video>
-    participant C as <canvas>
+    participant V as offscreen video
+    participant C as canvas
 
-    Route->>Thumbs: generateThumbnails(file, count=12, width=160)
-    Thumbs->>V: src = objectURL; await loadedmetadata + loadeddata
-    loop count frames, evenly spaced
-        Thumbs->>V: currentTime = (i + 0.5)/count * duration
-        V-->>Thumbs: "seeked" (or timeout -> reject)
-        Thumbs->>C: drawImage(video) -> toDataURL("image/jpeg", 0.6)
+    Route->>Thumbs: generateThumbnails for 12 frames
+    Thumbs->>V: set src, await metadata then decoded data
+    loop 12 evenly spaced frames
+        Thumbs->>V: seek to the slice midpoint
+        V-->>Thumbs: seeked event, or timeout then reject
+        Thumbs->>C: drawImage then toDataURL as jpeg
     end
-    Thumbs-->>Route: string[] (data URLs)
+    Thumbs-->>Route: array of data URLs
 ```
 
 Robustness notes:

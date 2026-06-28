@@ -151,7 +151,7 @@ sequenceDiagram
     end
 
     Engine->>UI: phase = preparing
-    Engine->>FF: new FFmpeg(); ffmpeg.load({coreURL, wasmURL, workerURL})
+    Engine->>FF: "new FFmpeg(); ffmpeg.load({coreURL, wasmURL, workerURL})"
     FF-->>Engine: loaded
     Engine->>Engine: store handle in module Ref (singleton)
     Engine->>UI: phase = ready
@@ -255,7 +255,7 @@ sequenceDiagram
     User->>Shell: click Cancel
     Shell->>User: confirm dialog ("Cancel conversion?")
     User->>Shell: confirm
-    Shell->>Shell: token.cancelled = true; cancelling = true
+    Shell->>Shell: "token.cancelled = true; cancelling = true"
     Shell->>Engine: disposeEngine
     Engine->>FF: terminate() (rejects in flight exec, kills worker)
     Engine->>Engine: reset singleton Ref to none
