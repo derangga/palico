@@ -5,13 +5,21 @@ import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "#/components/ui/button.tsx";
+import { Input } from "#/components/ui/input.tsx";
 import {
 	Tabs,
 	TabsContent,
 	TabsList,
 	TabsTrigger,
 } from "#/components/ui/tabs.tsx";
-import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
+import {
+	allIndividualParts,
+	everyNPageParts,
+	extractPages,
+	loadPdf,
+	splitPdf,
+} from "#/lib/file/pdf.ts";
+import type { SplitPart } from "#/lib/file/pdf-types.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
@@ -48,7 +56,8 @@ function PdfSplitPage() {
 	const [rendering, setRendering] = useState(false);
 	const [mode, setMode] = useState<SplitMode>("extract");
 	const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
-	const [extracting, setExtracting] = useState(false);
+	const [everyN, setEveryN] = useState(2);
+	const [working, setWorking] = useState(false);
 
 	async function loadFile(picked: File) {
 		setFile(picked);
@@ -104,11 +113,11 @@ function PdfSplitPage() {
 	async function runExtract() {
 		if (!file || selected.size === 0) return;
 		const pageIndices = [...selected].sort((a, b) => a - b);
-		setExtracting(true);
+		setWorking(true);
 		const exit = await Effect.runPromiseExit(
 			extractPages({ id: crypto.randomUUID(), file, pageIndices }),
 		);
-		setExtracting(false);
+		setWorking(false);
 
 		if (exit._tag === "Success") {
 			downloadBlob(exit.value, `${baseName(file.name)}_extracted.pdf`);
@@ -119,9 +128,28 @@ function PdfSplitPage() {
 		toast.error(failure?.message ?? "Couldn't extract those pages.");
 	}
 
+	async function runSplit(parts: ReadonlyArray<SplitPart>) {
+		if (!file || parts.length === 0) return;
+		setWorking(true);
+		const exit = await Effect.runPromiseExit(
+			splitPdf({ id: crypto.randomUUID(), file, parts }),
+		);
+		setWorking(false);
+
+		if (exit._tag === "Success") {
+			downloadBlob(exit.value, `${baseName(file.name)}_split.zip`);
+			return;
+		}
+		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		if (failure) console.error(failure);
+		toast.error(failure?.message ?? "Couldn't split this PDF.");
+	}
+
 	const hasDocument = file !== null;
 	const ready = hasDocument && !rendering;
 	const selectable = mode === "extract" && ready;
+	const validEveryN = everyN >= 1 && everyN <= pageCount;
+	const everyNFileCount = validEveryN ? Math.ceil(pageCount / everyN) : 0;
 
 	return (
 		<div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -202,12 +230,8 @@ function PdfSplitPage() {
 					>
 						<TabsList>
 							<TabsTrigger value="extract">Extract pages</TabsTrigger>
-							<TabsTrigger value="every-n" disabled>
-								Every N pages
-							</TabsTrigger>
-							<TabsTrigger value="all" disabled>
-								All pages
-							</TabsTrigger>
+							<TabsTrigger value="every-n">Every N pages</TabsTrigger>
+							<TabsTrigger value="all">All pages</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="extract">
@@ -241,9 +265,9 @@ function PdfSplitPage() {
 									<Button
 										size="sm"
 										onClick={runExtract}
-										disabled={!ready || selected.size === 0 || extracting}
+										disabled={!ready || selected.size === 0 || working}
 									>
-										{extracting ? (
+										{working ? (
 											<Loader2 className="animate-spin" />
 										) : (
 											<Download />
@@ -251,6 +275,74 @@ function PdfSplitPage() {
 										Extract
 									</Button>
 								</div>
+							</div>
+						</TabsContent>
+
+						<TabsContent value="every-n">
+							<div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card px-4 py-3">
+								<div className="flex flex-col gap-1.5">
+									<span className="text-xs font-medium text-muted-foreground">
+										Pages per file
+									</span>
+									<Input
+										type="number"
+										min={1}
+										max={pageCount}
+										value={everyN}
+										onChange={(e) =>
+											setEveryN(
+												Math.max(1, Math.floor(Number(e.target.value) || 1)),
+											)
+										}
+										className="w-28"
+									/>
+									<span className="text-xs text-muted-foreground">
+										{validEveryN
+											? `Creates ${everyNFileCount} ${everyNFileCount === 1 ? "file" : "files"}, zipped.`
+											: `Enter a number between 1 and ${pageCount}.`}
+									</span>
+								</div>
+								<Button
+									size="sm"
+									onClick={() =>
+										file &&
+										runSplit(everyNPageParts(pageCount, everyN, file.name))
+									}
+									disabled={!ready || !validEveryN || working}
+								>
+									{working ? (
+										<Loader2 className="animate-spin" />
+									) : (
+										<Download />
+									)}
+									Split & download zip
+								</Button>
+							</div>
+						</TabsContent>
+
+						<TabsContent value="all">
+							<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
+								<p className="text-sm text-muted-foreground">
+									Split every page into its own PDF —{" "}
+									<span className="font-medium text-foreground">
+										{pageCount} {pageCount === 1 ? "file" : "files"}
+									</span>
+									, bundled into one zip.
+								</p>
+								<Button
+									size="sm"
+									onClick={() =>
+										file && runSplit(allIndividualParts(pageCount, file.name))
+									}
+									disabled={!ready || working}
+								>
+									{working ? (
+										<Loader2 className="animate-spin" />
+									) : (
+										<Download />
+									)}
+									Split & download zip
+								</Button>
 							</div>
 						</TabsContent>
 					</Tabs>

@@ -3,15 +3,21 @@ import { Effect } from "effect";
 import {
 	InvalidPdfError,
 	PdfExtractError,
+	PdfSplitError,
 	PdfTooLargeError,
 } from "./errors.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
 	type PdfThumbnail,
+	type SplitPart,
 	THUMBNAIL_WIDTH,
 } from "./pdf-types.ts";
-import { extractPdfPages, renderPdfThumbnails } from "./pdf-worker-client.ts";
+import {
+	extractPdfPages,
+	renderPdfThumbnails,
+	splitPdfToZip,
+} from "./pdf-worker-client.ts";
 
 const MB = 1024 * 1024;
 
@@ -81,4 +87,61 @@ export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 		pageIndices: params.pageIndices,
 	});
 	return new Blob([result], { type: "application/pdf" });
+});
+
+const baseName = (fileName: string) => fileName.replace(/\.pdf$/i, "");
+
+// Plan: chunk the document into consecutive groups of up to `size` pages, each
+// becoming one output PDF named "<base>_part_N.pdf".
+export const everyNPageParts = (
+	pageCount: number,
+	size: number,
+	fileName: string,
+): ReadonlyArray<SplitPart> => {
+	const base = baseName(fileName);
+	const parts: SplitPart[] = [];
+	for (let start = 0; start < pageCount; start += size) {
+		const end = Math.min(start + size, pageCount);
+		const pageIndices: number[] = [];
+		for (let i = start; i < end; i++) pageIndices.push(i);
+		parts.push({ name: `${base}_part_${parts.length + 1}.pdf`, pageIndices });
+	}
+	return parts;
+};
+
+// Plan: one single-page PDF per page, named "<base>_page_N.pdf".
+export const allIndividualParts = (
+	pageCount: number,
+	fileName: string,
+): ReadonlyArray<SplitPart> => {
+	const base = baseName(fileName);
+	const parts: SplitPart[] = [];
+	for (let i = 0; i < pageCount; i++) {
+		parts.push({ name: `${base}_page_${i + 1}.pdf`, pageIndices: [i] });
+	}
+	return parts;
+};
+
+// Split the PDF into the given parts and return them bundled as a single zip
+// Blob. Same re-read rationale as extractPages.
+export const splitPdf = Effect.fn("Pdf.splitPdf")(function* (params: {
+	readonly id: string;
+	readonly file: File;
+	readonly parts: ReadonlyArray<SplitPart>;
+}) {
+	const buffer = yield* Effect.tryPromise({
+		try: () => params.file.arrayBuffer(),
+		catch: (err) =>
+			new PdfSplitError({
+				fileName: params.file.name,
+				message: err instanceof Error ? err.message : "Could not read file.",
+			}),
+	});
+	const zip = yield* splitPdfToZip({
+		id: params.id,
+		fileName: params.file.name,
+		buffer,
+		parts: params.parts,
+	});
+	return new Blob([zip], { type: "application/zip" });
 });

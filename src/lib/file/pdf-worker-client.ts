@@ -5,6 +5,7 @@ import {
 	InvalidPdfError,
 	PdfExtractError,
 	type PdfLoadError,
+	PdfSplitError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
 } from "./errors.ts";
@@ -13,6 +14,7 @@ import {
 	type PdfThumbnail,
 	type PdfWorkerResponse,
 	type RenderedPdf,
+	type SplitPart,
 } from "./pdf-types.ts";
 
 // Spin up a one-shot worker, transfer the PDF bytes in, and stream the rendered
@@ -144,6 +146,62 @@ export const extractPdfPages = (params: {
 						id: params.id,
 						buffer: params.buffer,
 						pageIndices: [...params.pageIndices],
+					},
+					[params.buffer],
+				);
+			}),
+		(worker) => Effect.sync(() => worker.terminate()),
+	);
+
+// Spin up a one-shot worker, transfer the PDF bytes in, and split it into the
+// given parts, bundled as a single zip. Resolves with the zip bytes.
+export const splitPdfToZip = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffer: ArrayBuffer;
+	readonly parts: ReadonlyArray<SplitPart>;
+}): Effect.Effect<ArrayBuffer, PdfSplitError> =>
+	Effect.acquireUseRelease(
+		Effect.sync(
+			() =>
+				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
+					type: "module",
+				}),
+		),
+		(worker) =>
+			Effect.async<ArrayBuffer, PdfSplitError>((resume) => {
+				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
+					const res = event.data;
+					if (res.type === "zipped") {
+						resume(Effect.succeed(res.bytes));
+					} else if (res.type === "error") {
+						resume(
+							Effect.fail(
+								new PdfSplitError({
+									fileName: params.fileName,
+									message: res.message,
+								}),
+							),
+						);
+					}
+				};
+				worker.onerror = (event) => {
+					resume(
+						Effect.fail(
+							new PdfSplitError({
+								fileName: params.fileName,
+								message: event.message || "PDF worker crashed.",
+							}),
+						),
+					);
+				};
+
+				worker.postMessage(
+					{
+						type: "split",
+						id: params.id,
+						buffer: params.buffer,
+						parts: params.parts,
 					},
 					[params.buffer],
 				);

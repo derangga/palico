@@ -84,3 +84,12 @@ export class PdfExtractError extends Schema.TaggedError<PdfExtractError>()(
 		message: Schema.String,
 	},
 ) {}
+
+// Raised when splitting into multiple PDFs or zipping them fails (pdf-lib/fflate).
+export class PdfSplitError extends Schema.TaggedError<PdfSplitError>()(
+	"PdfSplitError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}

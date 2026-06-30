@@ -46,7 +46,28 @@ export const ExtractRequest = Schema.Struct({
 });
 export type ExtractRequest = Schema.Schema.Type<typeof ExtractRequest>;
 
-export const PdfWorkerRequest = Schema.Union(RenderRequest, ExtractRequest);
+// One output PDF in a split job: a member file name + the 0-based page indices
+// (in order) that make it up.
+export const SplitPart = Schema.Struct({
+	name: Schema.String,
+	pageIndices: Schema.Array(Schema.Number),
+});
+export type SplitPart = Schema.Schema.Type<typeof SplitPart>;
+
+// Copy each part into its own PDF, then bundle them all into a single zip.
+export const SplitRequest = Schema.Struct({
+	type: Schema.Literal("split"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+	parts: Schema.Array(SplitPart),
+});
+export type SplitRequest = Schema.Schema.Type<typeof SplitRequest>;
+
+export const PdfWorkerRequest = Schema.Union(
+	RenderRequest,
+	ExtractRequest,
+	SplitRequest,
+);
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
 export const PdfWorkerErrorReason = Schema.Literal(
@@ -81,6 +102,11 @@ export const PdfWorkerResponse = Schema.Union(
 	}),
 	Schema.Struct({
 		type: Schema.Literal("extracted"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
+	}),
+	Schema.Struct({
+		type: Schema.Literal("zipped"),
 		id: Schema.String,
 		bytes: Schema.instanceOf(ArrayBuffer),
 	}),

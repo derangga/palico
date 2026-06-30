@@ -19,6 +19,7 @@ import type {
 	PdfWorkerRequest,
 	PdfWorkerResponse,
 	RenderRequest,
+	SplitRequest,
 } from "#/lib/file/pdf-types.ts";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
@@ -204,6 +205,30 @@ async function extract(req: ExtractRequest): Promise<void> {
 	post({ type: "extracted", id: req.id, bytes: buffer }, [buffer]);
 }
 
+// Copy each part into its own PDF, bundle them all into one zip, and ship the
+// zip bytes back. pdf-lib + fflate are dynamically imported so they only load
+// when a split actually runs. Stored (level 0) since PDFs barely compress.
+async function split(req: SplitRequest): Promise<void> {
+	const [{ PDFDocument }, { zipSync }] = await Promise.all([
+		import("pdf-lib"),
+		import("fflate"),
+	]);
+	const src = await PDFDocument.load(req.buffer);
+	const files: Record<string, Uint8Array> = {};
+	for (const part of req.parts) {
+		const out = await PDFDocument.create();
+		const pages = await out.copyPages(src, [...part.pageIndices]);
+		for (const page of pages) out.addPage(page);
+		files[part.name] = await out.save();
+	}
+	const zipped = zipSync(files, { level: 0 });
+	const buffer = zipped.buffer.slice(
+		zipped.byteOffset,
+		zipped.byteOffset + zipped.byteLength,
+	) as ArrayBuffer;
+	post({ type: "zipped", id: req.id, bytes: buffer }, [buffer]);
+}
+
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
 	const fail = (err: unknown) =>
@@ -218,5 +243,7 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 		render(req).catch(fail);
 	} else if (req.type === "extract") {
 		extract(req).catch(fail);
+	} else if (req.type === "split") {
+		split(req).catch(fail);
 	}
 });
