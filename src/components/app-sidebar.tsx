@@ -41,6 +41,7 @@ const videoItems = [
 
 const fileItems = [
 	{ to: "/diff-viewer", label: "Diff Viewer", icon: FileDiff },
+	{ to: "/pdf-split", label: "Split PDF", icon: Scissors },
 ] as const;
 
 export function AppSidebar() {
