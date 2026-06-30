@@ -13,6 +13,7 @@ import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
+import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const FaviconGeneratorRoute = FaviconGeneratorRouteImport.update({
   path: '/favicon-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DiffViewerRoute = DiffViewerRouteImport.update({
+  id: '/diff-viewer',
+  path: '/diff-viewer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConverterRoute = ConverterRouteImport.update({
   id: '/converter',
   path: '/converter',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/converter': typeof ConverterRoute
+  '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/background-removal'
     | '/converter'
+    | '/diff-viewer'
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/background-removal'
     | '/converter'
+    | '/diff-viewer'
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/background-removal'
     | '/converter'
+    | '/diff-viewer'
     | '/favicon-generator'
     | '/resizer'
     | '/video-converter'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackgroundRemovalRoute: typeof BackgroundRemovalRoute
   ConverterRoute: typeof ConverterRoute
+  DiffViewerRoute: typeof DiffViewerRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   ResizerRoute: typeof ResizerRoute
   VideoConverterRoute: typeof VideoConverterRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaviconGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/diff-viewer': {
+      id: '/diff-viewer'
+      path: '/diff-viewer'
+      fullPath: '/diff-viewer'
+      preLoaderRoute: typeof DiffViewerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/converter': {
       id: '/converter'
       path: '/converter'
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackgroundRemovalRoute: BackgroundRemovalRoute,
   ConverterRoute: ConverterRoute,
+  DiffViewerRoute: DiffViewerRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   ResizerRoute: ResizerRoute,
   VideoConverterRoute: VideoConverterRoute,
