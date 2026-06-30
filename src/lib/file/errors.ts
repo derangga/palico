@@ -93,3 +93,12 @@ export class PdfSplitError extends Schema.TaggedError<PdfSplitError>()(
 		message: Schema.String,
 	},
 ) {}
+
+// Merging multiple PDFs into one failed (read or pdf-lib concat error).
+export class PdfMergeError extends Schema.TaggedError<PdfMergeError>()(
+	"PdfMergeError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}

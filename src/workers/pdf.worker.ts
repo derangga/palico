@@ -16,6 +16,7 @@ import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 import type {
 	ExtractRequest,
+	MergeRequest,
 	PdfWorkerRequest,
 	PdfWorkerResponse,
 	RenderRequest,
@@ -145,7 +146,13 @@ async function render(req: RenderRequest): Promise<void> {
 
 		post({ type: "meta", id: req.id, pageCount });
 
-		for (let n = 1; n <= pageCount; n++) {
+		// Render at most `thumbnailLimit` pages (merge wants just the first-page
+		// cover); the page-count guard above still uses the full document length.
+		const renderCount =
+			req.thumbnailLimit != null
+				? Math.min(pageCount, req.thumbnailLimit)
+				: pageCount;
+		for (let n = 1; n <= renderCount; n++) {
 			const page = await doc.getPage(n);
 			const base = page.getViewport({ scale: 1 });
 			const scale = req.thumbnailWidth / base.width;
@@ -229,6 +236,26 @@ async function split(req: SplitRequest): Promise<void> {
 	post({ type: "zipped", id: req.id, bytes: buffer }, [buffer]);
 }
 
+// Concatenate every page of each buffer (in array order) into one PDF and ship
+// the bytes back. pdf-lib is dynamically imported so it only loads when a merge
+// actually runs. Best-effort fidelity — pages copy faithfully; form fields /
+// annotations / outlines / metadata are not guaranteed.
+async function merge(req: MergeRequest): Promise<void> {
+	const { PDFDocument } = await import("pdf-lib");
+	const out = await PDFDocument.create();
+	for (const buffer of req.buffers) {
+		const src = await PDFDocument.load(buffer);
+		const pages = await out.copyPages(src, src.getPageIndices());
+		for (const page of pages) out.addPage(page);
+	}
+	const bytes = await out.save();
+	const buffer = bytes.buffer.slice(
+		bytes.byteOffset,
+		bytes.byteOffset + bytes.byteLength,
+	) as ArrayBuffer;
+	post({ type: "merged", id: req.id, bytes: buffer }, [buffer]);
+}
+
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
 	const fail = (err: unknown) =>
@@ -245,5 +272,7 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 		extract(req).catch(fail);
 	} else if (req.type === "split") {
 		split(req).catch(fail);
+	} else if (req.type === "merge") {
+		merge(req).catch(fail);
 	}
 });
