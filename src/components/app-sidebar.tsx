@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
 	Cat,
 	Eraser,
+	FileDiff,
 	Film,
 	Home,
 	ImageIcon,
@@ -36,6 +37,10 @@ const imageItems = [
 const videoItems = [
 	{ to: "/video-converter", label: "Video Converter", icon: Film },
 	{ to: "/video-cutter", label: "Video Cutter", icon: Scissors },
+] as const;
+
+const fileItems = [
+	{ to: "/diff-viewer", label: "Diff Viewer", icon: FileDiff },
 ] as const;
 
 export function AppSidebar() {
@@ -93,6 +98,12 @@ export function AppSidebar() {
 					<SidebarGroupLabel>Video</SidebarGroupLabel>
 					<SidebarGroupContent>
 						<SidebarMenu>{videoItems.map(renderItem)}</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+				<SidebarGroup>
+					<SidebarGroupLabel>File</SidebarGroupLabel>
+					<SidebarGroupContent>
+						<SidebarMenu>{fileItems.map(renderItem)}</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
