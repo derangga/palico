@@ -5,6 +5,7 @@ import {
 	InvalidPdfError,
 	PdfExtractError,
 	type PdfLoadError,
+	PdfMergeError,
 	PdfSplitError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
@@ -28,6 +29,7 @@ export const renderPdfThumbnails = (
 		readonly buffer: ArrayBuffer;
 		readonly maxPages: number;
 		readonly thumbnailWidth: number;
+		readonly thumbnailLimit?: number;
 	},
 	onThumbnail: (thumbnail: PdfThumbnail) => void,
 ): Effect.Effect<RenderedPdf, PdfLoadError> =>
@@ -89,6 +91,7 @@ export const renderPdfThumbnails = (
 						buffer: params.buffer,
 						maxPages: params.maxPages,
 						thumbnailWidth: params.thumbnailWidth,
+						thumbnailLimit: params.thumbnailLimit,
 					},
 					[params.buffer],
 				);
@@ -204,6 +207,61 @@ export const splitPdfToZip = (params: {
 						parts: params.parts,
 					},
 					[params.buffer],
+				);
+			}),
+		(worker) => Effect.sync(() => worker.terminate()),
+	);
+
+// Spin up a one-shot worker, transfer every PDF's bytes in, and concatenate all
+// their pages (in array order) into a single PDF. Resolves with the merged
+// document's bytes. Termination is guaranteed via acquireUseRelease.
+export const mergePdfFiles = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffers: ReadonlyArray<ArrayBuffer>;
+}): Effect.Effect<ArrayBuffer, PdfMergeError> =>
+	Effect.acquireUseRelease(
+		Effect.sync(
+			() =>
+				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
+					type: "module",
+				}),
+		),
+		(worker) =>
+			Effect.async<ArrayBuffer, PdfMergeError>((resume) => {
+				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
+					const res = event.data;
+					if (res.type === "merged") {
+						resume(Effect.succeed(res.bytes));
+					} else if (res.type === "error") {
+						resume(
+							Effect.fail(
+								new PdfMergeError({
+									fileName: params.fileName,
+									message: res.message,
+								}),
+							),
+						);
+					}
+				};
+				worker.onerror = (event) => {
+					resume(
+						Effect.fail(
+							new PdfMergeError({
+								fileName: params.fileName,
+								message: event.message || "PDF worker crashed.",
+							}),
+						),
+					);
+				};
+
+				worker.postMessage(
+					{
+						type: "merge",
+						id: params.id,
+						buffers: [...params.buffers],
+					},
+					[...params.buffers],
 				);
 			}),
 		(worker) => Effect.sync(() => worker.terminate()),

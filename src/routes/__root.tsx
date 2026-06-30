@@ -49,6 +49,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/video-cutter": "Video Cutter",
   "/diff-viewer": "File Diff Viewer",
   "/pdf-split": "Split PDF",
+  "/pdf-merge": "Merge PDFs",
 };
 
 function RootLayout() {

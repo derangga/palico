@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import {
 	InvalidPdfError,
 	PdfExtractError,
+	PdfMergeError,
 	PdfSplitError,
 	PdfTooLargeError,
 } from "./errors.ts";
@@ -15,6 +16,7 @@ import {
 } from "./pdf-types.ts";
 import {
 	extractPdfPages,
+	mergePdfFiles,
 	renderPdfThumbnails,
 	splitPdfToZip,
 } from "./pdf-worker-client.ts";
@@ -40,7 +42,13 @@ const validateSize = (file: File): Effect.Effect<void, PdfTooLargeError> =>
 // are detected in the worker and surfaced as typed errors. `onThumbnail` fires
 // per page so the UI can paint thumbnails as they arrive.
 export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
-	params: { readonly id: string; readonly file: File },
+	params: {
+		readonly id: string;
+		readonly file: File;
+		// Cap how many pages are rasterized into thumbnails. The page-count guard
+		// still uses the full document. Merge passes 1 (first-page cover only).
+		readonly thumbnailLimit?: number;
+	},
 	onThumbnail: (thumbnail: PdfThumbnail) => void,
 ) {
 	yield* validateSize(params.file);
@@ -59,6 +67,7 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 			buffer,
 			maxPages: MAX_PDF_PAGES,
 			thumbnailWidth: THUMBNAIL_WIDTH,
+			thumbnailLimit: params.thumbnailLimit,
 		},
 		onThumbnail,
 	);
@@ -144,4 +153,29 @@ export const splitPdf = Effect.fn("Pdf.splitPdf")(function* (params: {
 		parts: params.parts,
 	});
 	return new Blob([zip], { type: "application/zip" });
+});
+
+// Concatenate every page of every file (in the given order) into a single PDF
+// and return it as a downloadable Blob. Each File is re-read here since its
+// buffer was transferred away while rendering its cover thumbnail.
+export const mergePdfs = Effect.fn("Pdf.mergePdfs")(function* (params: {
+	readonly id: string;
+	readonly files: ReadonlyArray<File>;
+}) {
+	const buffers = yield* Effect.forEach(params.files, (file) =>
+		Effect.tryPromise({
+			try: () => file.arrayBuffer(),
+			catch: (err) =>
+				new PdfMergeError({
+					fileName: file.name,
+					message: err instanceof Error ? err.message : "Could not read file.",
+				}),
+		}),
+	);
+	const merged = yield* mergePdfFiles({
+		id: params.id,
+		fileName: "merged.pdf",
+		buffers,
+	});
+	return new Blob([merged], { type: "application/pdf" });
 });

@@ -13,6 +13,7 @@ import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
+import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
@@ -37,6 +38,11 @@ const ResizerRoute = ResizerRouteImport.update({
 const PdfSplitRoute = PdfSplitRouteImport.update({
   id: '/pdf-split',
   path: '/pdf-split',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfMergeRoute = PdfMergeRouteImport.update({
+  id: '/pdf-merge',
+  path: '/pdf-merge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaviconGeneratorRoute = FaviconGeneratorRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
   '/video-converter': typeof VideoConverterRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
     | '/video-converter'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
     | '/video-converter'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
     | '/video-converter'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   ConverterRoute: typeof ConverterRoute
   DiffViewerRoute: typeof DiffViewerRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
+  PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
   ResizerRoute: typeof ResizerRoute
   VideoConverterRoute: typeof VideoConverterRoute
@@ -175,6 +188,13 @@ declare module '@tanstack/react-router' {
       path: '/pdf-split'
       fullPath: '/pdf-split'
       preLoaderRoute: typeof PdfSplitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-merge': {
+      id: '/pdf-merge'
+      path: '/pdf-merge'
+      fullPath: '/pdf-merge'
+      preLoaderRoute: typeof PdfMergeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favicon-generator': {
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConverterRoute: ConverterRoute,
   DiffViewerRoute: DiffViewerRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
+  PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,
   ResizerRoute: ResizerRoute,
   VideoConverterRoute: VideoConverterRoute,

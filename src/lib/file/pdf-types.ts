@@ -34,6 +34,10 @@ export const RenderRequest = Schema.Struct({
 	buffer: Schema.instanceOf(ArrayBuffer),
 	maxPages: Schema.Number,
 	thumbnailWidth: Schema.Number,
+	// Cap how many pages are rasterized. The page-count guard still uses the
+	// full document length; this only limits rendering. Merge sets this to 1 to
+	// render just the first-page cover thumbnail. Omitted => render all pages.
+	thumbnailLimit: Schema.optional(Schema.Number),
 });
 export type RenderRequest = Schema.Schema.Type<typeof RenderRequest>;
 
@@ -63,10 +67,19 @@ export const SplitRequest = Schema.Struct({
 });
 export type SplitRequest = Schema.Schema.Type<typeof SplitRequest>;
 
+// Concatenate every page of each buffer (in array order) into one PDF.
+export const MergeRequest = Schema.Struct({
+	type: Schema.Literal("merge"),
+	id: Schema.String,
+	buffers: Schema.Array(Schema.instanceOf(ArrayBuffer)),
+});
+export type MergeRequest = Schema.Schema.Type<typeof MergeRequest>;
+
 export const PdfWorkerRequest = Schema.Union(
 	RenderRequest,
 	ExtractRequest,
 	SplitRequest,
+	MergeRequest,
 );
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
@@ -107,6 +120,11 @@ export const PdfWorkerResponse = Schema.Union(
 	}),
 	Schema.Struct({
 		type: Schema.Literal("zipped"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
+	}),
+	Schema.Struct({
+		type: Schema.Literal("merged"),
 		id: Schema.String,
 		bytes: Schema.instanceOf(ArrayBuffer),
 	}),
