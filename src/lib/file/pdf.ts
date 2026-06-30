@@ -1,13 +1,17 @@
 import { Effect } from "effect";
 
-import { InvalidPdfError, PdfTooLargeError } from "./errors.ts";
+import {
+	InvalidPdfError,
+	PdfExtractError,
+	PdfTooLargeError,
+} from "./errors.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
 	type PdfThumbnail,
 	THUMBNAIL_WIDTH,
 } from "./pdf-types.ts";
-import { renderPdfThumbnails } from "./pdf-worker-client.ts";
+import { extractPdfPages, renderPdfThumbnails } from "./pdf-worker-client.ts";
 
 const MB = 1024 * 1024;
 
@@ -52,4 +56,29 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 		},
 		onThumbnail,
 	);
+});
+
+// Copy the selected 0-based page indices (in document order) into a new PDF and
+// return it as a downloadable Blob. The file is re-read here so the original
+// File stays the source of truth (its buffer was transferred away during render).
+export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
+	readonly id: string;
+	readonly file: File;
+	readonly pageIndices: ReadonlyArray<number>;
+}) {
+	const buffer = yield* Effect.tryPromise({
+		try: () => params.file.arrayBuffer(),
+		catch: (err) =>
+			new PdfExtractError({
+				fileName: params.file.name,
+				message: err instanceof Error ? err.message : "Could not read file.",
+			}),
+	});
+	const result = yield* extractPdfPages({
+		id: params.id,
+		fileName: params.file.name,
+		buffer,
+		pageIndices: params.pageIndices,
+	});
+	return new Blob([result], { type: "application/pdf" });
 });

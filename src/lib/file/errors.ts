@@ -75,3 +75,12 @@ export type PdfLoadError =
 	| InvalidPdfError
 	| EncryptedPdfError
 	| PdfWorkerError;
+
+// Raised when copying/saving pages into a new PDF fails (pdf-lib).
+export class PdfExtractError extends Schema.TaggedError<PdfExtractError>()(
+	"PdfExtractError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}

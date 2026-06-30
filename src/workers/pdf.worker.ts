@@ -14,7 +14,12 @@ import {
 // too. The bundled asset keeps everything offline — nothing is fetched at runtime.
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-import type { PdfWorkerResponse, RenderRequest } from "#/lib/file/pdf-types.ts";
+import type {
+	ExtractRequest,
+	PdfWorkerRequest,
+	PdfWorkerResponse,
+	RenderRequest,
+} from "#/lib/file/pdf-types.ts";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
@@ -181,16 +186,37 @@ async function render(req: RenderRequest): Promise<void> {
 	}
 }
 
-self.addEventListener("message", (event: MessageEvent<RenderRequest>) => {
+// Copy the requested pages into a fresh PDF and ship the bytes back. pdf-lib is
+// dynamically imported so it only loads when an extract actually runs — the
+// render path (first drop) never pays for it.
+async function extract(req: ExtractRequest): Promise<void> {
+	const { PDFDocument } = await import("pdf-lib");
+	const src = await PDFDocument.load(req.buffer);
+	const out = await PDFDocument.create();
+	const pages = await out.copyPages(src, [...req.pageIndices]);
+	for (const page of pages) out.addPage(page);
+	const bytes = await out.save();
+	// Hand back a standalone, exactly-sized ArrayBuffer we can transfer.
+	const buffer = bytes.buffer.slice(
+		bytes.byteOffset,
+		bytes.byteOffset + bytes.byteLength,
+	) as ArrayBuffer;
+	post({ type: "extracted", id: req.id, bytes: buffer }, [buffer]);
+}
+
+self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
-	if (req.type === "render") {
-		render(req).catch((err) => {
-			post({
-				type: "error",
-				id: req.id,
-				reason: "worker",
-				message: err instanceof Error ? err.message : "PDF worker failed.",
-			});
+	const fail = (err: unknown) =>
+		post({
+			type: "error",
+			id: req.id,
+			reason: "worker",
+			message: err instanceof Error ? err.message : "PDF worker failed.",
 		});
+
+	if (req.type === "render") {
+		render(req).catch(fail);
+	} else if (req.type === "extract") {
+		extract(req).catch(fail);
 	}
 });

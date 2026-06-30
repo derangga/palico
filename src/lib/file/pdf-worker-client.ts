@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import {
 	EncryptedPdfError,
 	InvalidPdfError,
+	PdfExtractError,
 	type PdfLoadError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
@@ -86,6 +87,63 @@ export const renderPdfThumbnails = (
 						buffer: params.buffer,
 						maxPages: params.maxPages,
 						thumbnailWidth: params.thumbnailWidth,
+					},
+					[params.buffer],
+				);
+			}),
+		(worker) => Effect.sync(() => worker.terminate()),
+	);
+
+// Spin up a one-shot worker, transfer the PDF bytes in, and copy the requested
+// pages into a new PDF. Resolves with the new document's bytes. Termination is
+// guaranteed via acquireUseRelease.
+export const extractPdfPages = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffer: ArrayBuffer;
+	readonly pageIndices: ReadonlyArray<number>;
+}): Effect.Effect<ArrayBuffer, PdfExtractError> =>
+	Effect.acquireUseRelease(
+		Effect.sync(
+			() =>
+				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
+					type: "module",
+				}),
+		),
+		(worker) =>
+			Effect.async<ArrayBuffer, PdfExtractError>((resume) => {
+				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
+					const res = event.data;
+					if (res.type === "extracted") {
+						resume(Effect.succeed(res.bytes));
+					} else if (res.type === "error") {
+						resume(
+							Effect.fail(
+								new PdfExtractError({
+									fileName: params.fileName,
+									message: res.message,
+								}),
+							),
+						);
+					}
+				};
+				worker.onerror = (event) => {
+					resume(
+						Effect.fail(
+							new PdfExtractError({
+								fileName: params.fileName,
+								message: event.message || "PDF worker crashed.",
+							}),
+						),
+					);
+				};
+
+				worker.postMessage(
+					{
+						type: "extract",
+						id: params.id,
+						buffer: params.buffer,
+						pageIndices: [...params.pageIndices],
 					},
 					[params.buffer],
 				);

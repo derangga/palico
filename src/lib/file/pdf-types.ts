@@ -37,7 +37,16 @@ export const RenderRequest = Schema.Struct({
 });
 export type RenderRequest = Schema.Schema.Type<typeof RenderRequest>;
 
-export const PdfWorkerRequest = RenderRequest;
+// Copy the given 0-based page indices (in the order provided) into a new PDF.
+export const ExtractRequest = Schema.Struct({
+	type: Schema.Literal("extract"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+	pageIndices: Schema.Array(Schema.Number),
+});
+export type ExtractRequest = Schema.Schema.Type<typeof ExtractRequest>;
+
+export const PdfWorkerRequest = Schema.Union(RenderRequest, ExtractRequest);
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
 export const PdfWorkerErrorReason = Schema.Literal(
@@ -69,6 +78,11 @@ export const PdfWorkerResponse = Schema.Union(
 	Schema.Struct({
 		type: Schema.Literal("done"),
 		id: Schema.String,
+	}),
+	Schema.Struct({
+		type: Schema.Literal("extracted"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
 	}),
 	Schema.Struct({
 		type: Schema.Literal("error"),
