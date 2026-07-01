@@ -11,6 +11,7 @@ import {
 	ImageIcon,
 	Scaling,
 	Scissors,
+	ScrollText,
 	Star,
 } from "lucide-react";
 import type React from "react";
@@ -43,6 +44,7 @@ const videoItems = [
 ] as const;
 
 const fileItems = [
+	{ to: "/markdown-preview", label: "Markdown Preview", icon: ScrollText },
 	{ to: "/diff-viewer", label: "Diff Viewer", icon: FileDiff },
 	{ to: "/pdf-split", label: "Split PDF", icon: FileStack },
 	{ to: "/pdf-merge", label: "Merge PDFs", icon: Combine },
