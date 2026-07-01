@@ -14,6 +14,7 @@ import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
+import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
@@ -43,6 +44,11 @@ const PdfSplitRoute = PdfSplitRouteImport.update({
 const PdfMergeRoute = PdfMergeRouteImport.update({
   id: '/pdf-merge',
   path: '/pdf-merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficeToPdfRoute = OfficeToPdfRouteImport.update({
+  id: '/office-to-pdf',
+  path: '/office-to-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaviconGeneratorRoute = FaviconGeneratorRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
+  '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
+    | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   ConverterRoute: typeof ConverterRoute
   DiffViewerRoute: typeof DiffViewerRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
+  OfficeToPdfRoute: typeof OfficeToPdfRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
   ResizerRoute: typeof ResizerRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/pdf-merge'
       fullPath: '/pdf-merge'
       preLoaderRoute: typeof PdfMergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/office-to-pdf': {
+      id: '/office-to-pdf'
+      path: '/office-to-pdf'
+      fullPath: '/office-to-pdf'
+      preLoaderRoute: typeof OfficeToPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favicon-generator': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConverterRoute: ConverterRoute,
   DiffViewerRoute: DiffViewerRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
+  OfficeToPdfRoute: OfficeToPdfRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,
   ResizerRoute: ResizerRoute,

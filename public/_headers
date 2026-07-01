@@ -8,3 +8,12 @@
 /assets/*
   Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Resource-Policy: same-origin
+
+# The vendored ZetaOffice runtime (Office → PDF) is served from /vendor/* and
+# loaded as ES modules on the main thread and inside LibreOffice's pthread
+# worker. Same COEP/CORP reasoning as /assets/* above so it loads under the
+# cross-origin-isolated document. (In dev, vite.config.ts's serveVendorStatic
+# applies these instead.)
+/vendor/*
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
