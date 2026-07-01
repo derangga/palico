@@ -1,0 +1,129 @@
+import { useWorkerPool, WorkerPoolContextProvider } from "@pierre/diffs/react";
+// Vite bundles the package's worker entry; `?worker` yields a Worker constructor.
+import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
+import { Effect } from "effect";
+import { FileDiff, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+import { DIFF_THEME, DiffView } from "#/components/diff-view.tsx";
+import { Button } from "#/components/ui/button.tsx";
+import { Textarea } from "#/components/ui/textarea.tsx";
+import { computeDiff, type DiffResult } from "#/lib/file/diff.ts";
+import type { DiffLanguage } from "#/lib/file/types.ts";
+
+// Warm the singleton worker pool as soon as the workspace mounts so the first
+// in-view language switch highlights without a cold-start stall. Idempotent;
+// failure is non-fatal — the pool falls back to lazy init on the first task.
+function PoolWarmup() {
+	const pool = useWorkerPool();
+	useEffect(() => {
+		pool?.initialize().catch((cause) => console.error(cause));
+	}, [pool]);
+	return null;
+}
+
+// Everything below the route lives under a single, always-mounted
+// WorkerPoolContextProvider. The provider owns a module-level singleton pool
+// that terminates when its last instance unmounts, so it must NOT sit inside a
+// view that toggles on/off (the old bug: Back unmounted it, and re-running the
+// diff rendered an empty result against a torn-down pool).
+export function DiffWorkspace() {
+	// Language is chosen on the result screen, never on the input form. The diff
+	// itself is line-based (jsdiff) and language-agnostic, so every diff starts as
+	// plain text and the in-view LanguageSelect switches highlighting. This is
+	// deliberate: @pierre/diffs drops a highlight task whose render options change
+	// while it's in flight, which is exactly what happens on the very first diff
+	// (the pool's options are still being set). Rendering plain first and letting
+	// the selector re-highlight runs against a settled pool, so it always lands.
+	const [language, setLanguage] = useState<DiffLanguage>("text");
+	const [original, setOriginal] = useState("");
+	const [changed, setChanged] = useState("");
+	const [result, setResult] = useState<DiffResult | null>(null);
+	const [running, setRunning] = useState(false);
+
+	const canDiff = original.trim().length > 0 && changed.trim().length > 0;
+
+	async function findDifference() {
+		setRunning(true);
+		const exit = await Effect.runPromiseExit(
+			computeDiff({ original, changed, language: "text" }),
+		);
+		setRunning(false);
+		if (exit._tag === "Success") {
+			// Start every result plain so the selector acts as a re-highlight toggle.
+			setLanguage("text");
+			setResult(exit.value);
+			return;
+		}
+		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		if (failure) console.error(failure);
+		toast.error(failure?.message ?? "Couldn't compute the difference.");
+	}
+
+	return (
+		<WorkerPoolContextProvider
+			poolOptions={{
+				workerFactory: () => new DiffsWorker(),
+				poolSize: 2,
+			}}
+			highlighterOptions={{ lineDiffType: "word", theme: DIFF_THEME }}
+		>
+			<PoolWarmup />
+			{result ? (
+				<DiffView
+					result={result}
+					language={language}
+					onLanguageChange={setLanguage}
+					onBack={() => setResult(null)}
+				/>
+			) : (
+				<div className="mx-auto w-full max-w-6xl px-6 py-10">
+					<div className="mb-6">
+						<h1 className="text-2xl font-bold">File Diff Viewer</h1>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Paste your original and changed text side by side, then find the
+							differences. Everything runs on your device — nothing is uploaded.
+						</p>
+					</div>
+
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs font-medium text-muted-foreground">
+								Original
+							</span>
+							<Textarea
+								value={original}
+								onChange={(e) => setOriginal(e.target.value)}
+								placeholder="Paste the original text…"
+								spellCheck={false}
+								className="h-[55vh] resize-none font-mono text-sm"
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<span className="text-xs font-medium text-muted-foreground">
+								Changed
+							</span>
+							<Textarea
+								value={changed}
+								onChange={(e) => setChanged(e.target.value)}
+								placeholder="Paste the changed text…"
+								spellCheck={false}
+								className="h-[55vh] resize-none font-mono text-sm"
+							/>
+						</div>
+					</div>
+
+					<div className="mt-6 flex justify-center">
+						<Button onClick={findDifference} disabled={!canDiff || running}>
+							{running ? <Loader2 className="animate-spin" /> : <FileDiff />}
+							Find Difference
+						</Button>
+					</div>
+				</div>
+			)}
+		</WorkerPoolContextProvider>
+	);
+}
+
+export default DiffWorkspace;
