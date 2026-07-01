@@ -201,3 +201,97 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Syntax highlighting for fenced code in the Markdown Preview. rehype-highlight
+ * (highlight.js) emits `hljs-*` token classes; we colour them here instead of
+ * pulling a stock highlight.js theme so the palette tracks our warm light theme
+ * and its dark variant. Values are GitHub-ish token hues tuned to sit on the
+ * muted code background the typography plugin already applies.
+ */
+@layer base {
+  .hljs-comment,
+  .hljs-quote {
+    color: oklch(0.55 0.03 70);
+    font-style: italic;
+  }
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-doctag {
+    color: oklch(0.5 0.19 25);
+  }
+  .hljs-string,
+  .hljs-regexp,
+  .hljs-addition {
+    color: oklch(0.52 0.13 150);
+  }
+  .hljs-number,
+  .hljs-built_in,
+  .hljs-symbol,
+  .hljs-attr,
+  .hljs-variable,
+  .hljs-template-variable {
+    color: oklch(0.55 0.13 45);
+  }
+  .hljs-title,
+  .hljs-section,
+  .hljs-function .hljs-title,
+  .hljs-name {
+    color: oklch(0.52 0.13 275);
+  }
+  .hljs-type,
+  .hljs-class .hljs-title,
+  .hljs-attribute {
+    color: oklch(0.55 0.12 90);
+  }
+  .hljs-meta,
+  .hljs-deletion {
+    color: oklch(0.5 0.15 350);
+  }
+  .hljs-emphasis {
+    font-style: italic;
+  }
+  .hljs-strong {
+    font-weight: 700;
+  }
+
+  .dark .hljs-comment,
+  .dark .hljs-quote {
+    color: oklch(0.62 0.03 70);
+  }
+  .dark .hljs-keyword,
+  .dark .hljs-selector-tag,
+  .dark .hljs-literal,
+  .dark .hljs-doctag {
+    color: oklch(0.72 0.16 20);
+  }
+  .dark .hljs-string,
+  .dark .hljs-regexp,
+  .dark .hljs-addition {
+    color: oklch(0.75 0.14 150);
+  }
+  .dark .hljs-number,
+  .dark .hljs-built_in,
+  .dark .hljs-symbol,
+  .dark .hljs-attr,
+  .dark .hljs-variable,
+  .dark .hljs-template-variable {
+    color: oklch(0.77 0.12 55);
+  }
+  .dark .hljs-title,
+  .dark .hljs-section,
+  .dark .hljs-function .hljs-title,
+  .dark .hljs-name {
+    color: oklch(0.72 0.13 265);
+  }
+  .dark .hljs-type,
+  .dark .hljs-class .hljs-title,
+  .dark .hljs-attribute {
+    color: oklch(0.8 0.12 90);
+  }
+  .dark .hljs-meta,
+  .dark .hljs-deletion {
+    color: oklch(0.72 0.14 350);
+  }
+}
