@@ -1,10 +1,4 @@
-import {
-	type FileContents,
-	MultiFileDiff,
-	WorkerPoolContextProvider,
-} from "@pierre/diffs/react";
-// Vite bundles the package's worker entry; `?worker` yields a Worker constructor.
-import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
+import { type FileContents, MultiFileDiff } from "@pierre/diffs/react";
 import { FileCheck2, X } from "lucide-react";
 import { useMemo } from "react";
 
@@ -29,8 +23,12 @@ interface DiffViewProps {
 
 // vitesse-light/dark are warm-toned Shiki themes that sit comfortably on the
 // cream surface. Diff add/remove colors stay conventional — those are diff
-// semantics, not the design system's destructive accent.
-const DIFF_THEME = { light: "vitesse-light", dark: "vitesse-dark" } as const;
+// semantics, not the design system's destructive accent. Shared with the
+// workspace so the pool's highlighter and this renderer resolve the same themes.
+export const DIFF_THEME = {
+	light: "vitesse-light",
+	dark: "vitesse-dark",
+} as const;
 
 // A git-style proportional bar: up to 5 squares, additions first then
 // deletions, the remainder muted. Each side that has any lines shows at least
@@ -126,25 +124,17 @@ export function DiffView({
 			<div className="flex-1 overflow-auto p-4 sm:p-6">
 				{result.hasChanges ? (
 					<div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-						<WorkerPoolContextProvider
-							poolOptions={{
-								workerFactory: () => new DiffsWorker(),
-								poolSize: 2,
+						<MultiFileDiff
+							oldFile={oldFile}
+							newFile={newFile}
+							options={{
+								diffStyle: "split",
+								lineDiffType: "word",
+								expandUnchanged: true,
+								disableFileHeader: true,
+								theme: DIFF_THEME,
 							}}
-							highlighterOptions={{ lineDiffType: "word", theme: DIFF_THEME }}
-						>
-							<MultiFileDiff
-								oldFile={oldFile}
-								newFile={newFile}
-								options={{
-									diffStyle: "split",
-									lineDiffType: "word",
-									expandUnchanged: true,
-									disableFileHeader: true,
-									theme: DIFF_THEME,
-								}}
-							/>
-						</WorkerPoolContextProvider>
+						/>
 					</div>
 				) : (
 					<Empty className="mx-auto max-w-md">
