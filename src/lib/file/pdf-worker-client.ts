@@ -33,6 +33,28 @@ const Continue = { _tag: "Continue" } as const;
 const Unhandled = { _tag: "Unhandled" } as const;
 const Succeed = <A>(value: A): JobResult<A> => ({ _tag: "Succeed", value });
 
+// Every genuine response our worker posts is an object carrying one of these
+// string `type`s (see PdfWorkerResponse). The worker channel can also surface
+// foreign messages we didn't send — dev-tooling/HMR chatter or nested-worker
+// plumbing (pdf.js spawns its own core worker) — which arrive with no `type`.
+// We ignore those instead of failing the job on them.
+const WORKER_RESPONSE_TYPES = new Set<string>([
+	"meta",
+	"page",
+	"done",
+	"extracted",
+	"zipped",
+	"merged",
+	"error",
+]);
+
+const isPdfWorkerResponse = (data: unknown): data is PdfWorkerResponse =>
+	typeof data === "object" &&
+	data !== null &&
+	"type" in data &&
+	typeof (data as { type: unknown }).type === "string" &&
+	WORKER_RESPONSE_TYPES.has((data as { type: string }).type);
+
 // Single generic worker driver shared by all four public functions. Spins up a
 // one-shot worker, transfers the request payload in, and resolves once via the
 // `handle` matcher. Termination is guaranteed by acquireUseRelease (success,
@@ -59,6 +81,11 @@ const runWorkerJob = <A>(
 			Effect.async<A, PdfLoadError>((resume) => {
 				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
 					const res = event.data;
+					// Ignore foreign/noise messages (dev-tooling, nested pdf.js worker)
+					// that aren't our responses — failing on them would spuriously abort
+					// an otherwise-healthy job. Genuine terminal messages still arrive and
+					// resolve the Effect, so this cannot hang.
+					if (!isPdfWorkerResponse(res)) return;
 					const result = handle(res);
 					if (result._tag === "Succeed") {
 						resume(Effect.succeed(result.value));
