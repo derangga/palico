@@ -10,11 +10,11 @@
 // the user); the route surfaces it honestly. Because nothing is decoded, ffmpeg
 // emits no `progress` events — callers show an indeterminate "trimming" state.
 
-import { fetchFile } from "@ffmpeg/util";
 import { Effect, Either, Schema } from "effect";
 
-import { disposeEngine, type EngineHandle, getEngine } from "./engine.ts";
+import { type EngineHandle, getEngine } from "./engine.ts";
 import { type EngineNotLoadedError, VideoTrimError } from "./errors.ts";
+import { runFfmpegJob } from "./ffmpeg-job.ts";
 import { formatMeta, inputExtension, parseVideoOutputFormat } from "./types.ts";
 
 const FileFromSelf = Schema.instanceOf(File);
@@ -87,118 +87,23 @@ const trimOne = (
 		const inputName = `input.${inputExtension(input.file)}`;
 		const outputName = `output.${ext}`;
 
-		const bytes = yield* Effect.tryPromise({
-			try: () => fetchFile(input.file),
-			catch: (cause) =>
-				new VideoTrimError({
-					fileName: input.file.name,
-					message:
-						cause instanceof Error
-							? cause.message
-							: "Could not read file bytes.",
-				}),
+		const blob = yield* runFfmpegJob({
+			ffmpeg,
+			file: input.file,
+			inputName,
+			outputName,
+			args: buildTrimArgs(inputName, outputName, input.startSec, input.endSec),
+			outputMime: mime,
+			label: "Trim",
+			oomMessage:
+				"Your device ran out of memory — this video is too large to trim in the browser. Try a smaller file.",
+			readError: (message) =>
+				new VideoTrimError({ fileName: input.file.name, message }),
+			jobError: (message) =>
+				new VideoTrimError({ fileName: input.file.name, message }),
+			// No onPercent: `-c copy` never decodes, so ffmpeg emits no progress.
 		});
 
-		yield* Effect.tryPromise({
-			try: () => ffmpeg.writeFile(inputName, bytes),
-			catch: (cause) =>
-				new VideoTrimError({
-					fileName: input.file.name,
-					message:
-						cause instanceof Error ? cause.message : "Could not stage input.",
-				}),
-		});
-
-		// Capture ffmpeg's stderr for this exec so a non-zero exit can surface the
-		// real reason. acquireUseRelease guarantees the listener is removed even
-		// on failure/interruption. No `progress` listener: `-c copy` emits none.
-		const logLines: string[] = [];
-
-		const exitCode = yield* Effect.acquireUseRelease(
-			Effect.sync(() => {
-				const onLog = ({ message }: { type: string; message: string }) => {
-					logLines.push(message);
-					if (logLines.length > 64) logLines.shift();
-				};
-				ffmpeg.on("log", onLog);
-				return { onLog };
-			}),
-			() =>
-				Effect.tryPromise({
-					try: () =>
-						ffmpeg.exec(
-							buildTrimArgs(
-								inputName,
-								outputName,
-								input.startSec,
-								input.endSec,
-							),
-						),
-					catch: (cause) =>
-						new VideoTrimError({
-							fileName: input.file.name,
-							message: cause instanceof Error ? cause.message : "Trim threw.",
-						}),
-				}),
-			({ onLog }) => Effect.sync(() => ffmpeg.off("log", onLog)),
-		);
-
-		if (exitCode !== 0) {
-			// An emscripten OOM/abort leaves the wasm instance permanently unusable.
-			// Dispose the singleton so the next run re-inits a fresh worker, and
-			// surface an honest message rather than the raw log.
-			const oom = /aborted\(|out of memory|\boom\b/i.test(logLines.join("\n"));
-			if (oom) {
-				yield* disposeEngine;
-				return yield* new VideoTrimError({
-					fileName: input.file.name,
-					message:
-						"Your device ran out of memory — this video is too large to trim in the browser. Try a smaller file.",
-				});
-			}
-
-			const tail = logLines.slice(-8).join(" / ").trim();
-			return yield* new VideoTrimError({
-				fileName: input.file.name,
-				message: tail
-					? `Trim exited with code ${exitCode}. ${tail}`
-					: `Trim exited with code ${exitCode}.`,
-			});
-		}
-
-		const data = yield* Effect.tryPromise({
-			try: () => ffmpeg.readFile(outputName),
-			catch: (cause) =>
-				new VideoTrimError({
-					fileName: input.file.name,
-					message:
-						cause instanceof Error ? cause.message : "Could not read output.",
-				}),
-		});
-
-		if (typeof data === "string") {
-			return yield* new VideoTrimError({
-				fileName: input.file.name,
-				message: "ffmpeg returned a string payload instead of binary data.",
-			});
-		}
-
-		// Best-effort virtual-FS cleanup; failures here don't fail the trim.
-		yield* Effect.all(
-			[
-				Effect.tryPromise({
-					try: () => ffmpeg.deleteFile(inputName),
-					catch: () => "delete-failed" as const,
-				}).pipe(Effect.ignore),
-				Effect.tryPromise({
-					try: () => ffmpeg.deleteFile(outputName),
-					catch: () => "delete-failed" as const,
-				}).pipe(Effect.ignore),
-			],
-			{ concurrency: "unbounded" },
-		);
-
-		const blob = new Blob([data as unknown as BlobPart], { type: mime });
 		return {
 			blob,
 			size: blob.size,
