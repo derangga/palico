@@ -1,17 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import {
-	CircleAlert,
-	Download,
-	GripVertical,
-	Loader2,
-	RotateCcw,
-	UploadCloud,
-	X,
-} from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { Download, Loader2, RotateCcw, UploadCloud } from "lucide-react";
+import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { FileCard } from "#/components/pdf-merge/file-card.tsx";
+import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
 import {
@@ -30,22 +24,6 @@ const MB = 1024 * 1024;
 // loads / accumulate too much in memory. Each file still has its own 50 MB /
 // 100-page guard.
 const MAX_MERGE_FILES = 20;
-
-type ItemStatus = "loading" | "ready" | "error";
-
-type MergeItem = {
-	readonly id: string;
-	readonly file: File;
-	status: ItemStatus;
-	thumbnail: PdfThumbnail | null;
-	pageCount: number;
-};
-
-function formatBytes(n: number) {
-	if (n < 1024) return `${n} B`;
-	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
-	return `${(n / MB).toFixed(2)} MB`;
-}
 
 function downloadBlob(blob: Blob, name: string) {
 	const url = URL.createObjectURL(blob);
@@ -257,103 +235,5 @@ function PdfMergePage() {
 				</div>
 			)}
 		</div>
-	);
-}
-
-// One file's card: drag handle, cover thumbnail, name + size + page count, and a
-// remove button. The whole row is draggable so the cards can be reordered.
-function FileCard({
-	item,
-	index,
-	onRemove,
-	onDragStart,
-	onDrop,
-}: {
-	item: MergeItem;
-	index: number;
-	onRemove: () => void;
-	onDragStart: () => void;
-	onDrop: () => void;
-}) {
-	return (
-		<li
-			draggable
-			onDragStart={onDragStart}
-			onDragOver={(e) => e.preventDefault()}
-			onDrop={(e) => {
-				e.preventDefault();
-				onDrop();
-			}}
-			className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
-		>
-			<GripVertical className="size-4 shrink-0 cursor-grab text-muted-foreground" />
-			<span className="text-xs font-medium text-muted-foreground">
-				{index + 1}
-			</span>
-			<CoverThumbnail item={item} />
-			<div className="min-w-0 flex-1">
-				<p className="truncate text-sm font-medium">{item.file.name}</p>
-				<p className="text-xs text-muted-foreground">
-					{formatBytes(item.file.size)}
-					{item.status === "ready" && (
-						<>
-							{" · "}
-							{item.pageCount} {item.pageCount === 1 ? "page" : "pages"}
-						</>
-					)}
-					{item.status === "loading" && " · reading…"}
-					{item.status === "error" && (
-						<span className="text-destructive"> · failed</span>
-					)}
-				</p>
-			</div>
-			<button
-				type="button"
-				onClick={onRemove}
-				className="text-muted-foreground hover:text-foreground"
-				aria-label={`Remove ${item.file.name}`}
-			>
-				<X className="size-4" />
-			</button>
-		</li>
-	);
-}
-
-// Paints the transferred first-page ImageBitmap onto a small canvas. Shows a
-// spinner while loading and an alert glyph if the file failed to render.
-function CoverThumbnail({ item }: { item: MergeItem }) {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-
-	useEffect(() => {
-		const canvas = canvasRef.current;
-		const bitmap = item.thumbnail?.bitmap;
-		if (!canvas || !bitmap) return;
-		const ctx = canvas.getContext("2d");
-		ctx?.drawImage(bitmap, 0, 0);
-	}, [item.thumbnail?.bitmap]);
-
-	if (item.status === "loading") {
-		return (
-			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-white">
-				<Loader2 className="size-4 animate-spin text-muted-foreground" />
-			</div>
-		);
-	}
-
-	if (item.status === "error" || !item.thumbnail) {
-		return (
-			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-white">
-				<CircleAlert className="size-4 text-destructive" />
-			</div>
-		);
-	}
-
-	return (
-		<canvas
-			ref={canvasRef}
-			width={item.thumbnail.width}
-			height={item.thumbnail.height}
-			className="h-14 w-auto shrink-0 rounded-sm border border-border/60 bg-white shadow-xs"
-		/>
 	);
 }
