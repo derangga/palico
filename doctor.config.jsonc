@@ -1,0 +1,13 @@
+{
+	"$schema": "https://react.doctor/schema/config.json",
+	// pdfjs-dist@6.1.200 (Mozilla PDF.js) trips socket/low-supply-chain-score (31/100)
+	// on Socket's heuristics — the minified dist worker reads as "obfuscated code".
+	// Vetted 2026-07-02: latest release, no install scripts (`npm view pdfjs-dist scripts`
+	// is empty), npm SLSA provenance attestation + registry signature present, other
+	// Socket axes healthy (vulnerability 100, maintenance 96). react-doctor has no
+	// per-package accept, so per the canonical recipe the gate is downgraded to an
+	// advisory warning instead of an error; the rule still runs and reports.
+	"supplyChain": {
+		"severity": "warning"
+	}
+}

@@ -51,29 +51,37 @@ const fileItems = [
 	{ to: "/office-to-pdf", label: "Word to PDF", icon: FileText },
 ] as const;
 
+type NavItem = {
+	to: string;
+	label: string;
+	icon: React.ElementType;
+};
+
+function SidebarNavItem({
+	item,
+	pathname,
+}: {
+	item: NavItem;
+	pathname: string;
+}) {
+	const isActive =
+		item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+	return (
+		<SidebarMenuItem>
+			<SidebarMenuButton
+				isActive={isActive}
+				tooltip={item.label}
+				render={<Link to={item.to} />}
+			>
+				<item.icon />
+				<span>{item.label}</span>
+			</SidebarMenuButton>
+		</SidebarMenuItem>
+	);
+}
+
 export function AppSidebar() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-	function renderItem(item: {
-		to: string;
-		label: string;
-		icon: React.ElementType;
-	}) {
-		const isActive =
-			item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
-		return (
-			<SidebarMenuItem key={item.to}>
-				<SidebarMenuButton
-					isActive={isActive}
-					tooltip={item.label}
-					render={<Link to={item.to} />}
-				>
-					<item.icon />
-					<span>{item.label}</span>
-				</SidebarMenuButton>
-			</SidebarMenuItem>
-		);
-	}
 
 	return (
 		<Sidebar variant="sidebar" collapsible="icon">
@@ -93,25 +101,39 @@ export function AppSidebar() {
 			<SidebarContent>
 				<SidebarGroup>
 					<SidebarGroupContent>
-						<SidebarMenu>{renderItem(homeItem)}</SidebarMenu>
+						<SidebarMenu>
+							<SidebarNavItem item={homeItem} pathname={pathname} />
+						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 				<SidebarGroup>
 					<SidebarGroupLabel>Image</SidebarGroupLabel>
 					<SidebarGroupContent>
-						<SidebarMenu>{imageItems.map(renderItem)}</SidebarMenu>
+						<SidebarMenu>
+							{imageItems.map((item) => (
+								<SidebarNavItem key={item.to} item={item} pathname={pathname} />
+							))}
+						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 				<SidebarGroup>
 					<SidebarGroupLabel>Video</SidebarGroupLabel>
 					<SidebarGroupContent>
-						<SidebarMenu>{videoItems.map(renderItem)}</SidebarMenu>
+						<SidebarMenu>
+							{videoItems.map((item) => (
+								<SidebarNavItem key={item.to} item={item} pathname={pathname} />
+							))}
+						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 				<SidebarGroup>
 					<SidebarGroupLabel>File</SidebarGroupLabel>
 					<SidebarGroupContent>
-						<SidebarMenu>{fileItems.map(renderItem)}</SidebarMenu>
+						<SidebarMenu>
+							{fileItems.map((item) => (
+								<SidebarNavItem key={item.to} item={item} pathname={pathname} />
+							))}
+						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
