@@ -3,36 +3,48 @@ import { Effect } from "effect";
 import {
 	EncryptedPdfError,
 	InvalidPdfError,
-	PdfExtractError,
 	type PdfLoadError,
-	PdfMergeError,
-	PdfSplitError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
 } from "./errors.ts";
 import {
 	MAX_PDF_PAGES,
 	type PdfThumbnail,
+	type PdfWorkerRequest,
 	type PdfWorkerResponse,
 	type RenderedPdf,
 	type SplitPart,
 } from "./pdf-types.ts";
 
-// Spin up a one-shot worker, transfer the PDF bytes in, and stream the rendered
-// page thumbnails back. `onThumbnail` fires per page for progressive UI; the
-// Effect resolves once with the full set. Termination is guaranteed via
-// acquireUseRelease (success, failure, and interrupt all terminate the worker).
-export const renderPdfThumbnails = (
-	params: {
-		readonly id: string;
-		readonly fileName: string;
-		readonly buffer: ArrayBuffer;
-		readonly maxPages: number;
-		readonly thumbnailWidth: number;
-		readonly thumbnailLimit?: number;
-	},
-	onThumbnail: (thumbnail: PdfThumbnail) => void,
-): Effect.Effect<RenderedPdf, PdfLoadError> =>
+// How a worker message is dispatched by the generic runner. A handler inspects
+// each response and returns one of:
+//   Succeed(value) — the job is done; resume the Effect with `value`.
+//   Continue       — a streaming intermediate (render's "meta"/"page"); keep
+//                    listening for more messages.
+//   Unhandled      — this response isn't part of this job's happy path; the
+//                    runner then maps "error" responses to typed errors and
+//                    fails on anything else so the Effect can never hang.
+type JobResult<A> =
+	| { readonly _tag: "Succeed"; readonly value: A }
+	| { readonly _tag: "Continue" }
+	| { readonly _tag: "Unhandled" };
+
+const Continue = { _tag: "Continue" } as const;
+const Unhandled = { _tag: "Unhandled" } as const;
+const Succeed = <A>(value: A): JobResult<A> => ({ _tag: "Succeed", value });
+
+// Single generic worker driver shared by all four public functions. Spins up a
+// one-shot worker, transfers the request payload in, and resolves once via the
+// `handle` matcher. Termination is guaranteed by acquireUseRelease (success,
+// failure, and interrupt all terminate the worker). Error mapping and the
+// unexpected-response guard live here so every op reacts to the same failure
+// modes and no op can silently hang on an unmatched message.
+const runWorkerJob = <A>(
+	fileName: string,
+	request: PdfWorkerRequest,
+	transfer: ReadonlyArray<Transferable>,
+	handle: (res: PdfWorkerResponse) => JobResult<A>,
+): Effect.Effect<A, PdfLoadError> =>
 	Effect.acquireUseRelease(
 		Effect.sync(
 			() =>
@@ -44,89 +56,26 @@ export const renderPdfThumbnails = (
 				}),
 		),
 		(worker) =>
-			Effect.async<RenderedPdf, PdfLoadError>((resume) => {
-				const thumbnails: PdfThumbnail[] = [];
-				let pageCount = 0;
-
+			Effect.async<A, PdfLoadError>((resume) => {
 				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
 					const res = event.data;
-					switch (res.type) {
-						case "meta":
-							pageCount = res.pageCount;
-							break;
-						case "page": {
-							const thumbnail: PdfThumbnail = {
-								index: res.index,
-								bitmap: res.bitmap,
-								width: res.width,
-								height: res.height,
-							};
-							thumbnails.push(thumbnail);
-							onThumbnail(thumbnail);
-							break;
-						}
-						case "done":
-							resume(Effect.succeed({ pageCount, thumbnails }));
-							break;
-						case "error":
-							resume(Effect.fail(toTypedError(params.fileName, res)));
-							break;
+					const result = handle(res);
+					if (result._tag === "Succeed") {
+						resume(Effect.succeed(result.value));
+						return;
 					}
-				};
-				worker.onerror = (event) => {
-					resume(
-						Effect.fail(
-							new PdfWorkerError({
-								fileName: params.fileName,
-								message: event.message || "PDF worker crashed.",
-							}),
-						),
-					);
-				};
-
-				worker.postMessage(
-					{
-						type: "render",
-						id: params.id,
-						buffer: params.buffer,
-						maxPages: params.maxPages,
-						thumbnailWidth: params.thumbnailWidth,
-						thumbnailLimit: params.thumbnailLimit,
-					},
-					[params.buffer],
-				);
-			}),
-		(worker) => Effect.sync(() => worker.terminate()),
-	);
-
-// Spin up a one-shot worker, transfer the PDF bytes in, and copy the requested
-// pages into a new PDF. Resolves with the new document's bytes. Termination is
-// guaranteed via acquireUseRelease.
-export const extractPdfPages = (params: {
-	readonly id: string;
-	readonly fileName: string;
-	readonly buffer: ArrayBuffer;
-	readonly pageIndices: ReadonlyArray<number>;
-}): Effect.Effect<ArrayBuffer, PdfExtractError> =>
-	Effect.acquireUseRelease(
-		Effect.sync(
-			() =>
-				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
-					type: "module",
-				}),
-		),
-		(worker) =>
-			Effect.async<ArrayBuffer, PdfExtractError>((resume) => {
-				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
-					const res = event.data;
-					if (res.type === "extracted") {
-						resume(Effect.succeed(res.bytes));
-					} else if (res.type === "error") {
+					if (result._tag === "Continue") return;
+					// Unhandled by this op: map a reported error to its tagged type, and
+					// fail on any other unexpected response rather than leaving the
+					// Effect (and worker) hanging forever.
+					if (res.type === "error") {
+						resume(Effect.fail(toTypedError(fileName, res)));
+					} else {
 						resume(
 							Effect.fail(
-								new PdfExtractError({
-									fileName: params.fileName,
-									message: res.message,
+								new PdfWorkerError({
+									fileName,
+									message: `Unexpected PDF worker response: "${res.type}".`,
 								}),
 							),
 						);
@@ -135,25 +84,91 @@ export const extractPdfPages = (params: {
 				worker.onerror = (event) => {
 					resume(
 						Effect.fail(
-							new PdfExtractError({
-								fileName: params.fileName,
+							new PdfWorkerError({
+								fileName,
 								message: event.message || "PDF worker crashed.",
 							}),
 						),
 					);
 				};
 
-				worker.postMessage(
-					{
-						type: "extract",
-						id: params.id,
-						buffer: params.buffer,
-						pageIndices: [...params.pageIndices],
-					},
-					[params.buffer],
-				);
+				worker.postMessage(request, [...transfer]);
 			}),
 		(worker) => Effect.sync(() => worker.terminate()),
+	);
+
+// Spin up a one-shot worker, transfer the PDF bytes in, and stream the rendered
+// page thumbnails back. `onThumbnail` fires per page for progressive UI; the
+// Effect resolves once with the full set.
+export const renderPdfThumbnails = (
+	params: {
+		readonly id: string;
+		readonly fileName: string;
+		readonly buffer: ArrayBuffer;
+		readonly maxPages: number;
+		readonly thumbnailWidth: number;
+		readonly thumbnailLimit?: number;
+	},
+	onThumbnail: (thumbnail: PdfThumbnail) => void,
+): Effect.Effect<RenderedPdf, PdfLoadError> =>
+	// Fresh accumulators per execution (suspend defers them until the Effect runs).
+	Effect.suspend(() => {
+		const thumbnails: PdfThumbnail[] = [];
+		let pageCount = 0;
+		return runWorkerJob<RenderedPdf>(
+			params.fileName,
+			{
+				type: "render",
+				id: params.id,
+				buffer: params.buffer,
+				maxPages: params.maxPages,
+				thumbnailWidth: params.thumbnailWidth,
+				thumbnailLimit: params.thumbnailLimit,
+			},
+			[params.buffer],
+			(res) => {
+				switch (res.type) {
+					case "meta":
+						pageCount = res.pageCount;
+						return Continue;
+					case "page": {
+						const thumbnail: PdfThumbnail = {
+							index: res.index,
+							bitmap: res.bitmap,
+							width: res.width,
+							height: res.height,
+						};
+						thumbnails.push(thumbnail);
+						onThumbnail(thumbnail);
+						return Continue;
+					}
+					case "done":
+						return Succeed({ pageCount, thumbnails });
+					default:
+						return Unhandled;
+				}
+			},
+		);
+	});
+
+// Spin up a one-shot worker, transfer the PDF bytes in, and copy the requested
+// pages into a new PDF. Resolves with the new document's bytes.
+export const extractPdfPages = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffer: ArrayBuffer;
+	readonly pageIndices: ReadonlyArray<number>;
+}): Effect.Effect<ArrayBuffer, PdfLoadError> =>
+	runWorkerJob<ArrayBuffer>(
+		params.fileName,
+		{
+			type: "extract",
+			id: params.id,
+			buffer: params.buffer,
+			pageIndices: [...params.pageIndices],
+		},
+		[params.buffer],
+		(res) => (res.type === "extracted" ? Succeed(res.bytes) : Unhandled),
 	);
 
 // Spin up a one-shot worker, transfer the PDF bytes in, and split it into the
@@ -163,108 +178,36 @@ export const splitPdfToZip = (params: {
 	readonly fileName: string;
 	readonly buffer: ArrayBuffer;
 	readonly parts: ReadonlyArray<SplitPart>;
-}): Effect.Effect<ArrayBuffer, PdfSplitError> =>
-	Effect.acquireUseRelease(
-		Effect.sync(
-			() =>
-				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
-					type: "module",
-				}),
-		),
-		(worker) =>
-			Effect.async<ArrayBuffer, PdfSplitError>((resume) => {
-				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
-					const res = event.data;
-					if (res.type === "zipped") {
-						resume(Effect.succeed(res.bytes));
-					} else if (res.type === "error") {
-						resume(
-							Effect.fail(
-								new PdfSplitError({
-									fileName: params.fileName,
-									message: res.message,
-								}),
-							),
-						);
-					}
-				};
-				worker.onerror = (event) => {
-					resume(
-						Effect.fail(
-							new PdfSplitError({
-								fileName: params.fileName,
-								message: event.message || "PDF worker crashed.",
-							}),
-						),
-					);
-				};
-
-				worker.postMessage(
-					{
-						type: "split",
-						id: params.id,
-						buffer: params.buffer,
-						parts: params.parts,
-					},
-					[params.buffer],
-				);
-			}),
-		(worker) => Effect.sync(() => worker.terminate()),
+}): Effect.Effect<ArrayBuffer, PdfLoadError> =>
+	runWorkerJob<ArrayBuffer>(
+		params.fileName,
+		{
+			type: "split",
+			id: params.id,
+			buffer: params.buffer,
+			parts: params.parts,
+		},
+		[params.buffer],
+		(res) => (res.type === "zipped" ? Succeed(res.bytes) : Unhandled),
 	);
 
 // Spin up a one-shot worker, transfer every PDF's bytes in, and concatenate all
 // their pages (in array order) into a single PDF. Resolves with the merged
-// document's bytes. Termination is guaranteed via acquireUseRelease.
+// document's bytes.
 export const mergePdfFiles = (params: {
 	readonly id: string;
 	readonly fileName: string;
 	readonly buffers: ReadonlyArray<ArrayBuffer>;
-}): Effect.Effect<ArrayBuffer, PdfMergeError> =>
-	Effect.acquireUseRelease(
-		Effect.sync(
-			() =>
-				new Worker(new URL("../../workers/pdf.worker.ts", import.meta.url), {
-					type: "module",
-				}),
-		),
-		(worker) =>
-			Effect.async<ArrayBuffer, PdfMergeError>((resume) => {
-				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
-					const res = event.data;
-					if (res.type === "merged") {
-						resume(Effect.succeed(res.bytes));
-					} else if (res.type === "error") {
-						resume(
-							Effect.fail(
-								new PdfMergeError({
-									fileName: params.fileName,
-									message: res.message,
-								}),
-							),
-						);
-					}
-				};
-				worker.onerror = (event) => {
-					resume(
-						Effect.fail(
-							new PdfMergeError({
-								fileName: params.fileName,
-								message: event.message || "PDF worker crashed.",
-							}),
-						),
-					);
-				};
-
-				worker.postMessage(
-					{
-						type: "merge",
-						id: params.id,
-						buffers: [...params.buffers],
-					},
-					[...params.buffers],
-				);
-			}),
-		(worker) => Effect.sync(() => worker.terminate()),
+}): Effect.Effect<ArrayBuffer, PdfLoadError> =>
+	runWorkerJob<ArrayBuffer>(
+		params.fileName,
+		{
+			type: "merge",
+			id: params.id,
+			buffers: [...params.buffers],
+		},
+		[...params.buffers],
+		(res) => (res.type === "merged" ? Succeed(res.bytes) : Unhandled),
 	);
 
 const toTypedError = (
