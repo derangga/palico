@@ -286,7 +286,11 @@ interface ZetaHelperMainCtor {
 const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 	Effect.gen(function* () {
 		const mod = yield* Effect.tryPromise({
+			// Accepted won't-fix: the zetajs helper is loaded by URL so LibreOffice
+			// resolves its sibling runtime scripts relative to its own path. It must
+			// stay in the main bundle and cannot become a static, code-split import.
 			try: () =>
+				// react-doctor-disable-next-line react-doctor/no-dynamic-import-path
 				import(/* @vite-ignore */ ZETA_HELPER_URL) as Promise<{
 					ZetaHelperMain: ZetaHelperMainCtor;
 				}>,
