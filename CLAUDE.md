@@ -28,6 +28,7 @@ bun run generate-routes  # regenerate the route tree after adding routes
 
 - **Serena first:** Always reach for Serena's semantic tools (`find_symbol`, `get_symbols_overview`, `replace_symbol_body`, `replace_content`) before Read/Edit/grep. Serena is faster and more token-efficient for any code task.
 - **fff for search:** Use the `fff` MCP tools (`grep`, `find_files`, `multi_grep`) for file discovery and content search — significantly faster than shell grep.
+- **Always use rtk:** Run shell commands through `rtk` (Rust Token Killer) rather than calling the underlying CLI directly — it saves tokens on dev operations.
 - **Effect best practices:** Invoke the `/effect-best-practices` skill before writing any Effect code. It enforces correct patterns for services, errors, layers, and Schema.
 
 ## Workflow Rules
