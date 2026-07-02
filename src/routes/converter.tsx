@@ -1,18 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import {
-	CheckCircle2,
-	CircleAlert,
-	Download,
-	FileArchive,
-	ImageIcon,
-	Loader2,
-	UploadCloud,
-	X,
-} from "lucide-react";
+import { FileArchive, Loader2 } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Dropzone } from "#/components/converter/dropzone.tsx";
+import { FileRow } from "#/components/converter/file-row.tsx";
+import type { Item } from "#/components/converter/types.ts";
+import {
+	downloadBlob,
+	formatBytes,
+	uniqueNames,
+} from "#/components/converter/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Select,
@@ -37,53 +36,7 @@ export const Route = createFileRoute("/converter")({
 	component: ConverterPage,
 });
 
-type ItemStatus = "ready" | "processing" | "done" | "error";
-
-interface Item {
-	id: string;
-	file: File;
-	status: ItemStatus;
-	outBlob?: Blob;
-	outName?: string;
-	outLabel?: string;
-	outSize?: number;
-	message?: string;
-}
-
 const MB = 1024 * 1024;
-
-function formatBytes(n: number) {
-	if (n < 1024) return `${n} B`;
-	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
-	return `${(n / MB).toFixed(2)} MB`;
-}
-
-function downloadBlob(blob: Blob, name: string) {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement("a");
-	a.href = url;
-	a.download = name;
-	a.click();
-	URL.revokeObjectURL(url);
-}
-
-function handleSaveOne(item: Item) {
-	if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
-}
-
-// Make zip entry names unique (two "photo.jpg" inputs → photo.jpg, photo-1.jpg).
-function uniqueNames(names: string[]) {
-	const seen = new Map<string, number>();
-	return names.map((name) => {
-		const count = seen.get(name) ?? 0;
-		seen.set(name, count + 1);
-		if (count === 0) return name;
-		const dot = name.lastIndexOf(".");
-		return dot === -1
-			? `${name}-${count}`
-			: `${name.slice(0, dot)}-${count}${name.slice(dot)}`;
-	});
-}
 
 function ConverterPage() {
 	const inputId = useId();
@@ -258,41 +211,11 @@ function ConverterPage() {
 				</p>
 			</div>
 
-			{/* Dropzone */}
-			{/** biome-ignore lint/a11y/noStaticElementInteractions: dropzone wraps a real file input. */}
-			<div
-				onDragOver={(e) => e.preventDefault()}
-				onDrop={(e) => {
-					e.preventDefault();
-					addFiles(e.dataTransfer.files);
-				}}
-				className="rounded-xl border border-dashed bg-card p-8 text-center"
-			>
-				<UploadCloud className="mx-auto size-8 text-muted-foreground" />
-				<p className="mt-3 text-sm font-medium">
-					Drag &amp; drop images here, or
-				</p>
-				<Button
-					variant="outline"
-					size="sm"
-					className="mt-3"
-					onClick={() => fileInputRef.current?.click()}
-				>
-					Choose files
-				</Button>
-				<input
-					id={inputId}
-					ref={fileInputRef}
-					type="file"
-					accept="image/*"
-					multiple
-					className="hidden"
-					onChange={(e) => {
-						addFiles(e.target.files);
-						e.target.value = "";
-					}}
-				/>
-			</div>
+			<Dropzone
+				inputId={inputId}
+				fileInputRef={fileInputRef}
+				onFiles={addFiles}
+			/>
 
 			{items.length > 0 && (
 				<>
@@ -348,64 +271,16 @@ function ConverterPage() {
 					{/* File list */}
 					<ul className="mt-4 flex flex-col gap-2">
 						{items.map((item) => (
-							<li
+							<FileRow
 								key={item.id}
-								className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
-							>
-								<ImageIcon className="size-4 shrink-0 text-muted-foreground" />
-								<div className="min-w-0 flex-1">
-									<p className="truncate text-sm font-medium">
-										{item.file.name}
-									</p>
-									<p className="text-xs text-muted-foreground">
-										{formatBytes(item.file.size)}
-										{item.status === "done" &&
-											item.outSize != null &&
-											` → ${formatBytes(item.outSize)} (${item.outLabel})`}
-										{item.status === "error" && item.message && (
-											<span className="text-destructive">
-												{" "}
-												— {item.message}
-											</span>
-										)}
-									</p>
-								</div>
-								<StatusBadge status={item.status} />
-								{item.status === "done" && item.outBlob && (
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={() => handleSaveOne(item)}
-									>
-										<Download />
-										Save
-									</Button>
-								)}
-								{!isRunning && (
-									<button
-										type="button"
-										onClick={() => removeItem(item.id)}
-										className="text-muted-foreground hover:text-foreground"
-										aria-label={`Remove ${item.file.name}`}
-									>
-										<X className="size-4" />
-									</button>
-								)}
-							</li>
+								item={item}
+								isRunning={isRunning}
+								onRemove={() => removeItem(item.id)}
+							/>
 						))}
 					</ul>
 				</>
 			)}
 		</div>
 	);
-}
-
-function StatusBadge({ status }: { status: ItemStatus }) {
-	if (status === "processing")
-		return <Loader2 className="size-4 shrink-0 animate-spin text-primary" />;
-	if (status === "done")
-		return <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />;
-	if (status === "error")
-		return <CircleAlert className="size-4 shrink-0 text-destructive" />;
-	return null;
 }
