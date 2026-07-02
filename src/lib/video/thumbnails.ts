@@ -87,6 +87,10 @@ const extract = async (
 			// so we never seek exactly to the (sometimes empty) end.
 			const t = Math.min(((i + 0.5) / count) * duration, duration - 0.05);
 			video.currentTime = Math.max(0, t);
+			// Sequential by design: a single <video> element has one seek cursor,
+			// so each frame must be sampled after its own seek resolves —
+			// Promise.all would race a shared, single-position element.
+			// react-doctor-disable-next-line react-doctor/async-await-in-loop
 			await waitFor(video, "seeked", 10000);
 			ctx.drawImage(video, 0, 0, w, h);
 			urls.push(canvas.toDataURL("image/jpeg", 0.6));

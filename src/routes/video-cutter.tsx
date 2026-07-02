@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/useMediaCaption: the only <video> is a user-supplied local clip with no caption track available.
 import { createFileRoute } from "@tanstack/react-router";
 import { Cause, Effect, Either, Exit, Option } from "effect";
 import {
@@ -33,6 +34,16 @@ export const Route = createFileRoute("/video-cutter")({
 });
 
 const SKIP_SECONDS = 5;
+
+// Static consent copy — hoisted to module scope so it isn't rebuilt each render
+// and doesn't force VideoEnginePanel to redraw.
+const CUTTER_CONSENT_DESCRIPTION = (
+	<>
+		Trimming runs entirely on your device, but the engine itself is a one-time{" "}
+		{ENGINE_SIZE_LABEL} download. It is cached after the first load, so return
+		visits are instant. Nothing leaves your browser.
+	</>
+);
 
 function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
@@ -96,13 +107,7 @@ function VideoCutterPage() {
 				onStart={gate.startLoad}
 				onDecline={gate.decline}
 				icon={Scissors}
-				consentDescription={
-					<>
-						Trimming runs entirely on your device, but the engine itself is a
-						one-time {ENGINE_SIZE_LABEL} download. It is cached after the first
-						load, so return visits are instant. Nothing leaves your browser.
-					</>
-				}
+				consentDescription={CUTTER_CONSENT_DESCRIPTION}
 				disabledTitle="Video cutting is disabled"
 				enableLabel="Enable video cutting"
 			/>
@@ -135,7 +140,10 @@ function CutterShell() {
 	const [cancelling, setCancelling] = useState(false);
 	const [output, setOutput] = useState<TrimOutput | null>(null);
 
-	// Revoke the preview URL when the component unmounts.
+	// Revoke the preview URL when the component unmounts. Reading
+	// objectUrlRef.current at unmount is intentional — it revokes whatever URL
+	// is current then; earlier URLs are already revoked on file-change and clear.
+	// react-doctor-disable-next-line react-doctor/exhaustive-deps
 	useEffect(() => {
 		return () => {
 			if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -289,10 +297,15 @@ function CutterShell() {
 			// Dynamic imports keep @ffmpeg/* out of the route bundle. loadEngine is
 			// idempotent (no-op when loaded; fast cache-backed re-init after a cancel
 			// terminated the worker).
+			// Await-before-guard is intentional: the guard below catches a cancel
+			// that lands during the (potentially slow) engine load, so the await
+			// must run before it — not after.
+			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
 			if (token.cancelled) return;
 
+			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { trimVideo } = await import("#/lib/video/trim.ts");
 			const exit = await Effect.runPromiseExit(
 				trimVideo(
@@ -394,10 +407,14 @@ function CutterShell() {
 				<div className="grid items-start gap-4 min-[769px]:grid-cols-[minmax(0,1fr)_22rem]">
 					{/* Left: preview + controls + trim */}
 					<div className="flex min-w-0 flex-col gap-2">
-						{/* biome-ignore lint/a11y/useMediaCaption: user-supplied local video; no captions available. */}
+						{/* User-supplied local video; no captions available. Biome's
+						    useMediaCaption is suppressed file-wide at the top of the file
+						    (both linters require the immediately-preceding line). */}
+						{/* react-doctor-disable-next-line react-doctor/media-has-caption */}
 						<video
 							ref={videoRef}
 							src={objectUrl ?? undefined}
+							aria-label="Video preview"
 							onLoadedMetadata={onLoadedMetadata}
 							onPlay={() => setIsPlaying(true)}
 							onPause={() => setIsPlaying(false)}

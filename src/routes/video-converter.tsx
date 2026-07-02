@@ -87,6 +87,22 @@ function downloadBlob(blob: Blob, name: string) {
 	URL.revokeObjectURL(url);
 }
 
+// Pure save helper — no local state, so it lives at module scope rather than
+// being rebuilt on every ConverterShell render.
+function handleSaveOne(item: Item) {
+	if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
+}
+
+// Static consent copy — hoisted to module scope so it isn't rebuilt each render
+// and doesn't force VideoEnginePanel to redraw.
+const CONVERTER_CONSENT_DESCRIPTION = (
+	<>
+		Video conversion runs entirely on your device, but the engine itself is a
+		one-time {ENGINE_SIZE_LABEL} download. It is cached after the first load, so
+		return visits are instant. Nothing leaves your browser.
+	</>
+);
+
 // Reads client globals and delegates to the pure classifier. Only ever called
 // from user-event handlers, so navigator/window are safe (no SSR access).
 function deviceClass() {
@@ -119,14 +135,7 @@ function VideoConverterPage() {
 				onStart={gate.startLoad}
 				onDecline={gate.decline}
 				icon={Film}
-				consentDescription={
-					<>
-						Video conversion runs entirely on your device, but the engine itself
-						is a one-time {ENGINE_SIZE_LABEL} download. It is cached after the
-						first load, so return visits are instant. Nothing leaves your
-						browser.
-					</>
-				}
+				consentDescription={CONVERTER_CONSENT_DESCRIPTION}
 				disabledTitle="Video conversion is disabled"
 				enableLabel="Enable video conversion"
 			/>
@@ -289,10 +298,15 @@ function ConverterShell() {
 			// loadEngine is idempotent — a no-op when the engine is already
 			// loaded, and a fast cache-backed re-init after a prior cancel
 			// terminated the worker.
+			// Await-before-guard is intentional: the guard below catches a cancel
+			// that lands during the (potentially slow) engine load, so the await
+			// must run before it — not after.
+			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
 			if (token.cancelled) return;
 
+			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { convertVideos } = await import("#/lib/video/converter.ts");
 
 			const outputs = await Effect.runPromise(
@@ -395,10 +409,6 @@ function ConverterShell() {
 			setIsRunning(false);
 			setCancelling(false);
 		}
-	}
-
-	function handleSaveOne(item: Item) {
-		if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
 	}
 
 	const convertable = items.filter(

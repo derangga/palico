@@ -38,6 +38,18 @@ const clamp = (value: number, min: number, max: number) =>
 const pct = (value: number, duration: number) =>
 	duration > 0 ? clamp((value / duration) * 100, 0, 100) : 0;
 
+// Stable empty default so an omitted `thumbnails` prop doesn't allocate a fresh
+// array each render (which would defeat downstream memoization).
+const EMPTY_THUMBNAILS: ReadonlyArray<string> = [];
+
+// Static handle grip — no props/state, so build it once at module scope.
+const GRIP = (
+	<span className="flex flex-col gap-0.5">
+		<span className="h-3 w-px rounded-full bg-primary-foreground/70" />
+		<span className="h-3 w-px rounded-full bg-primary-foreground/70" />
+	</span>
+);
+
 // mm:ss.d — matches the reference's tenth-of-a-second precision.
 const fmt = (totalSeconds: number) => {
 	const s = Math.max(0, totalSeconds);
@@ -52,7 +64,7 @@ export function VideoTrimTimeline({
 	start,
 	end,
 	currentTime,
-	thumbnails = [],
+	thumbnails = EMPTY_THUMBNAILS,
 	minSelection = 0.5,
 	step = 1,
 	disabled = false,
@@ -169,12 +181,6 @@ export function VideoTrimTimeline({
 	const startPct = pct(start, duration);
 	const endPct = pct(end, duration);
 	const headPct = pct(currentTime, duration);
-	const grip = (
-		<span className="flex flex-col gap-0.5">
-			<span className="h-3 w-px rounded-full bg-primary-foreground/70" />
-			<span className="h-3 w-px rounded-full bg-primary-foreground/70" />
-		</span>
-	);
 
 	return (
 		<div className={cn("select-none pt-6", disabled && "opacity-50")}>
@@ -236,7 +242,11 @@ export function VideoTrimTimeline({
 					{fmt(currentTime)}
 				</div>
 
-				{/* Start handle. */}
+				{/* Start handle. Custom dual-thumb range widget: a native
+				    <input type="range"> can't share one track between two thumbs
+				    with a drag-selected fill, filmstrip, and playhead. Full ARIA
+				    (valuemin/max/now/text + label + keyboard) is provided below. */}
+				{/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role */}
 				<div
 					id={startHandleId}
 					role="slider"
@@ -254,10 +264,12 @@ export function VideoTrimTimeline({
 					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${startPct}%` }}
 				>
-					{grip}
+					{GRIP}
 				</div>
 
-				{/* End handle. */}
+				{/* End handle. Custom dual-thumb range widget — see the Start
+				    handle note; native <input type="range"> can't express this. */}
+				{/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role */}
 				<div
 					id={endHandleId}
 					role="slider"
@@ -275,7 +287,7 @@ export function VideoTrimTimeline({
 					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${endPct}%` }}
 				>
-					{grip}
+					{GRIP}
 				</div>
 			</div>
 
