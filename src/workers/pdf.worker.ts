@@ -99,6 +99,53 @@ const post = (msg: PdfWorkerResponse, transfer: Transferable[] = []) => {
 	(self as DedicatedWorkerGlobalScope).postMessage(msg, transfer);
 };
 
+// pdf-lib work is CPU-bound and single-threaded, so this cap is about memory,
+// not speed: it bounds how many source/output PDFs are held in flight at once so
+// a large split/merge doesn't spike memory by materializing every part eagerly.
+const PDF_JOB_CONCURRENCY = 4;
+
+// Run `fn` over `items` with at most `limit` in flight, preserving input order in
+// the returned array. Used to parallelize the independent per-item awaits (page
+// copies, buffer loads) that were previously sequential in a for-loop.
+async function mapWithConcurrency<T, R>(
+	items: readonly T[],
+	limit: number,
+	fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+	const results = new Array<R>(items.length);
+	let cursor = 0;
+	const workers = Array.from(
+		{ length: Math.min(Math.max(1, limit), items.length) },
+		async () => {
+			while (cursor < items.length) {
+				const index = cursor++;
+				results[index] = await fn(items[index], index);
+			}
+		},
+	);
+	await Promise.all(workers);
+	return results;
+}
+
+// Classify a PDF *load* failure into a typed worker error reason. pdf.js raises a
+// PasswordException and pdf-lib an EncryptedPDFError for password-protected
+// documents; everything else is treated as an unparseable/invalid PDF. Genuine
+// internal failures (copy/save) are left to the top-level "worker" catch.
+function classifyLoadError(err: unknown): {
+	reason: "encrypted" | "invalid";
+	message: string;
+} {
+	const name = (err as { name?: string } | null)?.name;
+	if (name === "PasswordException" || name === "EncryptedPDFError") {
+		return { reason: "encrypted", message: "This PDF is password-protected." };
+	}
+	return {
+		reason: "invalid",
+		message:
+			err instanceof Error ? err.message : "This file isn't a valid PDF.",
+	};
+}
+
 async function render(req: RenderRequest): Promise<void> {
 	const loadingTask = getDocument({
 		data: new Uint8Array(req.buffer),
@@ -199,8 +246,19 @@ async function render(req: RenderRequest): Promise<void> {
 // render path (first drop) never pays for it.
 async function extract(req: ExtractRequest): Promise<void> {
 	const { PDFDocument } = await import("pdf-lib");
-	const src = await PDFDocument.load(req.buffer);
-	const out = await PDFDocument.create();
+	// Loading the source and creating the empty output are independent, so run
+	// them together instead of one-after-the-other.
+	let src: import("pdf-lib").PDFDocument;
+	let out: import("pdf-lib").PDFDocument;
+	try {
+		[src, out] = await Promise.all([
+			PDFDocument.load(req.buffer),
+			PDFDocument.create(),
+		]);
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
+	}
 	const pages = await out.copyPages(src, [...req.pageIndices]);
 	for (const page of pages) out.addPage(page);
 	const bytes = await out.save();
@@ -220,14 +278,27 @@ async function split(req: SplitRequest): Promise<void> {
 		import("pdf-lib"),
 		import("fflate"),
 	]);
-	const src = await PDFDocument.load(req.buffer);
-	const files: Record<string, Uint8Array> = {};
-	for (const part of req.parts) {
-		const out = await PDFDocument.create();
-		const pages = await out.copyPages(src, [...part.pageIndices]);
-		for (const page of pages) out.addPage(page);
-		files[part.name] = await out.save();
+	let src: import("pdf-lib").PDFDocument;
+	try {
+		src = await PDFDocument.load(req.buffer);
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
 	}
+	// Each part is an independent output PDF (read-only shares of `src`), so build
+	// them with bounded concurrency instead of strictly one at a time. Order is
+	// preserved so the zip's member order matches the requested parts.
+	const entries = await mapWithConcurrency(
+		req.parts,
+		PDF_JOB_CONCURRENCY,
+		async (part) => {
+			const out = await PDFDocument.create();
+			const pages = await out.copyPages(src, [...part.pageIndices]);
+			for (const page of pages) out.addPage(page);
+			return [part.name, await out.save()] as const;
+		},
+	);
+	const files: Record<string, Uint8Array> = Object.fromEntries(entries);
 	const zipped = zipSync(files, { level: 0 });
 	const buffer = zipped.buffer.slice(
 		zipped.byteOffset,
@@ -242,9 +313,23 @@ async function split(req: SplitRequest): Promise<void> {
 // annotations / outlines / metadata are not guaranteed.
 async function merge(req: MergeRequest): Promise<void> {
 	const { PDFDocument } = await import("pdf-lib");
-	const out = await PDFDocument.create();
-	for (const buffer of req.buffers) {
-		const src = await PDFDocument.load(buffer);
+	// Creating the output and loading every source are independent, so do them
+	// together (loads bounded so many large PDFs don't spike memory). The copy
+	// into `out` stays sequential to preserve the requested page order.
+	let out: import("pdf-lib").PDFDocument;
+	let srcs: import("pdf-lib").PDFDocument[];
+	try {
+		[out, srcs] = await Promise.all([
+			PDFDocument.create(),
+			mapWithConcurrency(req.buffers, PDF_JOB_CONCURRENCY, (buffer) =>
+				PDFDocument.load(buffer),
+			),
+		]);
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
+	}
+	for (const src of srcs) {
 		const pages = await out.copyPages(src, src.getPageIndices());
 		for (const page of pages) out.addPage(page);
 	}
