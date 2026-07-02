@@ -66,12 +66,11 @@ function FaviconGeneratorPage() {
 		() => (source ? URL.createObjectURL(source) : null),
 		[source],
 	);
-	useEffect(
-		() => () => {
+	useEffect(() => {
+		return () => {
 			if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-		},
-		[sourceUrl],
-	);
+		};
+	}, [sourceUrl]);
 
 	// Each asset gets its own object URL for the preview; revoke on unmount/change.
 	const assetUrls = useMemo(() => {

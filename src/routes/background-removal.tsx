@@ -124,18 +124,16 @@ function BackgroundRemovalPage() {
 		() => (result ? URL.createObjectURL(result) : null),
 		[result],
 	);
-	useEffect(
-		() => () => {
+	useEffect(() => {
+		return () => {
 			if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-		},
-		[sourceUrl],
-	);
-	useEffect(
-		() => () => {
+		};
+	}, [sourceUrl]);
+	useEffect(() => {
+		return () => {
 			if (resultUrl) URL.revokeObjectURL(resultUrl);
-		},
-		[resultUrl],
-	);
+		};
+	}, [resultUrl]);
 
 	function pick() {
 		fileInputRef.current?.click();
