@@ -13,10 +13,18 @@ const PANEL_HEIGHT = "h-[1000px]";
 const FULLSCREEN_HEIGHT = "h-[calc(100svh-3.5rem-4rem)]";
 
 export function MarkdownWorkspace() {
-	const [source, setSource] = useState("");
-	// Gate persistence until the first load resolves so we never clobber the
-	// stored document with the initial empty state during hydration.
-	const [hydrated, setHydrated] = useState(false);
+	// Restore synchronously on first render (client only — the workspace is
+	// lazy-loaded). loadMarkdown is a synchronous Effect, so we can seed the real
+	// value here rather than flashing an empty editor and re-setting from a mount
+	// effect. A missing key means a genuine first visit → seed the sample; a
+	// storage failure falls back to the sample too rather than leaving a blank
+	// editor.
+	const [source, setSource] = useState(() => {
+		const exit = Effect.runSyncExit(loadMarkdown);
+		return exit._tag === "Success"
+			? Option.getOrElse(exit.value, () => SAMPLE_MARKDOWN)
+			: SAMPLE_MARKDOWN;
+	});
 	// Fullscreen is an in-layout toggle: the editor is hidden and the preview
 	// takes the full content width (the sidebar and top bar stay put).
 	const [isFullscreen, setIsFullscreen] = useState(false);
@@ -27,24 +35,12 @@ export function MarkdownWorkspace() {
 	// the persistence writes below.
 	const deferredSource = useDeferredValue(source);
 
-	// Restore on mount (client only — the workspace is lazy-loaded). A missing
-	// key means a genuine first visit, so seed the sample; a storage failure
-	// falls back to the sample too rather than leaving a blank editor.
-	useEffect(() => {
-		const exit = Effect.runSyncExit(loadMarkdown);
-		const restored =
-			exit._tag === "Success"
-				? Option.getOrElse(exit.value, () => SAMPLE_MARKDOWN)
-				: SAMPLE_MARKDOWN;
-		setSource(restored);
-		setHydrated(true);
-	}, []);
-
 	// Best-effort persistence of the deferred document; ignore storage failures.
+	// `source` is seeded from storage above, so the first write is a harmless
+	// no-op rather than clobbering the stored document with an empty state.
 	useEffect(() => {
-		if (!hydrated) return;
 		Effect.runSyncExit(saveMarkdown(deferredSource));
-	}, [deferredSource, hydrated]);
+	}, [deferredSource]);
 
 	return (
 		<div className="mx-auto w-full max-w-7xl px-6 py-8">
