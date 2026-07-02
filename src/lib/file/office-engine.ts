@@ -13,7 +13,7 @@
 // progress, persisted in the Cache API) and hand them to Emscripten as blob
 // URLs via the `globalThis.__palicoZetaAssets` map the vendored file consults.
 
-import { Effect, Option, Ref } from "effect";
+import { Deferred, Effect, Option, Ref } from "effect";
 
 import { OfficeConvertError, OfficeEngineLoadError } from "./errors.ts";
 import {
@@ -57,9 +57,15 @@ type OfficeThreadReply =
 // Module singleton via Ref (per Effect patterns — no hidden mutable `let`).
 const engineRef = Ref.unsafeMake<Option.Option<EngineHandle>>(Option.none());
 
-// Conversions are sequential (the batch runs one file at a time), so a single
-// pending slot suffices. Reset between conversions.
-let pendingConvert: ((reply: OfficeThreadReply) => void) | null = null;
+// Conversions serialize through a 1-permit semaphore, so at most one Deferred is
+// ever registered here at a time. The thread-port dispatcher resolves it (no
+// hidden mutable `let`; the slot is a Ref, mirroring engineRef above). Two
+// concurrent convertToPdf calls queue on the permit instead of clobbering each
+// other, and Effect.ensuring clears the slot on success, failure, or interrupt.
+const convertSem = Effect.unsafeMakeSemaphore(1);
+const pendingConvertRef = Ref.unsafeMake<
+	Option.Option<Deferred.Deferred<OfficeThreadReply>>
+>(Option.none());
 
 const emit = (
 	onPhase: (phase: LoadPhase) => void,
@@ -329,8 +335,12 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 							resume(Effect.succeed({ thrPort: zHM.thrPort, fs }));
 							return;
 						}
-						// convert replies -> route to the in-flight conversion.
-						pendingConvert?.(reply);
+						// convert replies -> route to the in-flight conversion. Resolve
+						// the Deferred outside an Effect context via unsafeDone.
+						const pending = Effect.runSync(Ref.get(pendingConvertRef));
+						if (Option.isSome(pending)) {
+							Deferred.unsafeDone(pending.value, Effect.succeed(reply));
+						}
 					};
 				});
 			},
@@ -364,96 +374,89 @@ export const isEngineReady: Effect.Effect<boolean> = Ref.get(engineRef).pipe(
 
 // Convert one document's bytes to PDF bytes via the booted engine. Writes the
 // input to a canonical /tmp path (preserving the extension so LO can sniff the
-// type), asks the office thread to convert, and awaits the reply. Sequential by
-// contract — the caller (office.ts batch) never overlaps conversions.
+// type), asks the office thread to convert, and awaits the reply. Serialized by
+// construction: the whole body runs under convertSem.withPermits(1), so
+// overlapping calls queue rather than clobbering the shared reply slot.
 export const convertToPdf = (params: {
 	readonly id: string;
 	readonly fileName: string;
 	readonly ext: string;
 	readonly bytes: Uint8Array;
 }): Effect.Effect<Uint8Array, OfficeConvertError> =>
-	Effect.gen(function* () {
-		const maybeEngine = yield* Ref.get(engineRef);
-		const engine = yield* Option.match(maybeEngine, {
-			onNone: () =>
-				Effect.fail(
-					new OfficeConvertError({
-						fileName: params.fileName,
-						message: "Engine is not loaded.",
-					}),
-				),
-			onSome: (e) => Effect.succeed(e),
-		});
-
-		const from = `/tmp/input_${params.id}.${params.ext}`;
-		const to = `/tmp/output_${params.id}.pdf`;
-
-		return yield* Effect.async<Uint8Array, OfficeConvertError>((resume) => {
-			pendingConvert = (reply) => {
-				pendingConvert = null;
-				if (reply.cmd === "error") {
-					resume(
-						Effect.fail(
-							new OfficeConvertError({
-								fileName: params.fileName,
-								message: reply.message,
-							}),
-						),
-					);
-					return;
-				}
-				if (reply.cmd === "converted") {
-					try {
-						const pdf = engine.fs.readFile(to);
-						// Copy off the FS buffer before unlinking, then clean up both
-						// files so a long batch can't accumulate memory.
-						const copy = new Uint8Array(pdf);
-						try {
-							engine.fs.unlink(from);
-						} catch {}
-						try {
-							engine.fs.unlink(to);
-						} catch {}
-						resume(Effect.succeed(copy));
-					} catch (cause) {
-						resume(
-							Effect.fail(
-								new OfficeConvertError({
-									fileName: params.fileName,
-									message:
-										cause instanceof Error
-											? cause.message
-											: "Failed to read converted PDF.",
-								}),
-							),
-						);
-					}
-				}
-			};
-
-			try {
-				engine.fs.writeFile(from, params.bytes);
-			} catch (cause) {
-				pendingConvert = null;
-				resume(
+	convertSem.withPermits(1)(
+		Effect.gen(function* () {
+			const maybeEngine = yield* Ref.get(engineRef);
+			const engine = yield* Option.match(maybeEngine, {
+				onNone: () =>
 					Effect.fail(
 						new OfficeConvertError({
 							fileName: params.fileName,
-							message:
-								cause instanceof Error
-									? cause.message
-									: "Failed to stage input file.",
+							message: "Engine is not loaded.",
 						}),
 					),
-				);
-				return;
-			}
-			engine.thrPort.postMessage({
-				cmd: "convert",
-				id: params.id,
-				name: params.fileName,
-				from,
-				to,
+				onSome: (e) => Effect.succeed(e),
 			});
-		});
-	});
+
+			const from = `/tmp/input_${params.id}.${params.ext}`;
+			const to = `/tmp/output_${params.id}.pdf`;
+
+			// Register the reply slot before posting so the dispatcher can route the
+			// thread's reply back to us. ensuring() clears it on every exit path.
+			const deferred = yield* Deferred.make<OfficeThreadReply>();
+			yield* Ref.set(pendingConvertRef, Option.some(deferred));
+
+			yield* Effect.try({
+				try: () => engine.fs.writeFile(from, params.bytes),
+				catch: (cause) =>
+					new OfficeConvertError({
+						fileName: params.fileName,
+						message:
+							cause instanceof Error
+								? cause.message
+								: "Failed to stage input file.",
+					}),
+			});
+
+			yield* Effect.sync(() =>
+				engine.thrPort.postMessage({
+					cmd: "convert",
+					id: params.id,
+					name: params.fileName,
+					from,
+					to,
+				}),
+			);
+
+			const reply = yield* Deferred.await(deferred);
+
+			if (reply.cmd === "error") {
+				return yield* new OfficeConvertError({
+					fileName: params.fileName,
+					message: reply.message,
+				});
+			}
+
+			// reply.cmd === "converted": copy off the FS buffer before unlinking,
+			// then clean up both files so a long batch can't accumulate memory.
+			const copy = yield* Effect.try({
+				try: () => new Uint8Array(engine.fs.readFile(to)),
+				catch: (cause) =>
+					new OfficeConvertError({
+						fileName: params.fileName,
+						message:
+							cause instanceof Error
+								? cause.message
+								: "Failed to read converted PDF.",
+					}),
+			});
+			yield* Effect.sync(() => {
+				try {
+					engine.fs.unlink(from);
+				} catch {}
+				try {
+					engine.fs.unlink(to);
+				} catch {}
+			});
+			return copy;
+		}).pipe(Effect.ensuring(Ref.set(pendingConvertRef, Option.none()))),
+	);
