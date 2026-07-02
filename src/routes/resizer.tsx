@@ -69,7 +69,7 @@ function ResizerPage() {
 	const [pxWidth, setPxWidth] = useState("");
 	const [pxHeight, setPxHeight] = useState("");
 	const [maintainAR, setMaintainAR] = useState(true);
-	const [lastEdited, setLastEdited] = useState<"w" | "h">("w");
+	const lastEditedRef = useRef<"w" | "h">("w");
 	const [noEnlarge, setNoEnlarge] = useState(true);
 
 	// By percentage
@@ -141,7 +141,7 @@ function ResizerPage() {
 		setSource({ file, srcW, srcH });
 		setPxWidth(String(srcW));
 		setPxHeight(String(srcH));
-		setLastEdited("w");
+		lastEditedRef.current = "w";
 		setPct(50);
 		clearResult();
 	}
@@ -154,7 +154,7 @@ function ResizerPage() {
 
 	function changeWidth(value: string) {
 		setPxWidth(value);
-		setLastEdited("w");
+		lastEditedRef.current = "w";
 		if (maintainAR && source) {
 			const w = toInt(value);
 			if (w > 0) {
@@ -168,7 +168,7 @@ function ResizerPage() {
 
 	function changeHeight(value: string) {
 		setPxHeight(value);
-		setLastEdited("h");
+		lastEditedRef.current = "h";
 		if (maintainAR && source) {
 			const h = toInt(value);
 			if (h > 0) {
@@ -184,7 +184,7 @@ function ResizerPage() {
 		setMaintainAR(on);
 		// Re-derive the locked dimension from the current driver.
 		if (on && source) {
-			if (lastEdited === "w") {
+			if (lastEditedRef.current === "w") {
 				const w = toInt(pxWidth);
 				if (w > 0)
 					setPxHeight(

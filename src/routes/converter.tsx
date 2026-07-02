@@ -67,6 +67,10 @@ function downloadBlob(blob: Blob, name: string) {
 	URL.revokeObjectURL(url);
 }
 
+function handleSaveOne(item: Item) {
+	if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
+}
+
 // Make zip entry names unique (two "photo.jpg" inputs → photo.jpg, photo-1.jpg).
 function uniqueNames(names: string[]) {
 	const seen = new Map<string, number>();
@@ -217,10 +221,6 @@ function ConverterPage() {
 				`${failed} image${failed === 1 ? "" : "s"} could not be converted.`,
 			);
 		}
-	}
-
-	function handleSaveOne(item: Item) {
-		if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
 	}
 
 	async function handleDownloadZip() {
