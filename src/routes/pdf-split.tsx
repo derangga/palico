@@ -1,17 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { Check, Download, Loader2, RotateCcw, UploadCloud } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { Loader2, RotateCcw } from "lucide-react";
+import { useId, useReducer, useRef } from "react";
 import { toast } from "sonner";
 
-import { Button } from "#/components/ui/button.tsx";
-import { Input } from "#/components/ui/input.tsx";
+import { Dropzone } from "#/components/pdf-split/dropzone.tsx";
+import { PageThumbnail } from "#/components/pdf-split/page-thumbnail.tsx";
+import { SplitControls } from "#/components/pdf-split/split-controls.tsx";
 import {
-	Tabs,
-	TabsContent,
-	TabsList,
-	TabsTrigger,
-} from "#/components/ui/tabs.tsx";
+	initialSplitState,
+	splitReducer,
+} from "#/components/pdf-split/state.ts";
+import { Button } from "#/components/ui/button.tsx";
 import {
 	allIndividualParts,
 	everyNPageParts,
@@ -19,11 +19,10 @@ import {
 	loadPdf,
 	splitPdf,
 } from "#/lib/file/pdf.ts";
-import type { SplitPart } from "#/lib/file/pdf-types.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
-	type PdfThumbnail,
+	type SplitPart,
 } from "#/lib/file/pdf-types.ts";
 
 export const Route = createFileRoute("/pdf-split")({
@@ -31,8 +30,6 @@ export const Route = createFileRoute("/pdf-split")({
 });
 
 const MB = 1024 * 1024;
-
-type SplitMode = "extract" | "every-n" | "all";
 
 function downloadBlob(blob: Blob, name: string) {
 	const url = URL.createObjectURL(blob);
@@ -50,37 +47,25 @@ function baseName(name: string) {
 function PdfSplitPage() {
 	const inputId = useId();
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const [file, setFile] = useState<File | null>(null);
-	const [thumbnails, setThumbnails] = useState<ReadonlyArray<PdfThumbnail>>([]);
-	const [pageCount, setPageCount] = useState(0);
-	const [rendering, setRendering] = useState(false);
-	const [mode, setMode] = useState<SplitMode>("extract");
-	const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
-	const [everyN, setEveryN] = useState(2);
-	const [working, setWorking] = useState(false);
+	const [state, dispatch] = useReducer(splitReducer, initialSplitState);
 
 	async function loadFile(picked: File) {
-		setFile(picked);
-		setThumbnails([]);
-		setPageCount(0);
-		setSelected(new Set());
-		setRendering(true);
+		dispatch({ type: "loadStart", file: picked });
 
 		const exit = await Effect.runPromiseExit(
 			loadPdf({ id: crypto.randomUUID(), file: picked }, (thumbnail) =>
-				setThumbnails((prev) => [...prev, thumbnail]),
+				dispatch({ type: "addThumbnail", thumbnail }),
 			),
 		);
-		setRendering(false);
 
 		if (exit._tag === "Success") {
-			setPageCount(exit.value.pageCount);
+			dispatch({ type: "loadSuccess", pageCount: exit.value.pageCount });
 			return;
 		}
 		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
 		if (failure) console.error(failure);
 		toast.error(failure?.message ?? "Couldn't open this PDF.");
-		reset();
+		dispatch({ type: "reset" });
 	}
 
 	function handleFiles(files: FileList | null) {
@@ -88,39 +73,17 @@ function PdfSplitPage() {
 		if (picked) void loadFile(picked);
 	}
 
-	function reset() {
-		setFile(null);
-		setThumbnails([]);
-		setPageCount(0);
-		setSelected(new Set());
-		setRendering(false);
-		setMode("extract");
-	}
-
-	function toggle(index: number) {
-		setSelected((prev) => {
-			const next = new Set(prev);
-			if (next.has(index)) next.delete(index);
-			else next.add(index);
-			return next;
-		});
-	}
-
-	function selectAll() {
-		setSelected(new Set(thumbnails.map((t) => t.index)));
-	}
-
 	async function runExtract() {
-		if (!file || selected.size === 0) return;
-		const pageIndices = [...selected].sort((a, b) => a - b);
-		setWorking(true);
+		if (!state.file || state.selected.size === 0) return;
+		const pageIndices = [...state.selected].sort((a, b) => a - b);
+		dispatch({ type: "workStart" });
 		const exit = await Effect.runPromiseExit(
-			extractPages({ id: crypto.randomUUID(), file, pageIndices }),
+			extractPages({ id: crypto.randomUUID(), file: state.file, pageIndices }),
 		);
-		setWorking(false);
+		dispatch({ type: "workEnd" });
 
 		if (exit._tag === "Success") {
-			downloadBlob(exit.value, `${baseName(file.name)}_extracted.pdf`);
+			downloadBlob(exit.value, `${baseName(state.file.name)}_extracted.pdf`);
 			return;
 		}
 		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
@@ -129,15 +92,15 @@ function PdfSplitPage() {
 	}
 
 	async function runSplit(parts: ReadonlyArray<SplitPart>) {
-		if (!file || parts.length === 0) return;
-		setWorking(true);
+		if (!state.file || parts.length === 0) return;
+		dispatch({ type: "workStart" });
 		const exit = await Effect.runPromiseExit(
-			splitPdf({ id: crypto.randomUUID(), file, parts }),
+			splitPdf({ id: crypto.randomUUID(), file: state.file, parts }),
 		);
-		setWorking(false);
+		dispatch({ type: "workEnd" });
 
 		if (exit._tag === "Success") {
-			downloadBlob(exit.value, `${baseName(file.name)}_split.zip`);
+			downloadBlob(exit.value, `${baseName(state.file.name)}_split.zip`);
 			return;
 		}
 		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
@@ -145,11 +108,9 @@ function PdfSplitPage() {
 		toast.error(failure?.message ?? "Couldn't split this PDF.");
 	}
 
-	const hasDocument = file !== null;
-	const ready = hasDocument && !rendering;
-	const selectable = mode === "extract" && ready;
-	const validEveryN = everyN >= 1 && everyN <= pageCount;
-	const everyNFileCount = validEveryN ? Math.ceil(pageCount / everyN) : 0;
+	const hasDocument = state.file !== null;
+	const ready = hasDocument && !state.rendering;
+	const selectable = state.mode === "extract" && ready;
 
 	return (
 		<div className="mx-auto w-full max-w-5xl px-6 py-10">
@@ -163,7 +124,11 @@ function PdfSplitPage() {
 					</p>
 				</div>
 				{hasDocument && (
-					<Button variant="outline" size="sm" onClick={reset}>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => dispatch({ type: "reset" })}
+					>
 						<RotateCcw />
 						Choose another
 					</Button>
@@ -171,251 +136,70 @@ function PdfSplitPage() {
 			</div>
 
 			{!hasDocument && (
-				// biome-ignore lint/a11y/noStaticElementInteractions: dropzone wraps a real file input.
-				<div
-					onDragOver={(e) => e.preventDefault()}
-					onDrop={(e) => {
-						e.preventDefault();
-						handleFiles(e.dataTransfer.files);
-					}}
-					className="rounded-xl border border-dashed bg-card p-8 text-center"
-				>
-					<UploadCloud className="mx-auto size-8 text-muted-foreground" />
-					<p className="mt-3 text-sm font-medium">
-						Drag &amp; drop a PDF here, or
-					</p>
-					<Button
-						variant="outline"
-						size="sm"
-						className="mt-3"
-						onClick={() => fileInputRef.current?.click()}
-					>
-						Choose file
-					</Button>
-					<input
-						id={inputId}
-						ref={fileInputRef}
-						type="file"
-						accept="application/pdf"
-						className="hidden"
-						onChange={(e) => {
-							handleFiles(e.target.files);
-							e.target.value = "";
-						}}
-					/>
-				</div>
+				<Dropzone
+					inputId={inputId}
+					fileInputRef={fileInputRef}
+					onFiles={handleFiles}
+				/>
 			)}
 
-			{hasDocument && (
+			{state.file !== null && (
 				<div>
 					<div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
 						<span className="truncate font-medium text-foreground">
-							{file.name}
+							{state.file.name}
 						</span>
-						{rendering ? (
+						{state.rendering ? (
 							<span className="inline-flex items-center gap-1.5">
 								<Loader2 className="size-3.5 animate-spin" />
-								Rendering pages… {thumbnails.length}
+								Rendering pages… {state.thumbnails.length}
 							</span>
 						) : (
 							<span>
-								{pageCount} {pageCount === 1 ? "page" : "pages"}
+								{state.pageCount} {state.pageCount === 1 ? "page" : "pages"}
 							</span>
 						)}
 					</div>
 
-					<Tabs
-						value={mode}
-						onValueChange={(value) => setMode(value as SplitMode)}
-					>
-						<TabsList>
-							<TabsTrigger value="extract">Extract pages</TabsTrigger>
-							<TabsTrigger value="every-n">Every N pages</TabsTrigger>
-							<TabsTrigger value="all">All pages</TabsTrigger>
-						</TabsList>
-
-						<TabsContent value="extract">
-							<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
-								<p className="text-sm text-muted-foreground">
-									{selected.size > 0 ? (
-										<span className="font-medium text-foreground">
-											{selected.size} of {pageCount} selected
-										</span>
-									) : (
-										"Click pages to select, then extract them into a new PDF."
-									)}
-								</p>
-								<div className="flex items-center gap-2">
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={() => setSelected(new Set())}
-										disabled={!ready || selected.size === 0}
-									>
-										Clear
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={selectAll}
-										disabled={!ready || selected.size === pageCount}
-									>
-										Select all
-									</Button>
-									<Button
-										size="sm"
-										onClick={runExtract}
-										disabled={!ready || selected.size === 0 || working}
-									>
-										{working ? (
-											<Loader2 className="animate-spin" />
-										) : (
-											<Download />
-										)}
-										Extract
-									</Button>
-								</div>
-							</div>
-						</TabsContent>
-
-						<TabsContent value="every-n">
-							<div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card px-4 py-3">
-								<div className="flex flex-col gap-1.5">
-									<span className="text-xs font-medium text-muted-foreground">
-										Pages per file
-									</span>
-									<Input
-										type="number"
-										min={1}
-										max={pageCount}
-										value={everyN}
-										onChange={(e) =>
-											setEveryN(
-												Math.max(1, Math.floor(Number(e.target.value) || 1)),
-											)
-										}
-										className="w-28"
-									/>
-									<span className="text-xs text-muted-foreground">
-										{validEveryN
-											? `Creates ${everyNFileCount} ${everyNFileCount === 1 ? "file" : "files"}, zipped.`
-											: `Enter a number between 1 and ${pageCount}.`}
-									</span>
-								</div>
-								<Button
-									size="sm"
-									onClick={() =>
-										file &&
-										runSplit(everyNPageParts(pageCount, everyN, file.name))
-									}
-									disabled={!ready || !validEveryN || working}
-								>
-									{working ? (
-										<Loader2 className="animate-spin" />
-									) : (
-										<Download />
-									)}
-									Split & download zip
-								</Button>
-							</div>
-						</TabsContent>
-
-						<TabsContent value="all">
-							<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
-								<p className="text-sm text-muted-foreground">
-									Split every page into its own PDF —{" "}
-									<span className="font-medium text-foreground">
-										{pageCount} {pageCount === 1 ? "file" : "files"}
-									</span>
-									, bundled into one zip.
-								</p>
-								<Button
-									size="sm"
-									onClick={() =>
-										file && runSplit(allIndividualParts(pageCount, file.name))
-									}
-									disabled={!ready || working}
-								>
-									{working ? (
-										<Loader2 className="animate-spin" />
-									) : (
-										<Download />
-									)}
-									Split & download zip
-								</Button>
-							</div>
-						</TabsContent>
-					</Tabs>
+					<SplitControls
+						mode={state.mode}
+						onModeChange={(mode) => dispatch({ type: "setMode", mode })}
+						ready={ready}
+						working={state.working}
+						selectedCount={state.selected.size}
+						pageCount={state.pageCount}
+						everyN={state.everyN}
+						onEveryNChange={(value) => dispatch({ type: "setEveryN", value })}
+						onClearSelected={() => dispatch({ type: "clearSelected" })}
+						onSelectAll={() => dispatch({ type: "selectAll" })}
+						onExtract={runExtract}
+						onSplitEveryN={() =>
+							state.file &&
+							runSplit(
+								everyNPageParts(state.pageCount, state.everyN, state.file.name),
+							)
+						}
+						onSplitAll={() =>
+							state.file &&
+							runSplit(allIndividualParts(state.pageCount, state.file.name))
+						}
+					/>
 
 					<div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-						{thumbnails.map((thumbnail) => (
+						{state.thumbnails.map((thumbnail) => (
 							<PageThumbnail
 								key={thumbnail.index}
 								thumbnail={thumbnail}
 								selectable={selectable}
-								selected={selected.has(thumbnail.index)}
-								onToggle={() => toggle(thumbnail.index)}
+								selected={state.selected.has(thumbnail.index)}
+								onToggle={() =>
+									dispatch({ type: "toggle", index: thumbnail.index })
+								}
 							/>
 						))}
 					</div>
 				</div>
 			)}
 		</div>
-	);
-}
-
-// Paints a transferred ImageBitmap onto a canvas. Drawing is a one-shot effect
-// keyed to the bitmap identity. When selectable, the whole card is a toggle.
-function PageThumbnail({
-	thumbnail,
-	selectable,
-	selected,
-	onToggle,
-}: {
-	thumbnail: PdfThumbnail;
-	selectable: boolean;
-	selected: boolean;
-	onToggle: () => void;
-}) {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-
-	useEffect(() => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
-		const ctx = canvas.getContext("2d");
-		ctx?.drawImage(thumbnail.bitmap, 0, 0);
-	}, [thumbnail.bitmap]);
-
-	return (
-		<button
-			type="button"
-			onClick={selectable ? onToggle : undefined}
-			disabled={!selectable}
-			aria-pressed={selected}
-			className={`group relative flex flex-col items-center gap-2 rounded-lg border bg-card p-2 text-left transition-colors ${
-				selectable ? "cursor-pointer hover:border-primary/60" : "cursor-default"
-			} ${selected ? "border-primary ring-2 ring-primary/30" : ""}`}
-		>
-			{selectable && (
-				<span
-					className={`absolute right-3 top-3 z-10 flex size-5 items-center justify-center rounded-full border transition-colors ${
-						selected
-							? "border-primary bg-primary text-primary-foreground"
-							: "border-border bg-background/80 text-transparent group-hover:border-primary/60"
-					}`}
-				>
-					<Check className="size-3.5" />
-				</span>
-			)}
-			<canvas
-				ref={canvasRef}
-				width={thumbnail.width}
-				height={thumbnail.height}
-				className="h-auto w-full rounded-sm border border-border/60 bg-white shadow-xs"
-			/>
-			<span className="text-xs font-medium text-muted-foreground">
-				{thumbnail.index + 1}
-			</span>
-		</button>
 	);
 }
