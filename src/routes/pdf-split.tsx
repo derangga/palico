@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useId, useReducer, useRef } from "react";
-import { toast } from "sonner";
-
 import { Dropzone } from "#/components/pdf-split/dropzone.tsx";
 import { PageThumbnail } from "#/components/pdf-split/page-thumbnail.tsx";
 import { SplitControls } from "#/components/pdf-split/split-controls.tsx";
@@ -12,6 +10,7 @@ import {
 	splitReducer,
 } from "#/components/pdf-split/state.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { toastOnExit } from "#/lib/exit-toast.ts";
 import {
 	allIndividualParts,
 	everyNPageParts,
@@ -58,14 +57,12 @@ function PdfSplitPage() {
 			),
 		);
 
-		if (exit._tag === "Success") {
-			dispatch({ type: "loadSuccess", pageCount: exit.value.pageCount });
+		const result = toastOnExit(exit, "Couldn't open this PDF.");
+		if (Option.isNone(result)) {
+			dispatch({ type: "reset" });
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-		if (failure) console.error(failure);
-		toast.error(failure?.message ?? "Couldn't open this PDF.");
-		dispatch({ type: "reset" });
+		dispatch({ type: "loadSuccess", pageCount: result.value.pageCount });
 	}
 
 	function handleFiles(files: FileList | null) {
@@ -82,13 +79,9 @@ function PdfSplitPage() {
 		);
 		dispatch({ type: "workEnd" });
 
-		if (exit._tag === "Success") {
-			downloadBlob(exit.value, `${baseName(state.file.name)}_extracted.pdf`);
-			return;
-		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-		if (failure) console.error(failure);
-		toast.error(failure?.message ?? "Couldn't extract those pages.");
+		const result = toastOnExit(exit, "Couldn't extract those pages.");
+		if (Option.isNone(result)) return;
+		downloadBlob(result.value, `${baseName(state.file.name)}_extracted.pdf`);
 	}
 
 	async function runSplit(parts: ReadonlyArray<SplitPart>) {
@@ -99,13 +92,9 @@ function PdfSplitPage() {
 		);
 		dispatch({ type: "workEnd" });
 
-		if (exit._tag === "Success") {
-			downloadBlob(exit.value, `${baseName(state.file.name)}_split.zip`);
-			return;
-		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-		if (failure) console.error(failure);
-		toast.error(failure?.message ?? "Couldn't split this PDF.");
+		const result = toastOnExit(exit, "Couldn't split this PDF.");
+		if (Option.isNone(result)) return;
+		downloadBlob(result.value, `${baseName(state.file.name)}_split.zip`);
 	}
 
 	const hasDocument = state.file !== null;

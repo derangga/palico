@@ -13,7 +13,7 @@
 // progress, persisted in the Cache API) and hand them to Emscripten as blob
 // URLs via the `globalThis.__palicoZetaAssets` map the vendored file consults.
 
-import { Deferred, Effect, Option, Ref } from "effect";
+import { Deferred, Effect, Option, Ref, SynchronizedRef } from "effect";
 
 import { OfficeConvertError, OfficeEngineLoadError } from "./errors.ts";
 import {
@@ -54,8 +54,14 @@ type OfficeThreadReply =
 	| { readonly cmd: "converted"; readonly id: string; readonly to: string }
 	| { readonly cmd: "error"; readonly id: string; readonly message: string };
 
-// Module singleton via Ref (per Effect patterns — no hidden mutable `let`).
-const engineRef = Ref.unsafeMake<Option.Option<EngineHandle>>(Option.none());
+// Module singleton via SynchronizedRef (per Effect patterns — no hidden mutable
+// `let`). SynchronizedRef serializes updateEffect, so the check-then-boot in
+// loadEngine runs under a lock: concurrent callers can't both observe `none` and
+// boot two ~53 MB engines. Reads still go through `Ref.get` (SynchronizedRef is
+// a Ref), so convertToPdf/isEngineReady are unchanged.
+const engineRef = SynchronizedRef.unsafeMake<Option.Option<EngineHandle>>(
+	Option.none(),
+);
 
 // Conversions serialize through a 1-permit semaphore, so at most one Deferred is
 // ever registered here at a time. The thread-port dispatcher resolves it (no
@@ -349,22 +355,39 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 
 // Load the engine (cache-first assets, then boot). Idempotent: returns the
 // existing handle if already loaded. `onPhase` drives the consent/progress UI.
+//
+// The boot runs inside SynchronizedRef.updateEffect, which serializes concurrent
+// callers: the first observes `none` and drives the full download/boot (with its
+// onPhase); any caller that raced in blocks on the lock, then observes `some` and
+// only emits `ready`. Exactly one engine boots and both callers get that handle.
+// A failed boot leaves the slot `none`, so a later call retries cleanly.
 export const loadEngine = (
 	onPhase: (phase: LoadPhase) => void,
 ): Effect.Effect<EngineHandle, OfficeEngineLoadError> =>
 	Effect.gen(function* () {
-		const existing = yield* Ref.get(engineRef);
-		if (Option.isSome(existing)) {
-			yield* emit(onPhase, { kind: "ready" });
-			return existing.value;
-		}
+		yield* SynchronizedRef.updateEffect(engineRef, (current) =>
+			Option.isSome(current)
+				? emit(onPhase, { kind: "ready" }).pipe(Effect.as(current))
+				: Effect.gen(function* () {
+						yield* prepareAssets(onPhase);
+						yield* emit(onPhase, { kind: "preparing" });
+						const engine = yield* bootEngine;
+						yield* emit(onPhase, { kind: "ready" });
+						return Option.some(engine);
+					}),
+		);
 
-		yield* prepareAssets(onPhase);
-		yield* emit(onPhase, { kind: "preparing" });
-		const engine = yield* bootEngine;
-		yield* Ref.set(engineRef, Option.some(engine));
-		yield* emit(onPhase, { kind: "ready" });
-		return engine;
+		const loaded = yield* Ref.get(engineRef);
+		return yield* Option.match(loaded, {
+			onNone: () =>
+				Effect.fail(
+					new OfficeEngineLoadError({
+						stage: "preparing",
+						message: "Engine failed to load.",
+					}),
+				),
+			onSome: Effect.succeed,
+		});
 	});
 
 // True once the engine singleton is booted this session.

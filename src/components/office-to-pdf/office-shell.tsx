@@ -1,8 +1,7 @@
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { FileArchive, Loader2, UploadCloud } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
-
 import { FileRow } from "#/components/office-to-pdf/file-row.tsx";
 import type {
 	ItemStatus,
@@ -14,6 +13,7 @@ import {
 	saveOne,
 } from "#/components/office-to-pdf/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { toastOnExit } from "#/lib/exit-toast.ts";
 import { checkOfficeFile } from "#/lib/file/office-limits.ts";
 import {
 	MAX_BATCH_FILES,
@@ -170,11 +170,9 @@ export function OfficeShell() {
 				})),
 			),
 		);
-		if (exit._tag !== "Success") {
-			toast.error("Could not build the zip file.");
-			return;
-		}
-		downloadBlob(exit.value, "converted-pdfs.zip");
+		const result = toastOnExit(exit, "Could not build the zip file.");
+		if (Option.isNone(result)) return;
+		downloadBlob(result.value, "converted-pdfs.zip");
 		toast.success("Downloaded all PDFs as a zip.");
 	}
 

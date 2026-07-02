@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Option } from "effect";
 import { Download, Loader2, RotateCcw, UploadCloud } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
-
 import { FileCard } from "#/components/pdf-merge/file-card.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { toastOnExit } from "#/lib/exit-toast.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
 import {
 	MAX_PDF_BYTES,
@@ -51,21 +51,19 @@ function PdfMergePage() {
 			}),
 		);
 
-		if (exit._tag === "Success") {
-			const { pageCount } = exit.value;
-			setItems((prev) =>
-				prev.map((item) =>
-					item.id === id
-						? { ...item, status: "ready", thumbnail: cover, pageCount }
-						: item,
-				),
-			);
+		const result = toastOnExit(exit, `Couldn't open "${file.name}".`);
+		if (Option.isNone(result)) {
+			setItems((prev) => prev.filter((item) => item.id !== id));
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-		if (failure) console.error(failure);
-		toast.error(failure?.message ?? `Couldn't open "${file.name}".`);
-		setItems((prev) => prev.filter((item) => item.id !== id));
+		const { pageCount } = result.value;
+		setItems((prev) =>
+			prev.map((item) =>
+				item.id === id
+					? { ...item, status: "ready", thumbnail: cover, pageCount }
+					: item,
+			),
+		);
 	}
 
 	function addFiles(fileList: FileList | null) {
@@ -127,13 +125,9 @@ function PdfMergePage() {
 		);
 		setMerging(false);
 
-		if (exit._tag === "Success") {
-			downloadBlob(exit.value, "merged.pdf");
-			return;
-		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-		if (failure) console.error(failure);
-		toast.error(failure?.message ?? "Couldn't merge these PDFs.");
+		const result = toastOnExit(exit, "Couldn't merge these PDFs.");
+		if (Option.isNone(result)) return;
+		downloadBlob(result.value, "merged.pdf");
 	}
 
 	const hasItems = items.length > 0;
