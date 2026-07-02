@@ -12,15 +12,15 @@
 - Error classes are tagged with `_tag` field for discrimination.
 - Error union types (e.g. `BackgroundRemovalError`) are `Schema.Union` of tagged error classes.
 - Effects compose on the error channel — surface typed errors rather than throwing.
-- See beads memory `video-converter-pipeline` and `video-ffmpeg-engine-load` for video-specific Effect patterns.
+- See bd memories `video-converter-pipeline` and `video-ffmpeg-engine-load` for video-specific Effect patterns.
 
-## Image Domain (`src/lib/image/`)
+## Domain Modules (`src/lib/*/`)
 
-- Each tool has its own module: `converter.ts`, `resizer.ts`, `background-removal.ts`, `favicon.ts`.
-- Shared types in `types.ts` (Effect Schema: `OutputFormat`, `WorkerRequest`, `WorkerResponse`).
-- Shared errors in `errors.ts` (tagged error classes).
-- Worker communication via `worker-client.ts` (`runImageWorker`, `workerUrl`).
-- Converter + resizer use Web Worker + OffscreenCanvas/canvas; background removal uses `@huggingface/transformers` on main thread.
+- Each tool has its own module file within its domain folder: `image/`, `video/`, `file/`, `markdown/`.
+- Shared types typically in a `types.ts`/`*-types.ts`; shared errors in `errors.ts` (tagged error classes).
+- Worker communication goes through a dedicated `*-worker-client.ts` bridge file.
+- WASM engines (video's ffmpeg.wasm, file's LibreOffice Zeta helper) follow the same pattern: module-level singleton ref, lazy `loadEngine`, Cache API for asset persistence, require COOP/COEP cross-origin isolation.
+- See `mem:image_lib`, `mem:video_lib`, `mem:file_lib`, `mem:markdown_lib` for per-domain module maps.
 
 ## Biome Style
 
