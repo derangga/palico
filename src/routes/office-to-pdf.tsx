@@ -90,7 +90,7 @@ function OfficeToPdfPage() {
 			{/* LibreOffice's Qt runtime requires this element to exist before the
 			    engine boots (ZetaHelperMain reads #qtcanvas). Keep it mounted across
 			    every phase, including the ready shell. Hidden — we convert headless. */}
-			<canvas id="qtcanvas" aria-hidden className="hidden" />
+			<canvas id="qtcanvas" className="hidden" />
 			{phase.kind === "ready" ? (
 				<OfficeShell />
 			) : (
@@ -337,6 +337,10 @@ function OfficeShell() {
 		let ok = 0;
 		let failed = 0;
 		for (const target of targets) {
+			// Sequential by design: the LibreOffice engine is single-threaded and
+			// converts one document at a time — running these together would corrupt
+			// the shared engine state, so Promise.all is not an option here.
+			// react-doctor-disable-next-line react-doctor/async-await-in-loop
 			const exit = await Effect.runPromiseExit(
 				convertFileToPdf({ id: target.id, file: target.file }),
 			);
@@ -386,10 +390,6 @@ function OfficeShell() {
 				`${failed} file${failed === 1 ? "" : "s"} couldn't be converted.`,
 			);
 		}
-	}
-
-	function saveOne(item: OfficeItem) {
-		if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
 	}
 
 	async function downloadAllZip() {
@@ -566,6 +566,10 @@ function StatusBadge({ status }: { status: ItemStatus }) {
 	if (status === "error")
 		return <CircleAlert className="size-4 shrink-0 text-destructive" />;
 	return null;
+}
+
+function saveOne(item: OfficeItem) {
+	if (item.outBlob && item.outName) downloadBlob(item.outBlob, item.outName);
 }
 
 function pdfName(fileName: string) {
