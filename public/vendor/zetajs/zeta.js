@@ -665,7 +665,7 @@ Module.zetajs = new Promise(function (resolve, reject) {
         throw new Error('bad member type ' + type);
       }
     }
-    function TypeArgumentIndex(index) { this.index = index; };
+    class TypeArgumentIndex { constructor(index) { this.index = index; } }
     function computeMembers(type, obj) {
       const td = Module.uno.com.sun.star.reflection.XCompoundTypeDescription.query(type);
       const base = td.getBaseType();
@@ -819,10 +819,12 @@ Module.zetajs = new Promise(function (resolve, reject) {
         }
       });
     };
-    function Any(type, val) {
-      this.type = type;
-      this.val = val;
-    };
+    class Any {
+      constructor(type, val) {
+        this.type = type;
+        this.val = val;
+      }
+    }
     function getAnyType(val) {
       switch (typeof val) {
       case 'undefined':

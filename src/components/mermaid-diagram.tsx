@@ -3,17 +3,29 @@ import { useEffect, useId, useState } from "react";
 
 import { renderMermaid } from "#/lib/markdown/mermaid.ts";
 
+// Each state carries the `chart` source it was computed for. When the prop
+// changes, the stored state still describes the previous source, so we treat it
+// as pending during render (see below) instead of resetting state in the effect
+// — the latter would set state in response to a prop change (double render, and
+// can drop the in-flight result).
 type RenderState =
-	| { readonly status: "pending" }
-	| { readonly status: "ready"; readonly svg: string }
-	| { readonly status: "error"; readonly message: string };
+	| { readonly status: "pending"; readonly chart: string }
+	| { readonly status: "ready"; readonly chart: string; readonly svg: string }
+	| {
+			readonly status: "error";
+			readonly chart: string;
+			readonly message: string;
+	  };
 
 // Renders a single ```mermaid block. A failed render (invalid syntax, which is
 // common while the diagram is still being typed) is shown as a small inline
 // error box in place of just this diagram — the rest of the preview keeps
 // rendering. The effect is re-run whenever the source changes.
 export function MermaidDiagram({ chart }: { readonly chart: string }) {
-	const [state, setState] = useState<RenderState>({ status: "pending" });
+	const [rendered, setRendered] = useState<RenderState>({
+		status: "pending",
+		chart,
+	});
 	// mermaid uses the id as a DOM selector, so strip the colons React's useId
 	// produces (they're invalid in a query selector).
 	const rawId = useId();
@@ -21,17 +33,17 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 
 	useEffect(() => {
 		let cancelled = false;
-		setState({ status: "pending" });
 
 		Effect.runPromiseExit(renderMermaid(domId, chart)).then((exit) => {
 			if (cancelled) return;
 			if (exit._tag === "Success") {
-				setState({ status: "ready", svg: exit.value });
+				setRendered({ status: "ready", chart, svg: exit.value });
 				return;
 			}
 			const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
-			setState({
+			setRendered({
 				status: "error",
+				chart,
 				message: failure?.message ?? "This diagram couldn't be rendered.",
 			});
 		});
@@ -40,6 +52,12 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 			cancelled = true;
 		};
 	}, [chart, domId]);
+
+	// Derive the displayed state during render: if the stored result was computed
+	// for a different `chart`, the effect for the current source hasn't landed
+	// yet, so show pending rather than the stale diagram.
+	const state: RenderState =
+		rendered.chart === chart ? rendered : { status: "pending", chart };
 
 	if (state.status === "error") {
 		return (
