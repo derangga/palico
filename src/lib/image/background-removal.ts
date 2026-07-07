@@ -20,9 +20,11 @@ import { MAX_FILE_BYTES } from "./types.ts";
 // jank shows up on inference.
 
 // transformers.js pipeline instances are callable via a Proxy; type as the
-// invocation signature we actually use (a single image URL → segmentation output).
+// invocation signature we actually use (a decoded canvas → segmentation output).
+// We hand it a canvas rather than a URL so transformers never calls
+// createImageBitmap on the blob (see decodeSourceToCanvas).
 type SegmentationModel = (
-	input: string,
+	input: HTMLCanvasElement,
 ) => Promise<ImageSegmentationPipelineOutput[]>;
 
 export const RemoveProgress = Schema.Union(
@@ -136,6 +138,23 @@ const loadHtmlImage = (src: string): Promise<HTMLImageElement> =>
 		img.src = src;
 	});
 
+// Decode the source with an <img> element and paint it onto a canvas we then
+// feed to the model. transformers.js otherwise fetches the blob URL and runs
+// createImageBitmap, which throws "The source image could not be decoded." for
+// formats <img> renders fine (SVG, TIFF, some AVIF) — all reachable through the
+// route's `image/*` accept. Decoding once here also feeds compositing, so the
+// source is never decoded twice.
+const decodeSourceToCanvas = (url: string): Promise<HTMLCanvasElement> =>
+	loadHtmlImage(url).then((img) => {
+		const canvas = document.createElement("canvas");
+		canvas.width = img.naturalWidth || img.width;
+		canvas.height = img.naturalHeight || img.height;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) throw new Error("Canvas 2D context unavailable.");
+		ctx.drawImage(img, 0, 0);
+		return canvas;
+	});
+
 // Paint the grayscale RawImage mask onto a canvas and return a data URL.
 const maskToDataUrl = (mask: RawImage): string => {
 	const canvas = document.createElement("canvas");
@@ -156,28 +175,25 @@ const maskToDataUrl = (mask: RawImage): string => {
 	return canvas.toDataURL();
 };
 
-// Composite source RGB with mask grayscale → alpha and encode as PNG.
+// Composite source RGB (already decoded onto `sourceCanvas`) with mask
+// grayscale → alpha and encode as PNG.
 const composeCutout = async (
-	sourceUrl: string,
+	sourceCanvas: HTMLCanvasElement,
 	mask: RawImage,
 ): Promise<Blob> => {
-	const img = await loadHtmlImage(sourceUrl);
-	const canvas = document.createElement("canvas");
-	canvas.width = img.width;
-	canvas.height = img.height;
-	const ctx = canvas.getContext("2d");
+	const { width, height } = sourceCanvas;
+	const ctx = sourceCanvas.getContext("2d");
 	if (!ctx) throw new Error("Canvas 2D context unavailable.");
-	ctx.drawImage(img, 0, 0);
-	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	const imageData = ctx.getImageData(0, 0, width, height);
 
 	const maskImg = await loadHtmlImage(maskToDataUrl(mask));
 	const maskCanvas = document.createElement("canvas");
-	maskCanvas.width = img.width;
-	maskCanvas.height = img.height;
+	maskCanvas.width = width;
+	maskCanvas.height = height;
 	const maskCtx = maskCanvas.getContext("2d");
 	if (!maskCtx) throw new Error("Canvas 2D context unavailable.");
-	maskCtx.drawImage(maskImg, 0, 0, img.width, img.height);
-	const maskData = maskCtx.getImageData(0, 0, img.width, img.height);
+	maskCtx.drawImage(maskImg, 0, 0, width, height);
+	const maskData = maskCtx.getImageData(0, 0, width, height);
 
 	for (let i = 0; i < imageData.data.length; i += 4) {
 		imageData.data[i + 3] = maskData.data[i];
@@ -185,7 +201,7 @@ const composeCutout = async (
 	ctx.putImageData(imageData, 0, 0);
 
 	return new Promise<Blob>((resolve, reject) => {
-		canvas.toBlob(
+		sourceCanvas.toBlob(
 			(b) => (b ? resolve(b) : reject(new Error("Failed to encode PNG."))),
 			"image/png",
 		);
@@ -252,8 +268,22 @@ export const removeBackground = (
 			Effect.gen(function* () {
 				input.onProgress?.({ stage: "processing" });
 
+				// Decode with <img> before inference so transformers.js never runs
+				// createImageBitmap on a format it can't handle. A genuine decode
+				// failure now surfaces as DecodeError instead of a misleading
+				// InferenceError.
+				const canvas = yield* Effect.tryPromise({
+					try: () => decodeSourceToCanvas(sourceUrl),
+					catch: (err) =>
+						new DecodeError({
+							fileName: input.file.name,
+							message:
+								err instanceof Error ? err.message : "Could not decode image.",
+						}),
+				});
+
 				const segments = yield* Effect.tryPromise({
-					try: () => model(sourceUrl),
+					try: () => model(canvas),
 					catch: (err) =>
 						new InferenceError({
 							fileName: input.file.name,
@@ -270,7 +300,7 @@ export const removeBackground = (
 				}
 
 				return yield* Effect.tryPromise({
-					try: () => composeCutout(sourceUrl, first.mask),
+					try: () => composeCutout(canvas, first.mask),
 					catch: (err) => {
 						const message =
 							err instanceof Error ? err.message : "Could not compose image.";
