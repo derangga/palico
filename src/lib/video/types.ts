@@ -85,7 +85,9 @@ export const ENCODER_ARGS: Record<VideoOutputFormat, readonly string[]> = {
 	mp4: H264_ARGS,
 	mov: H264_ARGS,
 	mkv: H264_ARGS,
-	webm: ["-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0", "-c:a", "libopus"],
+	// VP8, not VP9: libvpx-vp9 hard-aborts under @ffmpeg/core-mt's threading
+	// (crashes within a few frames). libvpx (VP8) is lighter and stable in wasm.
+	webm: ["-c:v", "libvpx", "-b:v", "1M", "-c:a", "libopus"],
 	avi: ["-c:v", "mpeg4", "-q:v", "5", "-c:a", "libmp3lame"],
 };
 

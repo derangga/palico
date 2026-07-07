@@ -68,7 +68,13 @@ export const runFfmpegJob = <ER, EJ>(
 		// duration of this exec. acquireUseRelease guarantees the listeners are
 		// removed even on failure, so events from a later exec can't bleed into
 		// this job's caller.
-		const exitCode = yield* Effect.acquireUseRelease(
+		// exec resolves with an exit code on a clean run; a wasm abort (OOM,
+		// unreachable) rejects instead. Capture BOTH as a value so the failure
+		// handling below — OOM detection, log tail, engine disposal — runs for a
+		// thrown abort too, not just a non-zero exit. Otherwise an abort dies with
+		// a bare "Encoder threw.", discarding the 64 captured log lines that name
+		// the real reason and leaving the bricked wasm instance in place.
+		const result = yield* Effect.acquireUseRelease(
 			Effect.sync(() => {
 				const emitPercent = opts.onPercent;
 				const onProgress = emitPercent
@@ -86,13 +92,22 @@ export const runFfmpegJob = <ER, EJ>(
 				return { onProgress, onLog };
 			}),
 			() =>
-				Effect.tryPromise({
-					try: () => ffmpeg.exec([...opts.args]),
-					catch: (cause) =>
-						opts.jobError(
-							cause instanceof Error ? cause.message : `${opts.label} threw.`,
-						),
-				}),
+				Effect.promise(
+					(): Promise<
+						| { readonly _tag: "exit"; readonly code: number }
+						| { readonly _tag: "threw"; readonly message: string }
+					> =>
+						ffmpeg
+							.exec([...opts.args])
+							.then((code) => ({ _tag: "exit" as const, code }))
+							.catch((cause) => ({
+								_tag: "threw" as const,
+								message:
+									cause instanceof Error && cause.message
+										? cause.message
+										: `${opts.label} threw.`,
+							})),
+				),
 			({ onProgress, onLog }) =>
 				Effect.sync(() => {
 					if (onProgress) ffmpeg.off("progress", onProgress);
@@ -100,7 +115,7 @@ export const runFfmpegJob = <ER, EJ>(
 				}),
 		);
 
-		if (exitCode !== 0) {
+		if (result._tag === "threw" || result.code !== 0) {
 			// An emscripten OOM/abort leaves the wasm instance permanently
 			// unusable. Dispose the singleton so the next run re-inits a fresh
 			// worker, and surface an honest, actionable message instead of the raw
@@ -111,13 +126,17 @@ export const runFfmpegJob = <ER, EJ>(
 				return yield* Effect.fail(opts.jobError(opts.oomMessage));
 			}
 
+			// A thrown exec (not a clean non-zero exit) bricks the instance too —
+			// dispose so the tool isn't stuck dead until a page reload.
+			if (result._tag === "threw") yield* disposeEngine;
+
 			const tail = logLines.slice(-8).join(" / ").trim();
+			const reason =
+				result._tag === "threw"
+					? result.message
+					: `${opts.label} exited with code ${result.code}.`;
 			return yield* Effect.fail(
-				opts.jobError(
-					tail
-						? `${opts.label} exited with code ${exitCode}. ${tail}`
-						: `${opts.label} exited with code ${exitCode}.`,
-				),
+				opts.jobError(tail ? `${reason} ${tail}` : reason),
 			);
 		}
 
