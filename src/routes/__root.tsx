@@ -18,9 +18,9 @@ import { Toaster } from "#/components/ui/sonner.tsx";
 
 import appCss from "../styles.css?url";
 
-const SITE_TITLE = "Palico — Offline image tools";
+const SITE_TITLE = "Palico — Free, private, offline file tools. No sign-up.";
 const SITE_DESCRIPTION =
-	"Palico is a free, offline-first toolkit for converting and resizing images. Everything runs in your browser — no uploads, no tracking, no data collected.";
+	"Palico is a free, offline-first toolkit for images, video, PDFs, and files — convert, resize, remove backgrounds, split PDFs, and more. Everything runs entirely in your browser: no uploads, no tracking, no account required. Your files never leave your device.";
 
 export const Route = createRootRoute({
 	head: () => ({

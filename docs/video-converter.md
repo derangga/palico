@@ -366,7 +366,9 @@ comes from this table.
 - **MP4 / MOV / MKV:** H.264 (`libx264`) plus AAC audio. Broadest playback
   compatibility. The video settings are tuned for memory, not the smallest file:
   `-preset veryfast`, `-crf 23`, `-threads 2`. See the OOM problem below for why.
-- **WebM:** VP9 (`libvpx-vp9`) plus Opus. Modern and royalty free.
+- **WebM:** VP8 (`libvpx`) plus Opus. VP8, not VP9: `libvpx-vp9` hard-aborts
+  under `@ffmpeg/core-mt`'s threading (crashes within a few frames), while
+  `libvpx` (VP8) is lighter and stable in wasm.
 - **AVI:** MPEG-4 ASP plus MP3, for the tooling that still asks for AVI.
 
 ### Filenames in the virtual filesystem
@@ -394,16 +396,27 @@ Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Embedder-Policy: require-corp
 ```
 
-We set these in two places, and both are required:
+We set these in two places, depending on environment:
 
-1. **`src/server.ts`** sets them on the server rendered HTML and worker handler
-   responses for production. `wrangler.jsonc` points `main` directly at
-   `src/server.ts` so this custom entry is used.
-2. **`vite.config.ts`** sets them on the dev and preview server through
-   `server.headers` and `preview.headers`. This matters because Vite serves the
-   `@ffmpeg/ffmpeg` internal worker (`worker.js?worker_file&type=module`) from its
-   own middleware, which does not pass through `src/server.ts`. Without these the
-   nested worker cannot spawn and `ffmpeg.load()` hangs (see the problems below).
+1. **Production — `public/_headers`.** The site deploys as a static SPA with no
+   rendering Worker (see problem 6), so there is no server response to attach
+   headers to. Cloudflare's `_headers` file supplies them instead:
+   - `/*` → `COOP: same-origin` + `COEP: require-corp` on the HTML document
+     (applied to every route, since the SPA fallback serves `index.html` for all
+     paths).
+   - `/assets/*` and `/vendor/*` → `COEP: require-corp` + `CORP: same-origin`, so
+     the bundled workers (image converter, ffmpeg internals) and the ZetaOffice
+     runtime load under the cross-origin-isolated document rather than being
+     blocked with `ERR_BLOCKED_BY_RESPONSE`.
+
+   `src/server.ts` still sets these headers, but in production it is only the
+   build/prerender entry (via `wrangler.jsonc` `main`) — its response never
+   reaches the browser, because the deploy ships `dist/client` as static assets.
+2. **Dev and preview — `vite.config.ts`.** Sets them through `server.headers`
+   and `preview.headers`. This matters because Vite serves the `@ffmpeg/ffmpeg`
+   internal worker (`worker.js?worker_file&type=module`) from its own middleware,
+   which does not pass through `src/server.ts`. Without these the nested worker
+   cannot spawn and `ffmpeg.load()` hangs (see the problems below).
 
 ## Error model
 
@@ -491,7 +504,25 @@ only through `await import(...)` inside user gesture handlers. The production
 build confirms `engine` and `converter` land in their own chunks, separate from
 the route chunk.
 
-### 6. Vitest could not load the app config
+### 6. Worker bundle exceeded Cloudflare's size limit (SSR → static SPA)
+
+Problem 1's fix (custom `src/server.ts` entry for the SSR headers) worked, but
+the SSR Worker bundled every client-only library — transformers, mermaid, pdf.js,
+and ffmpeg glue — pushing the deployed script past Cloudflare's 3 MiB free-plan
+limit (`code: 10027`). This app renders everything client-side, so SSR bought us
+nothing but bundle weight. The fix was to drop the rendering Worker entirely:
+
+- `vite.config.ts` enables SPA mode (`tanstackStart({ spa: … })`), prerendering
+  a static shell to `index.html`.
+- `wrangler.deploy.jsonc` is an assets-only config (no `main`) pointing at
+  `dist/client`; static assets have no size limit. `bun run deploy` targets it.
+- With no server response to carry them, the document COOP/COEP headers moved to
+  `public/_headers` (see the cross-origin isolation section).
+
+Never run bare `wrangler deploy` — it uses `wrangler.jsonc` (`main: src/server.ts`)
+and re-triggers the 25 MB Worker upload. Only `bun run deploy` is safe.
+
+### 7. Vitest could not load the app config
 
 The project's `test` script existed but had no tests, so it was never exercised.
 When the first test arrived, Vitest choked on the Cloudflare and TanStack Start
@@ -525,5 +556,7 @@ browser worker and WASM, so they are validated manually in `bun run dev`.
 | `src/lib/video/preferences.ts`      | `localStorage` backed "do not show again" preference                      |
 | `src/lib/video/errors.ts`           | Tagged errors for the engine and pipeline                                 |
 | `src/lib/video/limits.test.ts`      | Unit tests for the pure guardrail logic                                   |
-| `src/server.ts`                     | COOP and COEP headers for production responses                            |
-| `vite.config.ts`                    | COOP and COEP headers for dev and preview                                 |
+| `public/_headers`                   | Production COOP/COEP (document + `/assets/*`, `/vendor/*`) for the SPA     |
+| `src/server.ts`                     | Build/prerender entry; sets COOP/COEP (unused by the static prod deploy)   |
+| `wrangler.deploy.jsonc`             | Assets-only deploy config (`dist/client`); `bun run deploy` targets it     |
+| `vite.config.ts`                    | SPA mode + COOP/COEP headers for dev and preview                          |
