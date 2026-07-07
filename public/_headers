@@ -8,22 +8,18 @@
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
 
-# Cloudflare Workers Assets serves /assets/* directly, bypassing src/server.ts,
-# so the COOP/COEP headers set there never reach these files. The document is
-# cross-origin isolated (Cross-Origin-Embedder-Policy: require-corp), and a
-# module worker can only be loaded into such a context if its own script
-# response carries a matching COEP header — otherwise the browser blocks it with
-# net::ERR_BLOCKED_BY_RESPONSE ("Image worker crashed."). Tag every built asset
-# so the image-converter worker (and other bundled workers) load under COEP.
+# Built workers (image-converter, ffmpeg classWorker, pdf, …) load into the
+# cross-origin-isolated document, so they need Cross-Origin-Resource-Policy.
+# COEP is NOT repeated here: the /* rule already applies it, and Cloudflare
+# COMBINES matching rules — a second COEP line yields "require-corp, require-corp",
+# an invalid multi-item value that Chrome rejects, so the worker gets blocked
+# ("COEP-framed resource needs COEP header"). CORP only.
 /assets/*
-  Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Resource-Policy: same-origin
 
 # The vendored ZetaOffice runtime (Office → PDF) is served from /vendor/* and
 # loaded as ES modules on the main thread and inside LibreOffice's pthread
-# worker. Same COEP/CORP reasoning as /assets/* above so it loads under the
-# cross-origin-isolated document. (In dev, vite.config.ts's serveVendorStatic
-# applies these instead.)
+# worker. Same CORP reasoning as /assets/* above (COEP comes from /*). (In dev,
+# vite.config.ts's serveVendorStatic applies these instead.)
 /vendor/*
-  Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Resource-Policy: same-origin
