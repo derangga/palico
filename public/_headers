@@ -1,3 +1,13 @@
+# The site deploys as static assets (SPA mode) with no rendering Worker, so the
+# document's cross-origin-isolation headers — which src/server.ts used to set on
+# the SSR response — must live here. Without COOP:same-origin + COEP:require-corp
+# on the HTML document, crossOriginIsolated stays false and SharedArrayBuffer
+# (multi-threaded ffmpeg.wasm) is unavailable. Applied to every route since the
+# SPA fallback serves index.html for all paths.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
 # Cloudflare Workers Assets serves /assets/* directly, bypassing src/server.ts,
 # so the COOP/COEP headers set there never reach these files. The document is
 # cross-origin isolated (Cross-Origin-Embedder-Policy: require-corp), and a

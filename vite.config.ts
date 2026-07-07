@@ -67,7 +67,13 @@ const config = defineConfig({
 		devtools(),
 		cloudflare({ viteEnvironment: { name: "ssr" } }),
 		tailwindcss(),
-		tanstackStart(),
+		// SPA mode: prerender a static shell instead of SSR. This app is
+		// offline-first and renders everything client-side, so SSR only bloated
+		// the Worker bundle past Cloudflare's 3 MiB limit with client-only libs
+		// (transformers, mermaid, ffmpeg). The shell serves as a static asset.
+		tanstackStart({
+			spa: { enabled: true, prerender: { outputPath: "/index.html" } },
+		}),
 		viteReact(),
 	],
 });

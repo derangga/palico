@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Production is a pure static SPA — no rendering Worker. The main wrangler.jsonc
+  // keeps `main` because the vite build/prerender step needs a Worker entry, but
+  // deploying that Worker blows past Cloudflare's 3 MiB free-plan limit (it bundles
+  // transformers/mermaid/ffmpeg). Here we ship only dist/client as static assets,
+  // which have no size limit. `bun run deploy` targets this config.
+  "name": "palico",
+  "compatibility_date": "2025-09-02",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application"
+  }
+}
