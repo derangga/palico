@@ -15,6 +15,7 @@ import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
+import { Route as OcrRouteImport } from './routes/ocr'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
@@ -50,6 +51,11 @@ const PdfMergeRoute = PdfMergeRouteImport.update({
 const OfficeToPdfRoute = OfficeToPdfRouteImport.update({
   id: '/office-to-pdf',
   path: '/office-to-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OcrRoute = OcrRouteImport.update({
+  id: '/ocr',
+  path: '/ocr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarkdownPreviewRoute = MarkdownPreviewRouteImport.update({
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
+  '/ocr': typeof OcrRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
+  '/ocr': typeof OcrRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
+  '/ocr': typeof OcrRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/diff-viewer'
     | '/favicon-generator'
     | '/markdown-preview'
+    | '/ocr'
     | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/diff-viewer'
     | '/favicon-generator'
     | '/markdown-preview'
+    | '/ocr'
     | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/diff-viewer'
     | '/favicon-generator'
     | '/markdown-preview'
+    | '/ocr'
     | '/office-to-pdf'
     | '/pdf-merge'
     | '/pdf-split'
@@ -178,6 +190,7 @@ export interface RootRouteChildren {
   DiffViewerRoute: typeof DiffViewerRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
+  OcrRoute: typeof OcrRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/office-to-pdf'
       fullPath: '/office-to-pdf'
       preLoaderRoute: typeof OfficeToPdfRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ocr': {
+      id: '/ocr'
+      path: '/ocr'
+      fullPath: '/ocr'
+      preLoaderRoute: typeof OcrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/markdown-preview': {
@@ -282,6 +302,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiffViewerRoute: DiffViewerRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   MarkdownPreviewRoute: MarkdownPreviewRoute,
+  OcrRoute: OcrRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,

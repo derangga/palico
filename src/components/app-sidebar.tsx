@@ -10,6 +10,7 @@ import {
 	Home,
 	ImageIcon,
 	Scaling,
+	ScanText,
 	Scissors,
 	ScrollText,
 	Star,
@@ -36,6 +37,7 @@ const imageItems = [
 	{ to: "/resizer", label: "Image Resizer", icon: Scaling },
 	{ to: "/background-removal", label: "Remove Background", icon: Eraser },
 	{ to: "/favicon-generator", label: "Favicon Generator", icon: Star },
+	{ to: "/ocr", label: "Extract Text", icon: ScanText },
 ] as const;
 
 const videoItems = [
