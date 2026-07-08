@@ -16,4 +16,11 @@ export class OcrRecognitionError extends Schema.TaggedError<OcrRecognitionError>
 	},
 ) {}
 
+export class OcrPreprocessError extends Schema.TaggedError<OcrPreprocessError>()(
+	"OcrPreprocessError",
+	{
+		message: Schema.String,
+	},
+) {}
+
 export type OcrError = OcrLoadError | OcrRecognitionError;
