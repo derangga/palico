@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Cause, Effect, Exit, Fiber, Option } from "effect";
-import { Copy, Loader2, RotateCcw, ScanText, X } from "lucide-react";
+import {
+	Copy,
+	Loader2,
+	RefreshCw,
+	RotateCcw,
+	ScanText,
+	TriangleAlert,
+	X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -30,6 +38,9 @@ export const Route = createFileRoute("/ocr")({ component: OcrPage });
 
 // One-time download the consent dialog negotiates: WASM core + eng & ind packs.
 const PACKS_SIZE_LABEL = "~20MB";
+
+// Below this mean word confidence (0–100), warn that the read looks unreliable.
+const LOW_CONFIDENCE = 60;
 
 const LANGUAGES: ReadonlyArray<{ value: OcrLanguage; label: string }> = [
 	{ value: "eng", label: "English" },
@@ -69,16 +80,18 @@ function OcrPage() {
 	const [status, setStatus] = useState<Status>("idle");
 	const [progress, setProgress] = useState<OcrProgress | null>(null);
 	const [result, setResult] = useState<OcrResult | null>(null);
-	const [ready, setReady] = useState(false);
+	const [text, setText] = useState("");
 	const [consentOpen, setConsentOpen] = useState(false);
 
 	// Whether the packs are already cached in this session (skips the dialog on a
-	// second run). The IndexedDB cache also survives reloads, but we can't cheaply
-	// detect that, so a fresh page load shows the dialog once more.
+	// second run). Handler-only, so a ref avoids a needless re-render. The IndexedDB
+	// cache also survives reloads, but we can't cheaply detect that, so a fresh page
+	// load shows the dialog once more.
+	const packsReadyRef = useRef(false);
 	useEffect(() => {
 		let cancelled = false;
 		Effect.runPromise(isOcrReady).then((v) => {
-			if (!cancelled) setReady(v);
+			if (!cancelled) packsReadyRef.current = v;
 		});
 		return () => {
 			cancelled = true;
@@ -146,8 +159,9 @@ function OcrPage() {
 			if (fiberRef.current !== fiber) return; // superseded by cancel/re-run
 			fiberRef.current = null;
 			if (Exit.isSuccess(exit)) {
-				setReady(true);
+				packsReadyRef.current = true;
 				setResult(exit.value);
+				setText(exit.value.text);
 				setStatus("done");
 				setProgress(null);
 				return;
@@ -163,7 +177,7 @@ function OcrPage() {
 
 	function proceed() {
 		if (!source) return;
-		if (ready) {
+		if (packsReadyRef.current) {
 			run(source, language);
 		} else {
 			setConsentOpen(true);
@@ -194,6 +208,7 @@ function OcrPage() {
 				ref={fileInputRef}
 				type="file"
 				accept="image/*"
+				aria-label="Choose an image to read text from"
 				className="hidden"
 				onChange={(e) => {
 					selectFile(e.target.files);
@@ -277,26 +292,88 @@ function OcrPage() {
 					)}
 				</div>
 			) : (
-				<div className="rounded-xl border bg-card p-4">
-					<textarea
-						readOnly
-						value={result?.text ?? ""}
-						className="h-64 w-full resize-y rounded-lg border bg-background p-3 font-mono text-sm"
-					/>
-					<div className="mt-4 flex items-center justify-end gap-2">
-						<Button variant="ghost" onClick={reset}>
-							<RotateCcw />
-							Start over
-						</Button>
-						<Button
-							onClick={() => {
-								navigator.clipboard.writeText(result?.text ?? "");
-								toast.success("Copied to clipboard");
-							}}
-						>
-							<Copy />
-							Copy text
-						</Button>
+				<div className="grid animate-in grid-cols-1 gap-4 duration-300 fade-in sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] motion-reduce:animate-none">
+					{/* Image shifts left; on mobile it collapses to a thumbnail on top. */}
+					<div className="flex flex-col gap-3 animate-in duration-300 slide-in-from-left-2 motion-reduce:animate-none">
+						<div className="flex items-center justify-center overflow-hidden rounded-lg border bg-muted">
+							{sourceUrl && (
+								<img
+									src={sourceUrl}
+									alt={source.name}
+									className="max-h-32 object-contain sm:max-h-80"
+								/>
+							)}
+						</div>
+						<LanguageToggle
+							value={language}
+							onChange={setLanguage}
+							disabled={false}
+						/>
+						<div className="flex items-center gap-2">
+							<Button variant="ghost" onClick={reset}>
+								<RotateCcw />
+								Start over
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => {
+									if (source) run(source, language);
+								}}
+							>
+								<RefreshCw />
+								Re-read
+							</Button>
+						</div>
+					</div>
+
+					{/* Result panel slides in from the right. */}
+					<div className="flex flex-col gap-3 rounded-xl border bg-card p-4 animate-in duration-300 slide-in-from-right-3 motion-reduce:animate-none">
+						<div className="flex items-center justify-between">
+							<h2 className="text-sm font-semibold">Extracted text</h2>
+							{text.trim() !== "" && (
+								<Button
+									size="icon-sm"
+									variant="outline"
+									aria-label="Copy text"
+									onClick={() => {
+										navigator.clipboard.writeText(text);
+										toast.success("Copied to clipboard");
+									}}
+								>
+									<Copy />
+								</Button>
+							)}
+						</div>
+
+						{result &&
+							result.confidence < LOW_CONFIDENCE &&
+							text.trim() !== "" && (
+								<div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+									<TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
+									<p className="text-xs text-muted-foreground">
+										This looks unreliable — try a sharper image, or switch the
+										language above and re-read.
+									</p>
+								</div>
+							)}
+
+						{text.trim() === "" ? (
+							<div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-background p-8 text-center">
+								<ScanText className="size-8 text-muted-foreground" />
+								<p className="text-sm font-medium">No text found</p>
+								<p className="text-xs text-muted-foreground">
+									We couldn't spot any readable text. Try a clearer image or a
+									different language.
+								</p>
+							</div>
+						) : (
+							<textarea
+								aria-label="Extracted text"
+								value={text}
+								onChange={(e) => setText(e.target.value)}
+								className="min-h-64 w-full flex-1 resize-y rounded-lg border bg-background p-3 font-mono text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+							/>
+						)}
 					</div>
 				</div>
 			)}
