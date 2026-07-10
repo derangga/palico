@@ -66,6 +66,7 @@ const PAGE_TITLES: Record<string, string> = {
 	"/resizer": "Image Resizer",
 	"/background-removal": "Remove Background",
 	"/favicon-generator": "Favicon Generator",
+	"/ocr": "Extract Text",
 	"/video-converter": "Video Converter",
 	"/video-cutter": "Video Cutter",
 	"/diff-viewer": "File Diff Viewer",
