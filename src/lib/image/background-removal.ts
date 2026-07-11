@@ -8,12 +8,13 @@ import { Effect, Option, Ref, Schema } from "effect";
 import {
 	type BackgroundRemovalError,
 	DecodeError,
+	DimensionsTooLargeError,
 	EncodeError,
 	FileTooLargeError,
 	InferenceError,
 	ModelLoadError,
 } from "./errors.ts";
-import { MAX_FILE_BYTES } from "./types.ts";
+import { MAX_DIMENSION, MAX_FILE_BYTES } from "./types.ts";
 
 // Single-file ML feature. transformers.js owns its own threading
 // (ORT WASM workers / WebGPU), so no wrapping Web Worker. Upgrade if main-thread
@@ -281,6 +282,19 @@ export const removeBackground = (
 								err instanceof Error ? err.message : "Could not decode image.",
 						}),
 				});
+
+				// A within-byte-limit file can still decode to huge pixel dims. iOS
+				// Safari silently no-ops canvases over ~16.7MP (transparent-black
+				// output, no error); desktop can OOM on the ImageData allocation.
+				if (canvas.width > MAX_DIMENSION || canvas.height > MAX_DIMENSION) {
+					return yield* new DimensionsTooLargeError({
+						fileName: input.file.name,
+						width: canvas.width,
+						height: canvas.height,
+						limit: MAX_DIMENSION,
+						message: `"${input.file.name}" is ${canvas.width}×${canvas.height}px, over the ${MAX_DIMENSION}px limit.`,
+					});
+				}
 
 				const segments = yield* Effect.tryPromise({
 					try: () => model(canvas),

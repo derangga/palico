@@ -33,6 +33,7 @@ const MODEL_SIZE_LABEL = "~180MB";
 function userMessageFor(failure: BackgroundRemovalError | undefined): string {
 	switch (failure?._tag) {
 		case "FileTooLargeError":
+		case "DimensionsTooLargeError":
 			return failure.message;
 		case "ModelLoadError":
 			return "Couldn't prepare the background tool. Check your connection and try again.";

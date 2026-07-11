@@ -70,6 +70,7 @@ export class InferenceError extends Schema.TaggedError<InferenceError>()(
 
 export type BackgroundRemovalError =
 	| FileTooLargeError
+	| DimensionsTooLargeError
 	| DecodeError
 	| ModelLoadError
 	| InferenceError
