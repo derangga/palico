@@ -17,6 +17,29 @@ type MermaidApi = typeof import("mermaid").default;
 // be retried on the next diagram.
 const mermaidRef = Ref.unsafeMake<Option.Option<MermaidApi>>(Option.none());
 
+// Monotonic counter so every render() call gets a unique DOM id. mermaid stages
+// each render in a temp <div id={id}> and removes it afterward; if two concurrent
+// renders shared one id, the newer one would delete the older's temp element
+// mid-flight and corrupt the surviving SVG.
+const renderSeq = Ref.unsafeMake(0);
+
+// Apply config from the *current* theme. Called on every render (not just first
+// load) so toggling dark mode re-themes diagrams instead of baking the theme
+// into the memoized init. `suppressErrorRendering` stops mermaid from painting
+// its error-bomb SVG into document.body on parse failure (the normal mid-typing
+// state) — we surface failures inline via the error channel instead.
+const applyConfig = (api: MermaidApi): void => {
+	const isDark =
+		typeof document !== "undefined" &&
+		document.documentElement.classList.contains("dark");
+	api.initialize({
+		startOnLoad: false,
+		securityLevel: "strict",
+		suppressErrorRendering: true,
+		theme: isDark ? "dark" : "default",
+	});
+};
+
 const loadMermaid: Effect.Effect<MermaidApi, MermaidLoadError> = Effect.gen(
 	function* () {
 		const cached = yield* Ref.get(mermaidRef);
@@ -34,14 +57,7 @@ const loadMermaid: Effect.Effect<MermaidApi, MermaidLoadError> = Effect.gen(
 		});
 
 		const api = mod.default;
-		const isDark =
-			typeof document !== "undefined" &&
-			document.documentElement.classList.contains("dark");
-		api.initialize({
-			startOnLoad: false,
-			securityLevel: "strict",
-			theme: isDark ? "dark" : "default",
-		});
+		applyConfig(api);
 		yield* Ref.set(mermaidRef, Option.some(api));
 		return api;
 	},
@@ -56,8 +72,13 @@ export const renderMermaid = (
 ): Effect.Effect<string, MermaidLoadError | MermaidRenderError> =>
 	Effect.gen(function* () {
 		const api = yield* loadMermaid;
+		// Re-apply config each render so a live theme change takes effect.
+		applyConfig(api);
+		// Unique id per invocation, keyed off the caller's id for debuggability.
+		const seq = yield* Ref.updateAndGet(renderSeq, (n) => n + 1);
+		const uniqueId = `${id}-${seq}`;
 		const { svg } = yield* Effect.tryPromise({
-			try: () => api.render(id, source),
+			try: () => api.render(uniqueId, source),
 			catch: (cause) =>
 				new MermaidRenderError({
 					message:
