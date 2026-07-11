@@ -58,121 +58,143 @@ export const runFfmpegJob = <ER, EJ>(
 				),
 		});
 
-		// Capture ffmpeg's stderr for the duration of this exec. exitCode -1 (the
-		// core's default) means it aborted before a clean exit; the bare code is
-		// useless on its own, so we keep the tail of the log to surface the real
-		// reason (unknown encoder, demux failure, OOM, …) on the error channel.
-		const logLines: string[] = [];
+		// Set when a wasm abort forces disposeEngine below: the staged files died
+		// with the worker, so cleanup would hit a dead instance and must be skipped.
+		let disposed = false;
 
-		// Subscribe to ffmpeg's log (and optionally progress) events for the
-		// duration of this exec. acquireUseRelease guarantees the listeners are
-		// removed even on failure, so events from a later exec can't bleed into
-		// this job's caller.
-		// exec resolves with an exit code on a clean run; a wasm abort (OOM,
-		// unreachable) rejects instead. Capture BOTH as a value so the failure
-		// handling below — OOM detection, log tail, engine disposal — runs for a
-		// thrown abort too, not just a non-zero exit. Otherwise an abort dies with
-		// a bare "Encoder threw.", discarding the 64 captured log lines that name
-		// the real reason and leaving the bricked wasm instance in place.
-		const result = yield* Effect.acquireUseRelease(
-			Effect.sync(() => {
-				const emitPercent = opts.onPercent;
-				const onProgress = emitPercent
-					? ({ progress }: { progress: number }) =>
-							emitPercent(
-								Math.max(0, Math.min(100, Math.round(progress * 100))),
-							)
-					: undefined;
-				const onLog = ({ message }: { type: string; message: string }) => {
-					logLines.push(message);
-					if (logLines.length > 64) logLines.shift();
-				};
-				if (onProgress) ffmpeg.on("progress", onProgress);
-				ffmpeg.on("log", onLog);
-				return { onProgress, onLog };
-			}),
-			() =>
-				Effect.promise(
-					(): Promise<
-						| { readonly _tag: "exit"; readonly code: number }
-						| { readonly _tag: "threw"; readonly message: string }
-					> =>
-						ffmpeg
-							.exec([...opts.args])
-							.then((code) => ({ _tag: "exit" as const, code }))
-							.catch((cause) => ({
-								_tag: "threw" as const,
-								message:
-									cause instanceof Error && cause.message
-										? cause.message
-										: `${opts.label} threw.`,
-							})),
-				),
-			({ onProgress, onLog }) =>
-				Effect.sync(() => {
-					if (onProgress) ffmpeg.off("progress", onProgress);
-					ffmpeg.off("log", onLog);
-				}),
+		// Best-effort virtual-FS cleanup, run on EVERY exit path (success, failure,
+		// interrupt) via ensuring — not just the success path. Repeated failed jobs
+		// (bad file, bad trim range) would otherwise leave staged input + partial
+		// output piling up in the fixed ~2GB wasm heap until an eventual OOM on
+		// files that would have fit. Failures here don't fail the job.
+		const cleanup = Effect.suspend(() =>
+			disposed
+				? Effect.void
+				: Effect.all(
+						[
+							Effect.tryPromise({
+								try: () => ffmpeg.deleteFile(opts.inputName),
+								catch: () => "delete-failed" as const,
+							}).pipe(Effect.ignore),
+							Effect.tryPromise({
+								try: () => ffmpeg.deleteFile(opts.outputName),
+								catch: () => "delete-failed" as const,
+							}).pipe(Effect.ignore),
+						],
+						{ concurrency: "unbounded" },
+					),
 		);
 
-		if (result._tag === "threw" || result.code !== 0) {
-			// An emscripten OOM/abort leaves the wasm instance permanently
-			// unusable. Dispose the singleton so the next run re-inits a fresh
-			// worker, and surface an honest, actionable message instead of the raw
-			// log.
-			const oom = /aborted\(|out of memory|\boom\b/i.test(logLines.join("\n"));
-			if (oom) {
-				yield* disposeEngine;
-				return yield* Effect.fail(opts.jobError(opts.oomMessage));
+		return yield* Effect.gen(function* () {
+			// Capture ffmpeg's stderr for the duration of this exec. exitCode -1 (the
+			// core's default) means it aborted before a clean exit; the bare code is
+			// useless on its own, so we keep the tail of the log to surface the real
+			// reason (unknown encoder, demux failure, OOM, …) on the error channel.
+			const logLines: string[] = [];
+
+			// Subscribe to ffmpeg's log (and optionally progress) events for the
+			// duration of this exec. acquireUseRelease guarantees the listeners are
+			// removed even on failure, so events from a later exec can't bleed into
+			// this job's caller.
+			// exec resolves with an exit code on a clean run; a wasm abort (OOM,
+			// unreachable) rejects instead. Capture BOTH as a value so the failure
+			// handling below — OOM detection, log tail, engine disposal — runs for a
+			// thrown abort too, not just a non-zero exit. Otherwise an abort dies with
+			// a bare "Encoder threw.", discarding the 64 captured log lines that name
+			// the real reason and leaving the bricked wasm instance in place.
+			const result = yield* Effect.acquireUseRelease(
+				Effect.sync(() => {
+					const emitPercent = opts.onPercent;
+					const onProgress = emitPercent
+						? ({ progress }: { progress: number }) =>
+								emitPercent(
+									Math.max(0, Math.min(100, Math.round(progress * 100))),
+								)
+						: undefined;
+					const onLog = ({ message }: { type: string; message: string }) => {
+						logLines.push(message);
+						if (logLines.length > 64) logLines.shift();
+					};
+					if (onProgress) ffmpeg.on("progress", onProgress);
+					ffmpeg.on("log", onLog);
+					return { onProgress, onLog };
+				}),
+				() =>
+					Effect.promise(
+						(): Promise<
+							| { readonly _tag: "exit"; readonly code: number }
+							| { readonly _tag: "threw"; readonly message: string }
+						> =>
+							ffmpeg
+								.exec([...opts.args])
+								.then((code) => ({ _tag: "exit" as const, code }))
+								.catch((cause) => ({
+									_tag: "threw" as const,
+									message:
+										cause instanceof Error && cause.message
+											? cause.message
+											: `${opts.label} threw.`,
+								})),
+					),
+				({ onProgress, onLog }) =>
+					Effect.sync(() => {
+						if (onProgress) ffmpeg.off("progress", onProgress);
+						ffmpeg.off("log", onLog);
+					}),
+			);
+
+			if (result._tag === "threw" || result.code !== 0) {
+				// An emscripten OOM/abort leaves the wasm instance permanently
+				// unusable. Dispose the singleton so the next run re-inits a fresh
+				// worker, and surface an honest, actionable message instead of the raw
+				// log.
+				const oom = /aborted\(|out of memory|\boom\b/i.test(
+					logLines.join("\n"),
+				);
+				if (oom) {
+					disposed = true;
+					yield* disposeEngine;
+					return yield* Effect.fail(opts.jobError(opts.oomMessage));
+				}
+
+				// A thrown exec (not a clean non-zero exit) bricks the instance too —
+				// dispose so the tool isn't stuck dead until a page reload.
+				if (result._tag === "threw") {
+					disposed = true;
+					yield* disposeEngine;
+				}
+
+				const tail = logLines.slice(-8).join(" / ").trim();
+				const reason =
+					result._tag === "threw"
+						? result.message
+						: `${opts.label} exited with code ${result.code}.`;
+				return yield* Effect.fail(
+					opts.jobError(tail ? `${reason} ${tail}` : reason),
+				);
 			}
 
-			// A thrown exec (not a clean non-zero exit) bricks the instance too —
-			// dispose so the tool isn't stuck dead until a page reload.
-			if (result._tag === "threw") yield* disposeEngine;
+			const data = yield* Effect.tryPromise({
+				try: () => ffmpeg.readFile(opts.outputName),
+				catch: (cause) =>
+					opts.jobError(
+						cause instanceof Error ? cause.message : "Could not read output.",
+					),
+			});
 
-			const tail = logLines.slice(-8).join(" / ").trim();
-			const reason =
-				result._tag === "threw"
-					? result.message
-					: `${opts.label} exited with code ${result.code}.`;
-			return yield* Effect.fail(
-				opts.jobError(tail ? `${reason} ${tail}` : reason),
-			);
-		}
+			// ffmpeg.readFile is typed `Uint8Array | string`; only the binary path
+			// is valid for binary outputs. Surface the string variant as a typed
+			// failure rather than coercing it.
+			if (typeof data === "string") {
+				return yield* Effect.fail(
+					opts.jobError(
+						"ffmpeg returned a string payload instead of binary data.",
+					),
+				);
+			}
 
-		const data = yield* Effect.tryPromise({
-			try: () => ffmpeg.readFile(opts.outputName),
-			catch: (cause) =>
-				opts.jobError(
-					cause instanceof Error ? cause.message : "Could not read output.",
-				),
-		});
-
-		// ffmpeg.readFile is typed `Uint8Array | string`; only the binary path
-		// is valid for binary outputs. Surface the string variant as a typed
-		// failure rather than coercing it.
-		if (typeof data === "string") {
-			return yield* Effect.fail(
-				opts.jobError(
-					"ffmpeg returned a string payload instead of binary data.",
-				),
-			);
-		}
-
-		// Best-effort virtual-FS cleanup; failures here don't fail the job.
-		yield* Effect.all(
-			[
-				Effect.tryPromise({
-					try: () => ffmpeg.deleteFile(opts.inputName),
-					catch: () => "delete-failed" as const,
-				}).pipe(Effect.ignore),
-				Effect.tryPromise({
-					try: () => ffmpeg.deleteFile(opts.outputName),
-					catch: () => "delete-failed" as const,
-				}).pipe(Effect.ignore),
-			],
-			{ concurrency: "unbounded" },
-		);
-
-		return new Blob([data as unknown as BlobPart], { type: opts.outputMime });
+			return new Blob([data as unknown as BlobPart], {
+				type: opts.outputMime,
+			});
+		}).pipe(Effect.ensuring(cleanup));
 	});
