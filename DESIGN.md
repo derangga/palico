@@ -231,7 +231,7 @@ tile and icon fill; the second is the tint or secondary detail.
 | --- | --- | --- |
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
 | Video | Peach + Yellow | Video converter, video cutter |
-| File | Teal + Green | PDF merge, PDF split, Office to PDF, diff viewer, Markdown preview |
+| File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, diff viewer, Markdown preview |
 
 Category colour appears on the home tile, the sidebar icon, the page-header
 chip, the progress fill and the dropzone drag-over state. It never appears on

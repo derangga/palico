@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
+import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
@@ -30,6 +31,11 @@ const VideoCutterRoute = VideoCutterRouteImport.update({
 const VideoConverterRoute = VideoConverterRouteImport.update({
   id: '/video-converter',
   path: '/video-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StripMetadataRoute = StripMetadataRouteImport.update({
+  id: '/strip-metadata',
+  path: '/strip-metadata',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResizerRoute = ResizerRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
+  '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
 }
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
+  '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
 }
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/resizer': typeof ResizerRoute
+  '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
 }
@@ -139,6 +148,7 @@ export interface FileRouteTypes {
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
+    | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
   fileRoutesByTo: FileRoutesByTo
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
+    | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
   id:
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/pdf-merge'
     | '/pdf-split'
     | '/resizer'
+    | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
   fileRoutesById: FileRoutesById
@@ -182,6 +194,7 @@ export interface RootRouteChildren {
   PdfMergeRoute: typeof PdfMergeRoute
   PdfSplitRoute: typeof PdfSplitRoute
   ResizerRoute: typeof ResizerRoute
+  StripMetadataRoute: typeof StripMetadataRoute
   VideoConverterRoute: typeof VideoConverterRoute
   VideoCutterRoute: typeof VideoCutterRoute
 }
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/video-converter'
       fullPath: '/video-converter'
       preLoaderRoute: typeof VideoConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/strip-metadata': {
+      id: '/strip-metadata'
+      path: '/strip-metadata'
+      fullPath: '/strip-metadata'
+      preLoaderRoute: typeof StripMetadataRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/resizer': {
@@ -286,6 +306,7 @@ const rootRouteChildren: RootRouteChildren = {
   PdfMergeRoute: PdfMergeRoute,
   PdfSplitRoute: PdfSplitRoute,
   ResizerRoute: ResizerRoute,
+  StripMetadataRoute: StripMetadataRoute,
   VideoConverterRoute: VideoConverterRoute,
   VideoCutterRoute: VideoCutterRoute,
 }

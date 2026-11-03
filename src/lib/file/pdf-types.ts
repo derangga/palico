@@ -1,5 +1,7 @@
 import { Schema } from "effect";
 
+import { MetadataReport } from "#/lib/metadata/types.ts";
+
 // Shared schemas + guards for the PDF tools (Merge / Split). Heavy work runs in
 // src/workers/pdf.worker.ts; typed orchestration + errors live in
 // src/lib/file/pdf.ts and pdf-worker-client.ts. Following src/lib/image/types.ts,
@@ -75,11 +77,33 @@ export const MergeRequest = Schema.Struct({
 });
 export type MergeRequest = Schema.Schema.Type<typeof MergeRequest>;
 
+// Remove Metadata tool: list the document info + XMP, or strip them and
+// report what a re-read of the output still finds.
+export const ReadMetadataRequest = Schema.Struct({
+	type: Schema.Literal("read-metadata"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+});
+export type ReadMetadataRequest = Schema.Schema.Type<
+	typeof ReadMetadataRequest
+>;
+
+export const StripMetadataRequest = Schema.Struct({
+	type: Schema.Literal("strip-metadata"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+});
+export type StripMetadataRequest = Schema.Schema.Type<
+	typeof StripMetadataRequest
+>;
+
 export const PdfWorkerRequest = Schema.Union(
 	RenderRequest,
 	ExtractRequest,
 	SplitRequest,
 	MergeRequest,
+	ReadMetadataRequest,
+	StripMetadataRequest,
 );
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
@@ -127,6 +151,17 @@ export const PdfWorkerResponse = Schema.Union(
 		type: Schema.Literal("merged"),
 		id: Schema.String,
 		bytes: Schema.instanceOf(ArrayBuffer),
+	}),
+	Schema.Struct({
+		type: Schema.Literal("metadata"),
+		id: Schema.String,
+		report: MetadataReport,
+	}),
+	Schema.Struct({
+		type: Schema.Literal("stripped"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
+		after: MetadataReport,
 	}),
 	Schema.Struct({
 		type: Schema.Literal("error"),
