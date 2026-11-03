@@ -234,9 +234,10 @@ export function VideoTrimTimeline({
 					style={{ left: `${headPct}%` }}
 				/>
 
-				{/* Playhead time pill (sits above the track). */}
+				{/* Playhead time pill (sits above the track). Grabbing it drags the
+				    playhead: pointerdown bubbles to the track's scrub handlers. */}
 				<div
-					className="pointer-events-none absolute top-0 z-20 -translate-x-1/2 -translate-y-[calc(100%+4px)] whitespace-nowrap rounded-md bg-foreground px-1.5 py-0.5 font-mono text-[10px] text-background tabular-nums shadow-sm"
+					className="absolute top-0 z-20 -translate-x-1/2 -translate-y-[calc(100%+4px)] cursor-grab touch-none whitespace-nowrap rounded-md bg-foreground px-1.5 py-0.5 font-mono text-[10px] text-background tabular-nums shadow-sm"
 					style={{ left: `${headPct}%` }}
 				>
 					{fmt(currentTime)}

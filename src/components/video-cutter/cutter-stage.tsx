@@ -1,5 +1,5 @@
 // biome-ignore-all lint/a11y/useMediaCaption: the only <video> is a user-supplied local clip with no caption track available.
-import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
+import { Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import type { RefObject } from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { formatTime } from "#/components/video-cutter/utils.ts";
@@ -21,6 +21,7 @@ interface CutterStageProps {
 	onSeekBack: () => void;
 	onSeekForward: () => void;
 	onTogglePlay: () => void;
+	onRestart: () => void;
 	onChangeStart: (sec: number) => void;
 	onChangeEnd: (sec: number) => void;
 	onScrub: (sec: number) => void;
@@ -42,6 +43,7 @@ export function CutterStage({
 	onSeekBack,
 	onSeekForward,
 	onTogglePlay,
+	onRestart,
 	onChangeStart,
 	onChangeEnd,
 	onScrub,
@@ -67,6 +69,14 @@ export function CutterStage({
 					{formatTime(currentTime)} / {formatTime(duration)}
 				</span>
 				<div className="flex items-center justify-center gap-2">
+					<Button
+						variant="outline"
+						size="icon-sm"
+						aria-label="Restart from selection start"
+						onClick={onRestart}
+					>
+						<RotateCcw />
+					</Button>
 					<Button
 						variant="outline"
 						size="icon-sm"

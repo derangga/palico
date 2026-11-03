@@ -176,9 +176,18 @@ function CutterShell() {
 	function seekTo(sec: number) {
 		const v = videoRef.current;
 		if (!v) return;
-		const clamped = Math.min(Math.max(sec, 0), duration || 0);
+		// Keep the playhead inside the kept range so it can't sit in the dimmed regions.
+		const clamped = Math.min(Math.max(sec, start), end);
 		v.currentTime = clamped;
 		dispatch({ type: "setCurrentTime", value: clamped });
+	}
+
+	function restart() {
+		const v = videoRef.current;
+		if (!v) return;
+		v.currentTime = start;
+		dispatch({ type: "setCurrentTime", value: start });
+		void v.play();
 	}
 
 	function togglePlay() {
@@ -318,6 +327,7 @@ function CutterShell() {
 						onSeekBack={() => seekTo(currentTime - SKIP_SECONDS)}
 						onSeekForward={() => seekTo(currentTime + SKIP_SECONDS)}
 						onTogglePlay={togglePlay}
+						onRestart={restart}
 						onChangeStart={changeStart}
 						onChangeEnd={changeEnd}
 						onScrub={seekTo}
