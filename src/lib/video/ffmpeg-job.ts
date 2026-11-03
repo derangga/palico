@@ -16,13 +16,17 @@ import { Effect } from "effect";
 
 import { disposeEngine, type EngineHandle } from "./engine.ts";
 
-export interface FfmpegJobOptions<ER, EJ> {
+export interface FfmpegJobOptions<ER, EJ, EP = never> {
 	readonly ffmpeg: EngineHandle;
 	readonly file: File;
 	readonly inputName: string;
 	readonly outputName: string;
-	// Full exec argv, including inputName/outputName.
-	readonly args: ReadonlyArray<string>;
+	// Full exec argv, including inputName/outputName. A function runs after the
+	// input is staged, so it can probe the file first; failing it stops the job
+	// (cleanup still runs).
+	readonly args:
+		| ReadonlyArray<string>
+		| ((ffmpeg: EngineHandle) => Effect.Effect<ReadonlyArray<string>, EP>);
 	readonly outputMime: string;
 	// "Encoder" / "Trim" — names the failing stage in exec error messages.
 	readonly label: string;
@@ -36,9 +40,9 @@ export interface FfmpegJobOptions<ER, EJ> {
 	readonly onPercent?: (percent: number) => void;
 }
 
-export const runFfmpegJob = <ER, EJ>(
-	opts: FfmpegJobOptions<ER, EJ>,
-): Effect.Effect<Blob, ER | EJ> =>
+export const runFfmpegJob = <ER, EJ, EP = never>(
+	opts: FfmpegJobOptions<ER, EJ, EP>,
+): Effect.Effect<Blob, ER | EJ | EP> =>
 	Effect.gen(function* () {
 		const { ffmpeg } = opts;
 
@@ -86,6 +90,9 @@ export const runFfmpegJob = <ER, EJ>(
 		);
 
 		return yield* Effect.gen(function* () {
+			const args =
+				typeof opts.args === "function" ? yield* opts.args(ffmpeg) : opts.args;
+
 			// Capture ffmpeg's stderr for the duration of this exec. exitCode -1 (the
 			// core's default) means it aborted before a clean exit; the bare code is
 			// useless on its own, so we keep the tail of the log to surface the real
@@ -126,7 +133,7 @@ export const runFfmpegJob = <ER, EJ>(
 							| { readonly _tag: "threw"; readonly message: string }
 						> =>
 							ffmpeg
-								.exec([...opts.args])
+								.exec([...args])
 								.then((code) => ({ _tag: "exit" as const, code }))
 								.catch((cause) => ({
 									_tag: "threw" as const,

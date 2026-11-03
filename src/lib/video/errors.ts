@@ -50,6 +50,26 @@ export class VideoGifError extends Schema.TaggedError<VideoGifError>()(
 	},
 ) {}
 
+// Extract Audio failures: reading or probing the file, encoding or copying
+// the stream, or reading the output back.
+export class AudioExtractError extends Schema.TaggedError<AudioExtractError>()(
+	"AudioExtractError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
+// The video has no audio stream. Raised by the probe, before any encode, so
+// the route can say so plainly instead of showing an ffmpeg failure.
+export class NoAudioTrackError extends Schema.TaggedError<NoAudioTrackError>()(
+	"NoAudioTrackError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 // Surfaces from the engine loader (cache.ts / engine.ts). `stage` mirrors the
 // LoadPhase that was in flight when the failure landed, so the UI can keep
 // the user oriented even after a mid-flight error.
