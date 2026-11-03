@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Effect, Fiber } from "effect";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppSidebar } from "#/components/app-sidebar.tsx";
 import { UpdatePrompt } from "#/components/offline/update-prompt.tsx";
@@ -27,6 +27,7 @@ import { cn } from "#/lib/utils.ts";
 import appCss from "../styles.css?url";
 
 const SITE_TITLE = "Palico: Free, private, offline file tools. No sign-up.";
+
 const SITE_DESCRIPTION =
 	"Palico is a free, offline-first toolkit for images, video, PDFs, and files: convert, resize, remove backgrounds, split PDFs, and more. Everything runs entirely in your browser: no uploads, no tracking, no account required. Your files never leave your device.";
 
@@ -73,35 +74,39 @@ export const Route = createRootRoute({
 
 // Group matches the sidebar sections in app-sidebar.tsx; the page h1 carries the
 // full tool name, so the top bar only shows "Group / Tool" to avoid repeating it.
-const PAGE_CRUMBS: Record<string, { group?: string; title: string }> = {
-	"/": { title: "Home" },
-	"/converter": { group: "Image", title: "Converter" },
-	"/resizer": { group: "Image", title: "Resizer" },
-	"/compressor": { group: "Image", title: "Compress" },
-	"/background-removal": { group: "Image", title: "Remove Background" },
-	"/favicon-generator": { group: "Image", title: "Favicon Generator" },
-	"/video-converter": { group: "Video", title: "Converter" },
-	"/video-cutter": { group: "Video", title: "Cutter" },
-	"/video-compressor": { group: "Video", title: "Compress" },
-	"/video-to-gif": { group: "Video", title: "To GIF" },
-	"/extract-audio": { group: "Video", title: "Extract Audio" },
-	"/markdown-preview": { group: "File", title: "Markdown Preview" },
-	"/diff-viewer": { group: "File", title: "Diff Viewer" },
-	"/pdf-split": { group: "File", title: "Split PDF" },
-	"/pdf-merge": { group: "File", title: "Merge PDFs" },
-	"/pdf-organize": { group: "File", title: "Organize PDF" },
-	"/pdf-to-images": { group: "File", title: "PDF to Images" },
-	"/office-to-pdf": { group: "File", title: "Word to PDF" },
-};
+const PAGE_CRUMBS = new Map<
+	string,
+	{ readonly group?: string; readonly title: string }
+>([
+	["/", { title: "Home" }],
+	["/converter", { group: "Image", title: "Converter" }],
+	["/resizer", { group: "Image", title: "Resizer" }],
+	["/compressor", { group: "Image", title: "Compress" }],
+	["/background-removal", { group: "Image", title: "Remove Background" }],
+	["/favicon-generator", { group: "Image", title: "Favicon Generator" }],
+	["/video-converter", { group: "Video", title: "Converter" }],
+	["/video-cutter", { group: "Video", title: "Cutter" }],
+	["/video-compressor", { group: "Video", title: "Compress" }],
+	["/video-to-gif", { group: "Video", title: "To GIF" }],
+	["/extract-audio", { group: "Video", title: "Extract Audio" }],
+	["/markdown-preview", { group: "File", title: "Markdown Preview" }],
+	["/diff-viewer", { group: "File", title: "Diff Viewer" }],
+	["/pdf-split", { group: "File", title: "Split PDF" }],
+	["/pdf-merge", { group: "File", title: "Merge PDFs" }],
+	["/pdf-organize", { group: "File", title: "Organize PDF" }],
+	["/pdf-to-images", { group: "File", title: "PDF to Images" }],
+	["/office-to-pdf", { group: "File", title: "Word to PDF" }],
+]);
 
 function RootLayout() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const crumb = PAGE_CRUMBS[pathname] ?? { title: "Palico" };
+	const crumb = PAGE_CRUMBS.get(pathname) ?? { title: "Palico" };
 
 	// Production only: the worker would cache stale modules during `vite dev`.
 	useEffect(() => {
 		if (!import.meta.env.PROD) return;
 		const fiber = offlineRuntime.runFork(startOffline);
+
 		return () => {
 			Effect.runFork(Fiber.interrupt(fiber));
 		};
@@ -109,16 +114,16 @@ function RootLayout() {
 
 	// Fade the page in after a pointer-driven navigation only: not on first load,
 	// not for keyboard navigation (the last input before the route change).
-	const keyboardDriven = useRef(false);
+	// State, not a ref: it is read during render below. Setting the same value
+	// again is a no-op, so only a switch between keyboard and pointer re-renders.
+	const [keyboardDriven, setKeyboardDriven] = useState(false);
 	useEffect(() => {
-		const onKey = () => {
-			keyboardDriven.current = true;
-		};
-		const onPointer = () => {
-			keyboardDriven.current = false;
-		};
+		const onKey = () => setKeyboardDriven(true);
+		const onPointer = () => setKeyboardDriven(false);
+
 		window.addEventListener("keydown", onKey, true);
 		window.addEventListener("pointerdown", onPointer, true);
+
 		return () => {
 			window.removeEventListener("keydown", onKey, true);
 			window.removeEventListener("pointerdown", onPointer, true);
@@ -126,9 +131,10 @@ function RootLayout() {
 	}, []);
 	const [lastPath, setLastPath] = useState(pathname);
 	const [fadeIn, setFadeIn] = useState(false);
+
 	if (lastPath !== pathname) {
 		setLastPath(pathname);
-		setFadeIn(!keyboardDriven.current);
+		setFadeIn(!keyboardDriven);
 	}
 
 	return (

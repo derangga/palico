@@ -1,24 +1,32 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 
 import { Button } from "#/components/ui/button.tsx";
 
 const REVEAL_MS = 350;
+
+// Nothing to subscribe to: the store only tells server render from client.
+const subscribeNever = () => () => {};
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 export function ThemeToggle() {
 	const { resolvedTheme, setTheme } = useTheme();
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const revealing = useRef(false);
+
 	// resolvedTheme is unknown on the server, so the label waits for mount to
 	// avoid a hydration mismatch. The icons swap with the `dark:` variant, which
 	// is correct from first paint.
-	const [mounted, setMounted] = useState(false);
-	useEffect(() => setMounted(true), []);
+	const mounted = useSyncExternalStore(
+		subscribeNever,
+		() => true,
+		() => false,
+	);
 
 	const isDark = resolvedTheme === "dark";
+
 	const label = !mounted
 		? "Switch theme"
 		: isDark
@@ -30,29 +38,37 @@ export function ThemeToggle() {
 	const toggle = () => {
 		const next = isDark ? "light" : "dark";
 		const button = buttonRef.current;
+
 		const reduced = window.matchMedia(
 			"(prefers-reduced-motion: reduce)",
 		).matches;
+
 		if (revealing.current) return;
+
 		if (!button || reduced || !document.startViewTransition) {
 			setTheme(next);
+
 			return;
 		}
 
 		const rect = button.getBoundingClientRect();
 		const x = rect.left + rect.width / 2;
 		const y = rect.top + rect.height / 2;
+
 		const radius = Math.hypot(
 			Math.max(x, window.innerWidth - x),
 			Math.max(y, window.innerHeight - y),
 		);
+
 		const root = document.documentElement;
 
 		revealing.current = true;
 		root.classList.add("theme-switching");
+
 		const transition = document.startViewTransition(() => {
 			flushSync(() => setTheme(next));
 		});
+
 		transition.ready.then(
 			() =>
 				root.animate(

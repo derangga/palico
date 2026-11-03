@@ -119,18 +119,25 @@ export function useClipPlayer({
 	useEffect(() => {
 		if (!objectUrl) return;
 		let raf = 0;
+
 		const tick = () => {
 			const v = videoRef.current;
+
 			if (v) {
 				if (!v.paused && v.currentTime >= end) {
 					v.pause();
 					v.currentTime = end;
 				}
+
 				dispatch({ type: "setCurrentTime", value: v.currentTime });
 			}
+
+			// oxlint-disable-next-line react/immutability -- raf is local to this effect and never read during render.
 			raf = requestAnimationFrame(tick);
 		};
+
 		raf = requestAnimationFrame(tick);
+
 		return () => cancelAnimationFrame(raf);
 	}, [objectUrl, end]);
 
@@ -139,14 +146,18 @@ export function useClipPlayer({
 	useEffect(() => {
 		if (!file) {
 			dispatch({ type: "setThumbnails", value: [] });
+
 			return;
 		}
+
 		let cancelled = false;
 		Effect.runPromiseExit(generateThumbnails(file)).then((exit) => {
 			if (cancelled) return;
+
 			if (Exit.isSuccess(exit))
 				dispatch({ type: "setThumbnails", value: [...exit.value] });
 		});
+
 		return () => {
 			cancelled = true;
 		};
@@ -164,11 +175,13 @@ export function useClipPlayer({
 			URL.revokeObjectURL(objectUrlRef.current);
 			objectUrlRef.current = null;
 		}
+
 		dispatch({ type: "reset" });
 	}
 
 	function onLoadedMetadata() {
 		const v = videoRef.current;
+
 		if (!v) return;
 		const d = Number.isFinite(v.duration) ? v.duration : 0;
 		dispatch({
@@ -182,6 +195,7 @@ export function useClipPlayer({
 
 	function seekTo(sec: number) {
 		const v = videoRef.current;
+
 		if (!v) return;
 		// Keep the playhead inside the kept range so it can't sit in the dimmed regions.
 		const clamped = Math.min(Math.max(sec, start), end);
@@ -191,6 +205,7 @@ export function useClipPlayer({
 
 	function restart() {
 		const v = videoRef.current;
+
 		if (!v) return;
 		v.currentTime = start;
 		dispatch({ type: "setCurrentTime", value: start });
@@ -199,7 +214,9 @@ export function useClipPlayer({
 
 	function togglePlay() {
 		const v = videoRef.current;
+
 		if (!v) return;
+
 		if (v.paused) {
 			if (v.currentTime < start || v.currentTime >= end) v.currentTime = start;
 			void v.play();
@@ -210,11 +227,13 @@ export function useClipPlayer({
 
 	function changeStart(sec: number) {
 		dispatch({ type: "setStart", value: sec });
+
 		if (currentTime < sec) seekTo(sec);
 	}
 
 	function changeEnd(sec: number) {
 		dispatch({ type: "setEnd", value: sec });
+
 		if (currentTime > sec) seekTo(sec);
 	}
 

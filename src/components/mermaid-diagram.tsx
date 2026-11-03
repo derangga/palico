@@ -1,4 +1,4 @@
-import { Cause, Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useState } from "react";
 
@@ -26,16 +26,18 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 	// The theme is read from the DOM at render time (see lib/markdown/mermaid.ts),
 	// so it is only a dependency here: a flavour switch re-renders the diagram.
 	const { resolvedTheme } = useTheme();
+
 	const [rendered, setRendered] = useState<RenderState>({
 		status: "pending",
 		chart,
 	});
+
 	// mermaid uses the id as a DOM selector, so strip the colons React's useId
 	// produces (they're invalid in a query selector).
 	const rawId = useId();
 	const domId = `mermaid-${rawId.replace(/:/g, "")}`;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: resolvedTheme is read from the DOM by renderMermaid, it only triggers the re-render
+	// resolvedTheme is read from the DOM by renderMermaid, it only triggers the re-render
 	useEffect(() => {
 		let cancelled = false;
 
@@ -45,10 +47,13 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 			Effect.yieldNow.pipe(Effect.andThen(renderMermaid(domId, chart))),
 		).then((exit) => {
 			if (cancelled) return;
-			if (exit._tag === "Success") {
+
+			if (Exit.isSuccess(exit)) {
 				setRendered({ status: "ready", chart, svg: exit.value });
+
 				return;
 			}
+
 			const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 			setRendered({
 				status: "error",
@@ -84,7 +89,7 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 			<div
 				className="not-prose my-4 flex justify-center overflow-x-auto"
 				// mermaid sanitizes its own output (securityLevel: "strict").
-				// biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized SVG from mermaid
+				// oxlint-disable-next-line react/no-danger -- sanitized SVG from mermaid
 				dangerouslySetInnerHTML={{ __html: state.svg }}
 			/>
 		);

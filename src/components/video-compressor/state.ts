@@ -1,5 +1,5 @@
 import {
-	type CompressMode,
+	CompressMode,
 	type CompressQuality,
 	checkCustomSize,
 	DEFAULT_QUALITY,
@@ -123,16 +123,23 @@ export type ModeVerdict =
 // The panel's settings as the pipeline's mode, or why Compress is disabled.
 export function resolveMode(state: CompressState, file: File): ModeVerdict {
 	if (state.tab === "quality") {
-		return { kind: "ok", mode: { _tag: "quality", quality: state.quality } };
+		return {
+			kind: "ok",
+			mode: CompressMode.cases.quality.make({ quality: state.quality }),
+		};
 	}
+
 	let mb: number;
+
 	if (state.sizeChoice === "custom") {
 		const verdict = checkCustomSize(state.customMB, file.size);
+
 		if (verdict.kind === "invalid") return verdict;
 		mb = verdict.mb;
 	} else {
 		const choice = state.sizeChoice;
 		mb = SIZE_PRESETS.find((p) => p.value === choice)?.mb ?? 25;
+
 		if (isUnderTarget(file.size, mb)) {
 			return {
 				kind: "invalid",
@@ -140,5 +147,6 @@ export function resolveMode(state: CompressState, file: File): ModeVerdict {
 			};
 		}
 	}
-	return { kind: "ok", mode: { _tag: "size", targetMB: mb } };
+
+	return { kind: "ok", mode: CompressMode.cases.size.make({ targetMB: mb }) };
 }

@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -13,16 +14,20 @@ import {
 const parseHeadersFile = (text: string): Map<string, Map<string, string>> => {
 	const rules = new Map<string, Map<string, string>>();
 	let current: Map<string, string> | undefined;
+
 	for (const raw of text.split("\n")) {
 		if (raw.trim() === "" || raw.trimStart().startsWith("#")) continue;
+
 		if (!/^\s/.test(raw)) {
 			current = new Map();
 			rules.set(raw.trim(), current);
 			continue;
 		}
+
 		const idx = raw.indexOf(":");
 		current?.set(raw.slice(0, idx).trim(), raw.slice(idx + 1).trim());
 	}
+
 	return rules;
 };
 
@@ -31,6 +36,7 @@ const rules = parseHeadersFile(readFileSync("public/_headers", "utf8"));
 describe("public/_headers parity", () => {
 	it("document rule matches DOCUMENT_ISOLATION_HEADERS", () => {
 		const doc = rules.get("/*");
+
 		for (const [name, value] of Object.entries(DOCUMENT_ISOLATION_HEADERS)) {
 			expect(doc?.get(name)).toBe(value);
 		}
@@ -69,6 +75,7 @@ describe("stampIsolationHeaders", () => {
 		const res = stamp("/pdf-split", {
 			headers: { "content-type": "text/html" },
 		});
+
 		expect(res.headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
 		expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe(
 			"require-corp",
@@ -94,6 +101,7 @@ describe("stampIsolationHeaders", () => {
 			status: 200,
 			headers: { "Cross-Origin-Embedder-Policy": "unsafe-none" },
 		});
+
 		expect(res.status).toBe(200);
 		expect(res.headers.get("Cross-Origin-Embedder-Policy")).toBe(
 			"require-corp",

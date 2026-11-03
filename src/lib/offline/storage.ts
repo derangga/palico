@@ -13,12 +13,15 @@ export const preflightDownload = (
 ): Effect.Effect<void, StorageQuotaError, StorageHost> =>
 	Effect.gen(function* () {
 		const spec = ENGINES[id];
+
 		if (yield* spec.isCached) return;
 		const storage = yield* StorageHost;
 		const raw = yield* storage.estimate;
 		const report = yield* Schema.decodeUnknownEffect(StorageReport)(raw);
+
 		if (report.quota === undefined || report.usage === undefined) return;
 		const available = report.quota - report.usage;
+
 		if (available < spec.sizeBytes) {
 			return yield* new StorageQuotaError({
 				needed: spec.sizeBytes,
@@ -43,13 +46,17 @@ export const afterDownload = (
 		const saved = yield* ENGINES[id].isCached;
 		yield* SubscriptionRef.update(notSavedRef, (set) => {
 			const next = new Set(set);
+
 			if (saved) next.delete(id);
 			else next.add(id);
+
 			return next;
 		});
 		yield* SubscriptionRef.update(refreshRef, (n) => n + 1);
+
 		if (!saved) return false;
 		const storage = yield* StorageHost;
+
 		return yield* storage.persist;
 	});
 

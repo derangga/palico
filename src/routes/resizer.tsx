@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { ModeToggle } from "#/components/resizer/mode-toggle.tsx";
@@ -39,6 +40,7 @@ function ResizerPage() {
 	// Predicted output dimensions (in px), computed live.
 	let outW = 0;
 	let outH = 0;
+
 	if (source) {
 		if (mode === "percent") {
 			outW = Math.max(1, Math.round((source.srcW * pct) / 100));
@@ -51,6 +53,7 @@ function ResizerPage() {
 
 	const enlarges = source != null && (outW > source.srcW || outH > source.srcH);
 	const blockedByEnlarge = mode === "pixels" && state.noEnlarge && enlarges;
+
 	const canResize =
 		source != null &&
 		status !== "processing" &&
@@ -60,35 +63,47 @@ function ResizerPage() {
 
 	async function selectFile(fileList: FileList | null) {
 		const file = fileList?.[0];
+
 		if (!file) return;
+
 		if (!file.type.startsWith("image/")) {
 			toast.error(`"${file.name}" is not an image.`);
+
 			return;
 		}
+
 		if (file.size > MAX_FILE_BYTES) {
 			toast.error(
 				`"${file.name}" is ${formatBytes(file.size)}, over the ${Math.round(
 					MAX_FILE_BYTES / MB,
 				)} MB limit.`,
 			);
+
 			return;
 		}
+
 		let bitmap: ImageBitmap;
+
 		try {
 			bitmap = await createImageBitmap(file);
 		} catch {
 			toast.error(`Could not read "${file.name}".`);
+
 			return;
 		}
+
 		const srcW = bitmap.width;
 		const srcH = bitmap.height;
 		bitmap.close();
+
 		if (srcW > MAX_DIMENSION || srcH > MAX_DIMENSION) {
 			toast.error(
 				`"${file.name}" is ${srcW}×${srcH}px, over the ${MAX_DIMENSION.toLocaleString()}px limit.`,
 			);
+
 			return;
 		}
+
 		lastEditedRef.current = "w";
 		dispatch({ type: "fileLoaded", source: { file, srcW, srcH } });
 	}
@@ -121,6 +136,7 @@ function ResizerPage() {
 
 		const ac = new AbortController();
 		abortRef.current = ac;
+
 		const exit = await Effect.runPromiseExit(
 			resizeImage({
 				id: crypto.randomUUID(),
@@ -130,26 +146,31 @@ function ResizerPage() {
 			}),
 			{ signal: ac.signal },
 		);
+
 		abortRef.current = null;
 
-		if (exit._tag === "Success") {
+		if (Exit.isSuccess(exit)) {
 			dispatch({ type: "succeed", result: exit.value });
 			toast.success(`Resized to ${exit.value.width}×${exit.value.height}px.`);
+
 			return;
 		}
 
 		// Cancellation: acquireUseRelease has already terminated the worker.
 		if (Cause.hasInterruptsOnly(exit.cause)) {
 			dispatch({ type: "cancel" });
+
 			return;
 		}
 
 		// Surface the typed pipeline error message.
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+
 		const message =
 			failure && "message" in failure
 				? failure.message
 				: "Could not resize this image.";
+
 		dispatch({ type: "fail", message });
 		toast.error(message);
 	}
@@ -162,6 +183,7 @@ function ResizerPage() {
 		() => (result ? URL.createObjectURL(result.blob) : null),
 		[result],
 	);
+
 	useEffect(() => {
 		return () => {
 			if (previewUrl) URL.revokeObjectURL(previewUrl);

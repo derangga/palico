@@ -4,6 +4,7 @@
 // ffmpeg.wasm download negotiated by useEngineGate. Tool-specific copy (icon,
 // consent body, declined panel strings) comes in as props.
 
+import { Match } from "effect";
 import type { LucideIcon } from "lucide-react";
 import { CircleAlert, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -68,14 +69,25 @@ export function VideoEnginePanel({
 	}
 
 	// Loading phases: downloading → caching → preparing.
-	const status =
-		phase.kind === "downloading"
-			? `Downloading engine ${phase.percent}%`
-			: phase.kind === "caching"
-				? "Caching engine"
-				: "Preparing tools";
-
-	const percent = phase.kind === "downloading" ? phase.percent : 100;
+	const { status, percent, detail } = Match.value(phase).pipe(
+		Match.discriminators("kind")({
+			downloading: ({ percent }) => ({
+				status: `Downloading engine ${percent}%`,
+				percent,
+				detail: "Fetching the engine. It will be cached for next time.",
+			}),
+			caching: () => ({
+				status: "Caching engine",
+				percent: 100,
+				detail: "Saving the engine to your browser cache.",
+			}),
+		}),
+		Match.orElse(() => ({
+			status: "Preparing tools",
+			percent: 100,
+			detail: "Initializing the engine in a worker thread (1–2s).",
+		})),
+	);
 
 	return (
 		<div className="rounded-xl border bg-card p-6">
@@ -89,13 +101,7 @@ export function VideoEnginePanel({
 					style={{ width: `${percent}%` }}
 				/>
 			</div>
-			<p className="mt-3 text-xs text-muted-foreground">
-				{phase.kind === "downloading"
-					? "Fetching the engine. It will be cached for next time."
-					: phase.kind === "caching"
-						? "Saving the engine to your browser cache."
-						: "Initializing the engine in a worker thread (1–2s)."}
-			</p>
+			<p className="mt-3 text-xs text-muted-foreground">{detail}</p>
 		</div>
 	);
 }

@@ -9,5 +9,6 @@ export const needsHomeScreenHint = (input: {
 	if (input.standalone) return false;
 	const iosPhone = /iPhone|iPad|iPod/.test(input.userAgent);
 	const ipadOs = /Macintosh/.test(input.userAgent) && input.maxTouchPoints > 1;
+
 	return iosPhone || ipadOs;
 };

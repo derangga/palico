@@ -68,9 +68,11 @@ const probeAudio = (
 		});
 
 		const parsed = parseAudioProbe(json);
+
 		if (Result.isFailure(parsed)) {
 			return yield* new AudioExtractError({ fileName, message: UNREADABLE });
 		}
+
 		return yield* Option.match(parsed.success, {
 			onNone: () =>
 				Effect.fail(
@@ -93,6 +95,7 @@ const extractOne = (
 		const inputName = `input.${inputExtension(input.file)}`;
 		const outputName = `output.${meta.ext}`;
 		const fileName = input.file.name;
+
 		const error = (message: string) =>
 			new AudioExtractError({ fileName, message });
 
@@ -113,7 +116,9 @@ const extractOne = (
 							input.format,
 							stream,
 						);
+
 						copied = built.copied;
+
 						return built.args;
 					}),
 				),
@@ -150,11 +155,13 @@ export const extractAudio = (
 > =>
 	Effect.gen(function* () {
 		const ffmpeg = yield* getEngine;
+
 		if (isCancelled()) {
 			return yield* new AudioExtractError({
 				fileName: input.file.name,
 				message: "Cancelled.",
 			});
 		}
+
 		return yield* extractOne(ffmpeg, input, onPercent);
 	});

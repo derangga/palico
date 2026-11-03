@@ -1,3 +1,5 @@
+import { Schema } from "effect";
+
 import {
 	Select,
 	SelectContent,
@@ -5,7 +7,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
-import { DIFF_LANGUAGES, type DiffLanguage } from "#/lib/file/types.ts";
+import { DIFF_LANGUAGES, DiffLanguage } from "#/lib/file/types.ts";
 
 interface LanguageSelectProps {
 	readonly value: DiffLanguage;
@@ -20,10 +22,13 @@ export function LanguageSelect({
 }: LanguageSelectProps) {
 	const label =
 		DIFF_LANGUAGES.find((l) => l.value === value)?.label ?? "Plain Text";
+
 	return (
 		<Select
 			value={value}
-			onValueChange={(next) => onChange((next as DiffLanguage) ?? "text")}
+			onValueChange={(next) =>
+				onChange(Schema.is(DiffLanguage)(next) ? next : "text")
+			}
 		>
 			<SelectTrigger className={className ?? "w-44"} size="sm">
 				<SelectValue>{() => label}</SelectValue>

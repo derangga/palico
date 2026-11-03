@@ -96,10 +96,12 @@ export function converterReducer(
 			};
 		case "progressUpdate": {
 			const { update, formatLabel } = action;
+
 			return {
 				...state,
 				items: state.items.map((item) => {
 					if (item.id !== update.id) return item;
+
 					if (update.status === "processing") {
 						return {
 							...item,
@@ -108,6 +110,7 @@ export function converterReducer(
 							message: undefined,
 						};
 					}
+
 					if (update.status === "done") {
 						return {
 							...item,
@@ -120,6 +123,7 @@ export function converterReducer(
 							message: undefined,
 						};
 					}
+
 					return {
 						...item,
 						status: "error",
@@ -129,6 +133,7 @@ export function converterReducer(
 				}),
 			};
 		}
+
 		case "batchTick":
 			return { ...state, batchDone: state.batchDone + 1 };
 		case "runEnd":

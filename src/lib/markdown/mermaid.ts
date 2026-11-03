@@ -91,6 +91,7 @@ const applyConfig = (api: MermaidApi): void => {
 const loadMermaid: Effect.Effect<MermaidApi, MermaidLoadError> = Effect.gen(
 	function* () {
 		const cached = yield* Ref.get(mermaidRef);
+
 		if (Option.isSome(cached)) return cached.value;
 
 		const mod = yield* Effect.tryPromise({
@@ -107,6 +108,7 @@ const loadMermaid: Effect.Effect<MermaidApi, MermaidLoadError> = Effect.gen(
 		const api = mod.default;
 		applyConfig(api);
 		yield* Ref.set(mermaidRef, Option.some(api));
+
 		return api;
 	},
 );
@@ -125,6 +127,7 @@ export const renderMermaid = (
 		// Unique id per invocation, keyed off the caller's id for debuggability.
 		const seq = yield* Ref.updateAndGet(renderSeq, (n) => n + 1);
 		const uniqueId = `${id}-${seq}`;
+
 		const { svg } = yield* Effect.tryPromise({
 			try: () => api.render(uniqueId, source),
 			catch: (cause) =>
@@ -135,5 +138,6 @@ export const renderMermaid = (
 							: "This diagram couldn't be rendered.",
 				}),
 		});
+
 		return svg;
 	});

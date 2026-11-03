@@ -20,6 +20,7 @@ export function useEngineGate() {
 
 	const startLoad = useCallback(async () => {
 		setPhase({ kind: "downloading", percent: 0 });
+
 		try {
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await offlineRuntime.runPromise(
@@ -43,10 +44,13 @@ export function useEngineGate() {
 		let cancelled = false;
 		(async () => {
 			const cached = await Effect.runPromise(isEngineCached);
+
 			if (cancelled) return;
+
 			if (cached) void startLoad();
 			else setPhase({ kind: "consent" });
 		})();
+
 		return () => {
 			cancelled = true;
 		};

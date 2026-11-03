@@ -13,6 +13,7 @@ describe("withBusy", () => {
 		const seen = await Effect.runPromise(
 			withBusy(SubscriptionRef.get(busyRef)),
 		);
+
 		expect(seen).toBe(1);
 		expect(count()).toBe(0);
 	});
@@ -30,6 +31,7 @@ describe("withBusy", () => {
 			expect(count()).toBe(1);
 			yield* Fiber.interrupt(fiber);
 		});
+
 		await Effect.runPromise(program);
 		expect(count()).toBe(0);
 	});
@@ -38,6 +40,7 @@ describe("withBusy", () => {
 		const seen = await Effect.runPromise(
 			withBusy(withBusy(SubscriptionRef.get(busyRef))),
 		);
+
 		expect(seen).toBe(2);
 		expect(count()).toBe(0);
 	});
@@ -46,6 +49,7 @@ describe("withBusy", () => {
 		const exit = await Effect.runPromiseExit(
 			withBusy(SubscriptionRef.set(busyRef, 0)),
 		);
+
 		expect(
 			Exit.isFailure(exit) && exit.cause.reasons.some(Cause.isDieReason),
 		).toBe(true);

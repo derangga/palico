@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Data, Effect, Schema } from "effect";
 
 import type { MetadataReport } from "#/lib/metadata/types.ts";
 
@@ -30,39 +30,45 @@ import {
 //   Unhandled      — this response isn't part of this job's happy path; the
 //                    runner then maps "error" responses to typed errors and
 //                    fails on anything else so the Effect can never hang.
-type JobResult<A> =
-	| { readonly _tag: "Succeed"; readonly value: A }
-	| { readonly _tag: "Continue" }
-	| { readonly _tag: "Unhandled" };
+type JobResult<A> = Data.TaggedEnum<{
+	Succeed: { readonly value: A };
+	Continue: {};
+	Unhandled: {};
+}>;
 
-const Continue = { _tag: "Continue" } as const;
-const Unhandled = { _tag: "Unhandled" } as const;
-const Succeed = <A>(value: A): JobResult<A> => ({ _tag: "Succeed", value });
+interface JobResultDef extends Data.TaggedEnum.WithGenerics<1> {
+	readonly taggedEnum: JobResult<this["A"]>;
+}
+
+const JobResult = Data.taggedEnum<JobResultDef>();
+const Continue = JobResult.Continue();
+const Unhandled = JobResult.Unhandled();
+const Succeed = <A>(value: A): JobResult<A> => JobResult.Succeed({ value });
 
 // Every genuine response our worker posts is an object carrying one of these
 // string `type`s (see PdfWorkerResponse). The worker channel can also surface
 // foreign messages we didn't send — dev-tooling/HMR chatter or nested-worker
 // plumbing (pdf.js spawns its own core worker) — which arrive with no `type`.
 // We ignore those instead of failing the job on them.
-const WORKER_RESPONSE_TYPES = new Set<string>([
-	"meta",
-	"page",
-	"done",
-	"extracted",
-	"zipped",
-	"merged",
-	"metadata",
-	"stripped",
-	"zip-chunk",
-	"error",
-]);
+// Only the `type` tag is checked: the full payloads are trusted because the
+// worker is ours.
+const WorkerResponseTag = Schema.Struct({
+	type: Schema.Literals([
+		"meta",
+		"page",
+		"done",
+		"extracted",
+		"zipped",
+		"merged",
+		"metadata",
+		"stripped",
+		"zip-chunk",
+		"error",
+	]),
+});
 
 const isPdfWorkerResponse = (data: unknown): data is PdfWorkerResponse =>
-	typeof data === "object" &&
-	data !== null &&
-	"type" in data &&
-	typeof (data as { type: unknown }).type === "string" &&
-	WORKER_RESPONSE_TYPES.has((data as { type: string }).type);
+	Schema.is(WorkerResponseTag)(data);
 
 // Single generic worker driver shared by all four public functions. Spins up a
 // one-shot worker, transfers the request payload in, and resolves once via the
@@ -90,33 +96,32 @@ const runWorkerJob = <A>(
 			Effect.callback<A, PdfLoadError>((resume) => {
 				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
 					const res = event.data;
+
 					// Ignore foreign/noise messages (dev-tooling, nested pdf.js worker)
 					// that aren't our responses — failing on them would spuriously abort
 					// an otherwise-healthy job. Genuine terminal messages still arrive and
 					// resolve the Effect, so this cannot hang.
 					if (!isPdfWorkerResponse(res)) return;
-					const result = handle(res);
-					if (result._tag === "Succeed") {
-						resume(Effect.succeed(result.value));
-						return;
-					}
-					if (result._tag === "Continue") return;
-					// Unhandled by this op: map a reported error to its tagged type, and
-					// fail on any other unexpected response rather than leaving the
-					// Effect (and worker) hanging forever.
-					if (res.type === "error") {
-						resume(Effect.fail(toTypedError(fileName, res)));
-					} else {
-						resume(
-							Effect.fail(
-								new PdfWorkerError({
-									fileName,
-									message: `Unexpected PDF worker response: "${res.type}".`,
-								}),
+					JobResult.$match(handle(res), {
+						Succeed: ({ value }) => resume(Effect.succeed(value)),
+						Continue: () => {},
+						// Unhandled by this op: map a reported error to its tagged type,
+						// and fail on any other unexpected response rather than leaving
+						// the Effect (and worker) hanging forever.
+						Unhandled: () =>
+							resume(
+								res.type === "error"
+									? Effect.fail(toTypedError(fileName, res))
+									: Effect.fail(
+											new PdfWorkerError({
+												fileName,
+												message: `Unexpected PDF worker response: "${res.type}".`,
+											}),
+										),
 							),
-						);
-					}
+					});
 				};
+
 				worker.onerror = (event) => {
 					resume(
 						Effect.fail(
@@ -151,6 +156,7 @@ export const renderPdfThumbnails = (
 	Effect.suspend(() => {
 		const thumbnails: PdfThumbnail[] = [];
 		let pageCount = 0;
+
 		return runWorkerJob<RenderedPdf>(
 			params.fileName,
 			{
@@ -166,6 +172,7 @@ export const renderPdfThumbnails = (
 				switch (res.type) {
 					case "meta":
 						pageCount = res.pageCount;
+
 						return Continue;
 					case "page": {
 						const thumbnail: PdfThumbnail = {
@@ -174,10 +181,13 @@ export const renderPdfThumbnails = (
 							width: res.width,
 							height: res.height,
 						};
+
 						thumbnails.push(thumbnail);
 						onThumbnail(thumbnail);
+
 						return Continue;
 					}
+
 					case "done":
 						return Succeed({ pageCount, thumbnails });
 					default:
@@ -297,6 +307,7 @@ export const rasterizePdfToZip = (
 ): Effect.Effect<Blob, PdfLoadError> =>
 	Effect.suspend(() => {
 		const chunks: ArrayBuffer[] = [];
+
 		return runWorkerJob<Blob>(
 			params.fileName,
 			{
@@ -314,6 +325,7 @@ export const rasterizePdfToZip = (
 					case "zip-chunk":
 						chunks.push(res.bytes);
 						onProgress(res.pagesDone, res.pageCount);
+
 						return Continue;
 					case "done":
 						return Succeed(new Blob(chunks, { type: "application/zip" }));

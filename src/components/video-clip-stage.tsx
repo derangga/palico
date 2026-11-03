@@ -1,8 +1,9 @@
-// biome-ignore-all lint/a11y/useMediaCaption: the only <video> is a user-supplied local clip with no caption track available.
+/* oxlint-disable jsx-a11y/media-has-caption -- the only <video> is a user-supplied local clip with no caption track available. */
 // Preview, playback controls and selection timeline for one video. Shared by
 // /video-cutter and /video-to-gif; the state lives in useClipPlayer.
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import type { ReactNode } from "react";
+
 import { Button } from "#/components/ui/button.tsx";
 import { formatTime } from "#/components/video-cutter/utils.ts";
 import { VideoTrimTimeline } from "#/components/video-trim-timeline.tsx";
@@ -39,8 +40,8 @@ export function VideoClipStage({
 
 	return (
 		<div className="flex min-w-0 flex-col gap-2">
-			{/* User-supplied local video; no captions available. Biome's
-			    useMediaCaption is suppressed file-wide at the top of the file. */}
+			{/* User-supplied local video; no captions available. oxlint's
+			    media-has-caption is disabled file-wide at the top of the file. */}
 			{/* react-doctor-disable-next-line react-doctor/media-has-caption */}
 			<video
 				ref={videoRef}

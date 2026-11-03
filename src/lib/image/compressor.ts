@@ -8,6 +8,7 @@ import { runImageWorker } from "./worker-client.ts";
 // "same" keeps JPEG and WebP. PNG and anything else becomes WebP: canvas
 // ignores `quality` for PNG, and WebP keeps transparency.
 export const CompressFormat = Schema.Literals(["same", "jpeg", "webp"]);
+
 export type CompressFormat = Schema.Schema.Type<typeof CompressFormat>;
 
 export const CompressInput = Schema.Struct({
@@ -17,6 +18,7 @@ export const CompressInput = Schema.Struct({
 	quality: Schema.Number, // 0..1, the ceiling when targetBytes is set
 	targetBytes: Schema.optional(Schema.Number),
 });
+
 export type CompressInput = Schema.Schema.Type<typeof CompressInput>;
 
 export const CompressOutput = Schema.Struct({
@@ -32,6 +34,7 @@ export const CompressOutput = Schema.Struct({
 	// true when re-encoding did not make the file smaller.
 	keptOriginal: Schema.Boolean,
 });
+
 export type CompressOutput = Schema.Schema.Type<typeof CompressOutput>;
 
 export type CompressProgress =
@@ -52,6 +55,7 @@ const compressOne = Effect.fn("ImageCompressor.compressOne")(function* (
 	yield* validateSize(file);
 	const format = targetFormat(input.format, file.type);
 	const meta = formatMeta(format);
+
 	const buffer = yield* Effect.tryPromise({
 		try: () => file.arrayBuffer(),
 		catch: (err) =>
@@ -60,6 +64,7 @@ const compressOne = Effect.fn("ImageCompressor.compressOne")(function* (
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	const out = yield* runImageWorker({
 		id: input.id,
 		fileName: file.name,
@@ -74,6 +79,7 @@ const compressOne = Effect.fn("ImageCompressor.compressOne")(function* (
 
 	// Never hand back a bigger file than the user gave us.
 	const keptOriginal = out.size >= file.size;
+
 	return {
 		id: input.id,
 		blob: keptOriginal ? file : out.blob,
@@ -116,6 +122,7 @@ export const compressImages = (
 								error: result.failure,
 							}),
 				);
+
 				return result;
 			}),
 		{ concurrency: 5 },

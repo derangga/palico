@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Effect, Exit, Schema } from "effect";
 import { FileArchive, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
 import { ComparePanel } from "#/components/compressor/compare-panel.tsx";
 import { FileRow } from "#/components/converter/file-row.tsx";
 import type { Item } from "#/components/converter/types.ts";
@@ -24,7 +25,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select.tsx";
 import {
-	type CompressFormat,
+	CompressFormat,
 	type CompressProgress,
 	compressImages,
 } from "#/lib/image/compressor.ts";
@@ -67,12 +68,16 @@ function CompressorPage() {
 	const compressable = items.filter(
 		(i) => i.status === "ready" || i.status === "error",
 	);
+
 	const doneItems = items.filter((i) => i.status === "done" && i.outBlob);
+
 	const savedBytes = doneItems.reduce(
 		(sum, i) => sum + Math.max(i.file.size - (i.outSize ?? i.file.size), 0),
 		0,
 	);
+
 	const missedTarget = doneItems.some((i) => i.note?.startsWith("Couldn't"));
+
 	const compareItem = items.find(
 		(i) => i.id === compareId && i.status === "done" && i.outBlob,
 	);
@@ -86,6 +91,7 @@ function CompressorPage() {
 				toast.error(`"${file.name}" is not an image.`);
 				continue;
 			}
+
 			if (file.size > MAX_FILE_BYTES) {
 				toast.error(
 					`"${file.name}" is ${formatBytes(file.size)}, over the ${Math.round(
@@ -94,13 +100,16 @@ function CompressorPage() {
 				);
 				continue;
 			}
+
 			accepted.push({ id: crypto.randomUUID(), file, status: "ready" });
 		}
 
 		const room = Math.max(MAX_FILES - items.length, 0);
+
 		if (accepted.length > room) {
 			toast.error(`You can compress up to ${MAX_FILES} images at a time.`);
 		}
+
 		setItems((prev) => [
 			...prev,
 			...accepted.slice(0, Math.max(MAX_FILES - prev.length, 0)),
@@ -143,8 +152,10 @@ function CompressorPage() {
 			setItems((prev) =>
 				prev.map((item) => {
 					if (item.id !== update.id) return item;
+
 					if (update.status === "done") {
 						const out = update.output;
+
 						return {
 							...item,
 							status: "done",
@@ -161,6 +172,7 @@ function CompressorPage() {
 							message: undefined,
 						};
 					}
+
 					if (update.status === "error") {
 						return {
 							...item,
@@ -168,9 +180,11 @@ function CompressorPage() {
 							message: update.error.message,
 						};
 					}
+
 					return { ...item, status: "processing" };
 				}),
 			);
+
 			if (update.status === "done" || update.status === "error") {
 				setBatchDone((n) => n + 1);
 			}
@@ -180,10 +194,13 @@ function CompressorPage() {
 		setIsRunning(false);
 
 		const ok = outputs.length;
+
 		if (ok > 0) {
 			toast.success(`Compressed ${ok} image${ok === 1 ? "" : "s"}.`);
 		}
+
 		const failed = inputs.length - ok;
+
 		if (failed > 0) {
 			toast.error(
 				`${failed} image${failed === 1 ? "" : "s"} could not be compressed.`,
@@ -197,20 +214,26 @@ function CompressorPage() {
 
 		const program = Effect.gen(function* () {
 			const entries: Record<string, Uint8Array> = {};
+
 			for (let i = 0; i < doneItems.length; i++) {
 				const blob = doneItems[i].outBlob;
+
 				if (!blob) continue;
 				const buffer = yield* Effect.promise(() => blob.arrayBuffer());
 				entries[names[i]] = new Uint8Array(buffer);
 			}
+
 			return yield* createZip(entries);
 		});
 
 		const exit = await Effect.runPromiseExit(program);
-		if (exit._tag !== "Success") {
+
+		if (Exit.isFailure(exit)) {
 			toast.error("Could not build the zip file.");
+
 			return;
 		}
+
 		downloadBlob(exit.value, "palico-compressed.zip");
 		toast.success("Downloaded all images as a zip.");
 	}
@@ -282,7 +305,8 @@ function CompressorPage() {
 								<Select
 									value={format}
 									onValueChange={(value) => {
-										setFormat(value as CompressFormat);
+										if (!Schema.is(CompressFormat)(value)) return;
+										setFormat(value);
 										resetResults();
 									}}
 									disabled={isRunning}

@@ -1,3 +1,4 @@
+import { Match } from "effect";
 import { CircleAlert, Loader2 } from "lucide-react";
 
 import { DoneBurst, DrawCheck } from "#/components/done-burst.tsx";
@@ -55,26 +56,31 @@ export function StatusPill({
 				className,
 			)}
 		>
-			{state === "working" ? (
-				<Loader2
-					aria-hidden
-					className="size-3.5 shrink-0 animate-spin text-primary"
-				/>
-			) : state === "done" ? (
-				<span className="relative inline-flex">
-					<DrawCheck play={celebrate} className="size-3.5 text-success" />
-					{celebrate && <DoneBurst />}
-				</span>
-			) : state === "failed" ? (
-				<CircleAlert
-					aria-hidden
-					className="size-3.5 shrink-0 text-destructive"
-				/>
-			) : (
-				<span
-					aria-hidden
-					className={cn("size-2 shrink-0 rounded-full", config.dot)}
-				/>
+			{Match.value(state).pipe(
+				Match.when("working", () => (
+					<Loader2
+						aria-hidden
+						className="size-3.5 shrink-0 animate-spin text-primary"
+					/>
+				)),
+				Match.when("done", () => (
+					<span className="relative inline-flex">
+						<DrawCheck play={celebrate} className="size-3.5 text-success" />
+						{celebrate && <DoneBurst />}
+					</span>
+				)),
+				Match.when("failed", () => (
+					<CircleAlert
+						aria-hidden
+						className="size-3.5 shrink-0 text-destructive"
+					/>
+				)),
+				Match.orElse(() => (
+					<span
+						aria-hidden
+						className={cn("size-2 shrink-0 rounded-full", config.dot)}
+					/>
+				)),
 			)}
 			<span className="sr-only sm:not-sr-only">{label ?? config.label}</span>
 		</span>

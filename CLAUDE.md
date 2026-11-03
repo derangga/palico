@@ -16,8 +16,9 @@ page in ads.
 ## Workflow
 
 - Work on a branch. If you are on `master`, create one before the first edit.
-- Before finishing a code change, run the type check and the Biome check from
-  the `package.json` scripts, and fix the errors in files you touched.
+- Before finishing a code change, run `bun run typecheck` and `bun run check`
+  (oxlint + oxfmt), and fix the errors in files you touched. `bun run format`
+  applies the formatting.
 
 ## Where to look
 

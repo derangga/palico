@@ -12,6 +12,7 @@ import {
 const MB = 1024 * 1024;
 
 beforeEach(() => Effect.runSync(resetOfflineState));
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe("staleEngineBuckets", () => {
@@ -24,43 +25,48 @@ describe("staleEngineBuckets", () => {
 			"workbox-precache-v2-https://palico.test/",
 			"palico-model-v1",
 		]);
+
 		expect(stale).toEqual(["ffmpeg-wasm-v0.12.9", "zetaoffice-wasm-business"]);
 	});
 });
 
 describe("preflightDownload", () => {
-	const run = (estimate: unknown, unavailable = false) =>
+	const run = (storage: Parameters<typeof makeFakeStorage>[0]) =>
 		Effect.runPromiseExit(
 			preflightDownload("ffmpeg").pipe(
-				Effect.provide(makeFakeStorage({ estimate, unavailable }).layer),
+				Effect.provide(makeFakeStorage(storage).layer),
 			),
 		);
 
 	it("fails with StorageQuotaError when free space is below the engine size", async () => {
-		const exit = await run({ quota: 40 * MB, usage: 20 * MB });
+		const exit = await run({ estimate: { quota: 40 * MB, usage: 20 * MB } });
 		expect(Exit.isFailure(exit)).toBe(true);
 		expect(JSON.stringify(exit)).toContain("StorageQuotaError");
 	});
 
 	it("passes when there is room", async () => {
-		expect(Exit.isSuccess(await run({ quota: 500 * MB, usage: 20 * MB }))).toBe(
-			true,
-		);
+		expect(
+			Exit.isSuccess(
+				await run({ estimate: { quota: 500 * MB, usage: 20 * MB } }),
+			),
+		).toBe(true);
 	});
 
 	it("skips the check when the browser cannot estimate", async () => {
-		expect(Exit.isSuccess(await run(undefined, true))).toBe(true);
-		expect(Exit.isSuccess(await run({}))).toBe(true);
-		expect(Exit.isSuccess(await run("garbage"))).toBe(true);
+		expect(Exit.isSuccess(await run({ unavailable: true }))).toBe(true);
+		expect(Exit.isSuccess(await run({ estimate: {} }))).toBe(true);
+		expect(Exit.isSuccess(await run({ estimate: "garbage" }))).toBe(true);
 	});
 });
 
 describe("afterDownload", () => {
 	it("marks NotSaved and skips persist when the bytes did not stick", async () => {
 		const storage = makeFakeStorage({});
+
 		const saved = await Effect.runPromise(
 			afterDownload("ffmpeg").pipe(Effect.provide(storage.layer)),
 		);
+
 		expect(saved).toBe(false);
 		expect(Effect.runSync(SubscriptionRef.get(notSavedRef)).has("ffmpeg")).toBe(
 			true,
@@ -77,9 +83,11 @@ describe("afterDownload", () => {
 			SubscriptionRef.set(notSavedRef, new Set(["ffmpeg"] as const)),
 		);
 		const storage = makeFakeStorage({ persist: true });
+
 		const persisted = await Effect.runPromise(
 			afterDownload("ffmpeg").pipe(Effect.provide(storage.layer)),
 		);
+
 		expect(persisted).toBe(true);
 		expect(Effect.runSync(SubscriptionRef.get(notSavedRef)).has("ffmpeg")).toBe(
 			false,

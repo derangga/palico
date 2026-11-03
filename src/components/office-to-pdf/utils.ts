@@ -3,7 +3,9 @@ import { MB } from "#/lib/file/office-types.ts";
 
 export function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
+
 	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
+
 	return `${(n / MB).toFixed(2)} MB`;
 }
 
@@ -23,5 +25,6 @@ export function saveOne(item: OfficeItem) {
 export function pdfName(fileName: string) {
 	const dot = fileName.lastIndexOf(".");
 	const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+
 	return `${base}.pdf`;
 }

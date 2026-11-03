@@ -6,6 +6,7 @@
 import { Schema } from "effect";
 
 export const GifFps = Schema.Literals([8, 12, 15]);
+
 export type GifFps = Schema.Schema.Type<typeof GifFps>;
 
 export const GIF_FPS_OPTIONS: readonly GifFps[] = [8, 12, 15];
@@ -14,6 +15,7 @@ export const DEFAULT_GIF_FPS: GifFps = 12;
 // Size is the LONGER side, not the width: most phone video is portrait, where a
 // 640px width would mean a ~1138px tall GIF.
 export const GifSize = Schema.Literals([320, 480, 640]);
+
 export type GifSize = Schema.Schema.Type<typeof GifSize>;
 
 export const GIF_SIZE_OPTIONS: ReadonlyArray<{
@@ -24,6 +26,7 @@ export const GIF_SIZE_OPTIONS: ReadonlyArray<{
 	{ value: 480, label: "Medium" },
 	{ value: 640, label: "Large" },
 ];
+
 export const DEFAULT_GIF_SIZE: GifSize = 480;
 
 // palettegen holds every frame until the end of the range. At the corner
@@ -44,6 +47,7 @@ export const fitLongSide = (
 ): { readonly width: number; readonly height: number } | null => {
 	if (width <= 0 || height <= 0) return null;
 	const scale = Math.min(1, longSide / Math.max(width, height));
+
 	return {
 		width: Math.max(1, Math.round(width * scale)),
 		height: Math.max(1, Math.round(height * scale)),

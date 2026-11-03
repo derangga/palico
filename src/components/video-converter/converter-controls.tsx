@@ -54,6 +54,7 @@ export function ConverterControls({
 					value={format}
 					onValueChange={(value) => {
 						const parsed = parseVideoOutputFormat(value);
+
 						if (Result.isSuccess(parsed)) onChangeFormat(parsed.success);
 					}}
 					disabled={isRunning}

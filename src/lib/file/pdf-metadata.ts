@@ -19,16 +19,16 @@ import { clip, formatSize } from "#/lib/metadata/types.ts";
 // Pure pdf-lib logic for the Remove Metadata tool. Runs inside
 // src/workers/pdf.worker.ts; kept here so vitest can exercise it directly.
 
-const INFO_LABELS: Record<string, readonly [MetadataGroup, string]> = {
-	Title: ["Other", "Title"],
-	Author: ["People", "Author"],
-	Subject: ["Other", "Subject"],
-	Keywords: ["Other", "Keywords"],
-	Creator: ["Software", "Created with"],
-	Producer: ["Software", "Producer"],
-	CreationDate: ["Dates", "Created"],
-	ModDate: ["Dates", "Modified"],
-};
+const INFO_LABELS = new Map<string, readonly [MetadataGroup, string]>([
+	["Title", ["Other", "Title"]],
+	["Author", ["People", "Author"]],
+	["Subject", ["Other", "Subject"]],
+	["Keywords", ["Other", "Keywords"]],
+	["Creator", ["Software", "Created with"]],
+	["Producer", ["Software", "Producer"]],
+	["CreationDate", ["Dates", "Created"]],
+	["ModDate", ["Dates", "Modified"]],
+]);
 
 // Keys that mark a dictionary as document info, even when it is an orphan
 // left behind by an earlier incremental save.
@@ -39,6 +39,7 @@ const INFO_MARKERS = [
 	"CreationDate",
 	"ModDate",
 ].map((k) => PDFName.of(k));
+
 const TYPE = PDFName.of("Type");
 const METADATA = PDFName.of("Metadata");
 
@@ -67,8 +68,10 @@ const infoValue = (key: string, value: PDFObject): string => {
 				return value.decodeText();
 			}
 		}
+
 		return value.decodeText();
 	}
+
 	return value.toString();
 };
 
@@ -77,12 +80,14 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 	const fields: MetadataField[] = [];
 
 	const info = ctx.lookup(ctx.trailerInfo.Info);
+
 	if (info instanceof PDFDict) {
 		for (const [name, raw] of info.entries()) {
 			const key = name.decodeText();
 			const value = clip(infoValue(key, ctx.lookup(raw) ?? raw).trim());
+
 			if (!value) continue;
-			const [group, label] = INFO_LABELS[key] ?? ["Other", key];
+			const [group, label] = INFO_LABELS.get(key) ?? ["Other", key];
 			fields.push({ group, label, value });
 		}
 	}
@@ -90,6 +95,7 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 	let xmpBytes = 0;
 	let xmpBlocks = 0;
 	let leftovers = 0;
+
 	for (const [, obj] of ctx.enumerateIndirectObjects()) {
 		if (isMetadataStream(obj)) {
 			xmpBlocks++;
@@ -98,6 +104,7 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 			leftovers++;
 		}
 	}
+
 	if (xmpBlocks > 0) {
 		fields.push({
 			group: "Other",
@@ -108,6 +115,7 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 					: `${xmpBlocks} blocks, ${formatSize(xmpBytes)}`,
 		});
 	}
+
 	if (leftovers > 0) {
 		fields.push({
 			group: "Other",
@@ -115,6 +123,7 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 			value: `${leftovers} earlier version${leftovers === 1 ? "" : "s"}`,
 		});
 	}
+
 	return { fields, kept: [] };
 };
 
@@ -125,6 +134,7 @@ export const readPdfMetadata = (doc: PDFDocument): MetadataReport => {
 export const stripPdfDocument = (doc: PDFDocument): void => {
 	const ctx = doc.context;
 	const infoRef = ctx.trailerInfo.Info;
+
 	if (infoRef instanceof PDFRef) ctx.delete(infoRef);
 	ctx.trailerInfo.Info = undefined;
 
@@ -151,5 +161,6 @@ export const stripPdfMetadata = async (
 ): Promise<{ bytes: Uint8Array; after: MetadataReport }> => {
 	stripPdfDocument(doc);
 	const out = await doc.save({ updateFieldAppearances: false });
+
 	return { bytes: out, after: readPdfMetadata(await loadForMetadata(out)) };
 };

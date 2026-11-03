@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { type CSSProperties, useEffect } from "react";
+import { useEffect } from "react";
 
 import "#/components/home/home.css";
 import { ToolTile } from "#/components/home/tool-tile.tsx";
@@ -24,16 +24,20 @@ function useMarkHomeSeen() {
 	useEffect(() => {
 		const markSeen = () => {
 			document.documentElement.dataset.homeSeen = "1";
+
 			try {
 				sessionStorage.setItem(SEEN_KEY, "1");
 			} catch {
 				// Storage blocked: the attribute above still covers this tab.
 			}
 		};
+
 		const start = Date.now();
 		const timer = window.setTimeout(markSeen, 1000);
+
 		return () => {
 			window.clearTimeout(timer);
+
 			// Leaving after the stagger had a real look counts as seen. The quick
 			// cleanup React Strict Mode runs in dev does not.
 			if (Date.now() - start > 300) markSeen();
@@ -41,10 +45,13 @@ function useMarkHomeSeen() {
 	}, []);
 }
 
+// Each tile's position across all groups, for the staggered entrance.
+const TILE_INDEX = new Map(
+	toolGroups.flatMap((group) => group.tools).map((tool, i) => [tool.to, i]),
+);
+
 function Home() {
 	useMarkHomeSeen();
-
-	let tileIndex = 0;
 
 	return (
 		<div className="mx-auto w-full max-w-6xl px-6 py-8 sm:px-12 lg:px-16 lg:py-14">
@@ -109,7 +116,7 @@ function Home() {
 								<li
 									key={tool.to}
 									className="tool-in grid"
-									style={{ "--i": tileIndex++ } as CSSProperties}
+									style={{ "--i": TILE_INDEX.get(tool.to) }}
 								>
 									<ToolTile tool={tool} />
 								</li>

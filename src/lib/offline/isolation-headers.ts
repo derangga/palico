@@ -11,6 +11,7 @@ export const DOCUMENT_ISOLATION_HEADERS = {
 // Built workers and the vendored ZetaOffice runtime load into the isolated
 // document, so they need CORP (COEP comes from the document rule).
 export const RESOURCE_POLICY_PREFIXES = ["/assets/", "/vendor/"] as const;
+
 export const RESOURCE_POLICY_HEADER = [
 	"Cross-Origin-Resource-Policy",
 	"same-origin",
@@ -24,12 +25,15 @@ export const stampIsolationHeaders = (
 ): Response => {
 	if (response.type === "opaque" || response.status === 0) return response;
 	const headers = new Headers(response.headers);
+
 	for (const [name, value] of Object.entries(DOCUMENT_ISOLATION_HEADERS)) {
 		headers.set(name, value);
 	}
+
 	if (RESOURCE_POLICY_PREFIXES.some((p) => url.pathname.startsWith(p))) {
 		headers.set(RESOURCE_POLICY_HEADER[0], RESOURCE_POLICY_HEADER[1]);
 	}
+
 	return new Response(response.body, {
 		status: response.status,
 		statusText: response.statusText,

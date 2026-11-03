@@ -12,6 +12,7 @@ export const MetadataGroup = Schema.Literals([
 	"Software",
 	"Other",
 ]);
+
 export type MetadataGroup = Schema.Schema.Type<typeof MetadataGroup>;
 
 // One removable piece of hidden data, e.g. { Device, "Camera", "Apple iPhone 15" }.
@@ -20,6 +21,7 @@ export const MetadataField = Schema.Struct({
 	label: Schema.String,
 	value: Schema.String,
 });
+
 export type MetadataField = Schema.Schema.Type<typeof MetadataField>;
 
 export const MetadataReport = Schema.Struct({
@@ -31,6 +33,7 @@ export const MetadataReport = Schema.Struct({
 		Schema.Struct({ lat: Schema.Number, lon: Schema.Number }),
 	),
 });
+
 export type MetadataReport = Schema.Schema.Type<typeof MetadataReport>;
 
 export const IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];

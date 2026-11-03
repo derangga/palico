@@ -33,6 +33,7 @@ export const ConvertVideoInput = Schema.Struct({
 	file: FileFromSelf,
 	format: VideoOutputFormat,
 });
+
 export type ConvertVideoInput = Schema.Schema.Type<typeof ConvertVideoInput>;
 
 export const ConvertVideoOutput = Schema.Struct({
@@ -42,6 +43,7 @@ export const ConvertVideoOutput = Schema.Struct({
 	name: Schema.String,
 	format: VideoOutputFormat,
 });
+
 export type ConvertVideoOutput = Schema.Schema.Type<typeof ConvertVideoOutput>;
 
 const ProgressProcessing = Schema.Struct({
@@ -71,6 +73,7 @@ export const VideoProgressUpdate = Schema.Union([
 	ProgressDone,
 	ProgressError,
 ]);
+
 export type VideoProgressUpdate = Schema.Schema.Type<
 	typeof VideoProgressUpdate
 >;
@@ -157,11 +160,13 @@ export const convertVideos = (
 							}),
 						);
 					}
+
 					yield* emitProgress(onProgress, {
 						id: input.id,
 						status: "processing",
 						percent: 0,
 					});
+
 					const outcome = yield* Effect.result(
 						convertOne(ffmpeg, input, (percent) =>
 							onProgress({
@@ -171,11 +176,13 @@ export const convertVideos = (
 							}),
 						),
 					);
+
 					// Cancelled mid-encode (terminate() rejected the exec): swallow the
 					// outcome without emitting, so the UI stays clean for the reset.
 					if (isCancelled()) {
 						return outcome;
 					}
+
 					if (Result.isSuccess(outcome)) {
 						yield* emitProgress(onProgress, {
 							id: input.id,
@@ -189,6 +196,7 @@ export const convertVideos = (
 							error: outcome.failure,
 						});
 					}
+
 					return outcome;
 				}),
 			{ concurrency: 1 },

@@ -12,7 +12,7 @@
 // re-inits a fresh worker instead of the tool staying dead until a reload.
 
 import { fetchFile } from "@ffmpeg/util";
-import { Effect } from "effect";
+import { Effect, Predicate, Result } from "effect";
 
 import { disposeEngine, type EngineHandle } from "./engine.ts";
 
@@ -90,8 +90,9 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 		);
 
 		return yield* Effect.gen(function* () {
-			const args =
-				typeof opts.args === "function" ? yield* opts.args(ffmpeg) : opts.args;
+			const args = Predicate.isFunction(opts.args)
+				? yield* opts.args(ffmpeg)
+				: opts.args;
 
 			// Capture ffmpeg's stderr for the duration of this exec. exitCode -1 (the
 			// core's default) means it aborted before a clean exit; the bare code is
@@ -112,36 +113,35 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 			const result = yield* Effect.acquireUseRelease(
 				Effect.sync(() => {
 					const emitPercent = opts.onPercent;
+
 					const onProgress = emitPercent
 						? ({ progress }: { progress: number }) =>
 								emitPercent(
 									Math.max(0, Math.min(100, Math.round(progress * 100))),
 								)
 						: undefined;
+
 					const onLog = ({ message }: { type: string; message: string }) => {
 						logLines.push(message);
+
 						if (logLines.length > 64) logLines.shift();
 					};
+
 					if (onProgress) ffmpeg.on("progress", onProgress);
 					ffmpeg.on("log", onLog);
+
 					return { onProgress, onLog };
 				}),
+				// Success is ffmpeg's exit code; failure is the thrown message.
 				() =>
-					Effect.promise(
-						(): Promise<
-							| { readonly _tag: "exit"; readonly code: number }
-							| { readonly _tag: "threw"; readonly message: string }
-						> =>
-							ffmpeg
-								.exec([...args])
-								.then((code) => ({ _tag: "exit" as const, code }))
-								.catch((cause) => ({
-									_tag: "threw" as const,
-									message:
-										cause instanceof Error && cause.message
-											? cause.message
-											: `${opts.label} threw.`,
-								})),
+					Effect.result(
+						Effect.tryPromise({
+							try: () => ffmpeg.exec([...args]),
+							catch: (cause) =>
+								cause instanceof Error && cause.message
+									? cause.message
+									: `${opts.label} threw.`,
+						}),
 					),
 				({ onProgress, onLog }) =>
 					Effect.sync(() => {
@@ -150,7 +150,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 					}),
 			);
 
-			if (result._tag === "threw" || result.code !== 0) {
+			if (Result.isFailure(result) || result.success !== 0) {
 				// An emscripten OOM/abort leaves the wasm instance permanently
 				// unusable. Dispose the singleton so the next run re-inits a fresh
 				// worker, and surface an honest, actionable message instead of the raw
@@ -158,24 +158,27 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 				const oom = /aborted\(|out of memory|\boom\b/i.test(
 					logLines.join("\n"),
 				);
+
 				if (oom) {
 					disposed = true;
 					yield* disposeEngine;
+
 					return yield* Effect.fail(opts.jobError(opts.oomMessage));
 				}
 
 				// A thrown exec (not a clean non-zero exit) bricks the instance too —
 				// dispose so the tool isn't stuck dead until a page reload.
-				if (result._tag === "threw") {
+				if (Result.isFailure(result)) {
 					disposed = true;
 					yield* disposeEngine;
 				}
 
 				const tail = logLines.slice(-8).join(" / ").trim();
-				const reason =
-					result._tag === "threw"
-						? result.message
-						: `${opts.label} exited with code ${result.code}.`;
+
+				const reason = Result.isFailure(result)
+					? result.failure
+					: `${opts.label} exited with code ${result.success}.`;
+
 				return yield* Effect.fail(
 					opts.jobError(tail ? `${reason} ${tail}` : reason),
 				);
@@ -192,7 +195,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 			// ffmpeg.readFile is typed `Uint8Array | string`; only the binary path
 			// is valid for binary outputs. Surface the string variant as a typed
 			// failure rather than coercing it.
-			if (typeof data === "string") {
+			if (Predicate.isString(data)) {
 				return yield* Effect.fail(
 					opts.jobError(
 						"ffmpeg returned a string payload instead of binary data.",
@@ -200,7 +203,9 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 				);
 			}
 
-			return new Blob([data as unknown as BlobPart], {
+			// SAFETY: readFile's bytes arrive by postMessage from the ffmpeg worker, so
+			// they are backed by an ArrayBuffer, never a SharedArrayBuffer.
+			return new Blob([data as Uint8Array<ArrayBuffer>], {
 				type: opts.outputMime,
 			});
 		}).pipe(Effect.ensuring(cleanup));

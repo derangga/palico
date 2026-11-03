@@ -1,4 +1,4 @@
-import { Effect, Result } from "effect";
+import { Effect, Match, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -28,6 +28,7 @@ import {
 import { readImageMetadata } from "./image-read.ts";
 
 const read = (b: Uint8Array) => Effect.runSync(readImageMetadata("test", b));
+
 const fieldValue = (b: Uint8Array, label: string) =>
 	read(b).fields.find((f) => f.label === label)?.value;
 
@@ -58,12 +59,13 @@ describe("readImageMetadata: JPEG", () => {
 
 	it("reads little-endian TIFF and southern/western coordinates", () => {
 		const gps = PARIS_GPS.map((t) =>
-			t[0] === 1
-				? ([1, 2, "S"] as const)
-				: t[0] === 3
-					? ([3, 2, "W"] as const)
-					: t,
+			Match.value(t[0]).pipe(
+				Match.when(1, () => [1, 2, "S"] as const),
+				Match.when(3, () => [3, 2, "W"] as const),
+				Match.orElse(() => t),
+			),
 		);
+
 		const b = jpeg(exifSegment(tiff(PHONE_EXIF, { gps, le: true })));
 		expect(fieldValue(b, "Camera model")).toBe("iPhone 15 Pro");
 		expect(fieldValue(b, "Coordinates")).toBe("-48.85840, -2.29450");
@@ -89,9 +91,11 @@ describe("readImageMetadata: JPEG", () => {
 			[0xff, 0xd8],
 			segment(0xe1, bytes("Exif\0\0MM")).slice(0, 6),
 		);
+
 		const result = Effect.runSync(
 			Effect.result(readImageMetadata("broken.jpg", truncated)),
 		);
+
 		expect(Result.isFailure(result) && result.failure._tag).toBe(
 			"MetadataParseError",
 		);
@@ -101,6 +105,7 @@ describe("readImageMetadata: JPEG", () => {
 		const result = Effect.runSync(
 			Effect.result(readImageMetadata("a.gif", bytes("GIF89a....."))),
 		);
+
 		expect(Result.isFailure(result) && result.failure._tag).toBe(
 			"UnsupportedFormatError",
 		);
@@ -110,6 +115,7 @@ describe("readImageMetadata: JPEG", () => {
 describe("readImageMetadata: PNG", () => {
 	it("reads eXIf, text, iTXt XMP and tIME chunks", () => {
 		const time = Uint8Array.from([0x07, 0xe8, 5, 1, 10, 22, 33]);
+
 		const b = concat(
 			PNG_SIG,
 			IHDR,
@@ -121,6 +127,7 @@ describe("readImageMetadata: PNG", () => {
 			IDAT,
 			IEND,
 		);
+
 		expect(fieldValue(b, "Camera model")).toBe("iPhone 15 Pro");
 		expect(fieldValue(b, "Author")).toBe("Jane Doe");
 		expect(fieldValue(b, "Comment")).toBe("Hi there");
@@ -136,6 +143,7 @@ describe("readImageMetadata: PNG", () => {
 			IDAT,
 			IEND,
 		);
+
 		const report = read(b);
 		expect(report.fields.map((f) => f.label)).toEqual(["Orientation"]);
 		expect(report.kept).toEqual([]);
@@ -151,6 +159,7 @@ describe("readImageMetadata: WebP", () => {
 			riffChunk("EXIF", tiff(PHONE_EXIF)),
 			riffChunk("XMP ", bytes("<x/>")),
 		);
+
 		const report = read(b);
 		expect(fieldValue(b, "Camera maker")).toBe("Apple");
 		expect(fieldValue(b, "XMP data")).toBeDefined();

@@ -3,7 +3,9 @@ import { classifyDevice, MB } from "#/lib/video/limits.ts";
 
 export function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
+
 	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
+
 	return `${(n / MB).toFixed(2)} MB`;
 }
 

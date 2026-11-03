@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import { OfflineDot } from "#/components/offline/offline-pill.tsx";
 import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
+import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import { CATEGORY_STYLES, type Tool } from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -10,6 +11,7 @@ import { cn } from "#/lib/utils.ts";
 export function ToolTile({ tool }: { tool: Tool }) {
 	const style = CATEGORY_STYLES[tool.category];
 	const offline = useOfflineStatus(tool.engine);
+
 	return (
 		<Link
 			to={tool.to}
@@ -30,9 +32,11 @@ export function ToolTile({ tool }: { tool: Tool }) {
 			<span className="grid min-w-0">
 				<span className="text-sm font-bold text-foreground">{tool.label}</span>
 				<span className="text-xs text-muted-foreground">{tool.blurb}</span>
-				{tool.engine && offline && offline._tag !== "Unavailable" && (
-					<OfflineDot status={offline} className="mt-1" />
-				)}
+				{tool.engine &&
+					offline &&
+					!OfflineStatus.guards.Unavailable(offline) && (
+						<OfflineDot status={offline} className="mt-1" />
+					)}
 			</span>
 		</Link>
 	);

@@ -6,9 +6,11 @@ export const moveItem = <T>(
 	to: number,
 ): ReadonlyArray<T> => {
 	const target = Math.min(Math.max(to, 0), list.length - 1);
+
 	if (from === target || from < 0 || from >= list.length) return list;
 	const next = [...list];
 	const [moved] = next.splice(from, 1);
 	next.splice(target, 0, moved);
+
 	return next;
 };

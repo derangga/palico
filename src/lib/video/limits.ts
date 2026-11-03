@@ -23,6 +23,7 @@ export const MAX_FILES = 5;
 const MOBILE_VIEWPORT_MAX = 768;
 
 export const DeviceClass = Schema.Literals(["mobile", "desktop"]);
+
 export type DeviceClass = Schema.Schema.Type<typeof DeviceClass>;
 
 // iOS Safari + Android Chrome are tighter on memory, so they get lower caps.
@@ -78,6 +79,7 @@ export const SizeVerdict = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal("warn"), warnMB: Schema.Number }),
 	Schema.Struct({ kind: Schema.Literal("rejected"), capMB: Schema.Number }),
 ]);
+
 export type SizeVerdict = Schema.Schema.Type<typeof SizeVerdict>;
 
 const verdictFor = (
@@ -87,9 +89,11 @@ const verdictFor = (
 	if (bytes > caps.hardBytes) {
 		return { kind: "rejected", capMB: Math.round(caps.hardBytes / MB) };
 	}
+
 	if (bytes > caps.warnBytes) {
 		return { kind: "warn", warnMB: Math.round(caps.warnBytes / MB) };
 	}
+
 	return { kind: "ok" };
 };
 
@@ -123,6 +127,7 @@ export const estimateMinutes = (
 ): number => {
 	const sizeMB = bytes / MB;
 	const throughput = CODEC_THROUGHPUT_MB_PER_MIN[format];
+
 	return Math.max(1, Math.ceil(sizeMB / throughput));
 };
 
@@ -132,6 +137,8 @@ export const processTimeWarningLevel = (
 	bytes: number,
 ): ProcessTimeWarningLevel => {
 	if (bytes >= PROCESS_TIME_FLOOR_BYTES) return "always";
+
 	if (bytes >= PROCESS_TIME_SHOW_BYTES) return "suppressible";
+
 	return "none";
 };

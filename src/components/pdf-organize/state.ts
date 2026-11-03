@@ -1,4 +1,11 @@
 import type { PdfThumbnail, Rotation } from "#/lib/file/pdf-types.ts";
+
+const ROTATIONS = [0, 90, 180, 270] as const;
+
+// Quarter turn clockwise (dir 1) or anticlockwise (dir -1).
+const rotate = (rotation: Rotation, dir: 1 | -1): Rotation =>
+	ROTATIONS[(ROTATIONS.indexOf(rotation) + dir + 4) % 4];
+
 import { moveItem } from "#/lib/reorder.ts";
 
 export type OrganizePage = {
@@ -76,8 +83,7 @@ export function organizeReducer(
 					page.key === action.key
 						? {
 								...page,
-								rotation: ((page.rotation + action.dir * 90 + 360) %
-									360) as Rotation,
+								rotation: rotate(page.rotation, action.dir),
 							}
 						: page,
 				),

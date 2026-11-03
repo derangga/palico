@@ -1,6 +1,7 @@
 import type { ResizeOutput } from "#/lib/image/resizer.ts";
 
 export type Mode = "pixels" | "percent";
+
 export type Status = "idle" | "processing" | "done" | "error";
 
 export interface Source {
@@ -11,6 +12,7 @@ export interface Source {
 
 export const toInt = (v: string) => {
 	const n = Number.parseInt(v, 10);
+
 	return Number.isFinite(n) && n > 0 ? n : 0;
 };
 
@@ -57,7 +59,11 @@ export type ResizeAction =
 
 // Editing any input clears a stale result — every "edit" action folds in the
 // same reset the original clearResult() performed after each setter.
-const CLEARED = { result: null, status: "idle" as Status, errorMsg: null };
+const CLEARED = {
+	result: null,
+	status: "idle",
+	errorMsg: null,
+} satisfies Partial<ResizeState>;
 
 export function resizeReducer(
 	state: ResizeState,
@@ -66,6 +72,7 @@ export function resizeReducer(
 	switch (action.type) {
 		case "fileLoaded": {
 			const { srcW, srcH } = action.source;
+
 			return {
 				...state,
 				...CLEARED,
@@ -75,15 +82,18 @@ export function resizeReducer(
 				pct: 50,
 			};
 		}
+
 		case "reset":
 			return { ...state, ...CLEARED, source: null };
 		case "clearResult":
 			return { ...state, ...CLEARED };
 		case "changeWidth": {
 			const next: ResizeState = { ...state, ...CLEARED, pxWidth: action.value };
+
 			// Maintain aspect ratio: derive the height from the new width.
 			if (state.maintainAR && state.source) {
 				const w = toInt(action.value);
+
 				if (w > 0)
 					next.pxHeight = String(
 						Math.max(
@@ -92,16 +102,20 @@ export function resizeReducer(
 						),
 					);
 			}
+
 			return next;
 		}
+
 		case "changeHeight": {
 			const next: ResizeState = {
 				...state,
 				...CLEARED,
 				pxHeight: action.value,
 			};
+
 			if (state.maintainAR && state.source) {
 				const h = toInt(action.value);
+
 				if (h > 0)
 					next.pxWidth = String(
 						Math.max(
@@ -110,14 +124,18 @@ export function resizeReducer(
 						),
 					);
 			}
+
 			return next;
 		}
+
 		case "toggleMaintainAR": {
 			const next: ResizeState = { ...state, ...CLEARED, maintainAR: action.on };
+
 			// Re-derive the locked dimension from the current driver.
 			if (action.on && state.source) {
 				if (action.lastEdited === "w") {
 					const w = toInt(state.pxWidth);
+
 					if (w > 0)
 						next.pxHeight = String(
 							Math.max(
@@ -127,6 +145,7 @@ export function resizeReducer(
 						);
 				} else {
 					const h = toInt(state.pxHeight);
+
 					if (h > 0)
 						next.pxWidth = String(
 							Math.max(
@@ -136,8 +155,10 @@ export function resizeReducer(
 						);
 				}
 			}
+
 			return next;
 		}
+
 		case "changePct":
 			// Capped at 100% — the resizer never upscales.
 			return {

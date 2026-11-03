@@ -12,6 +12,7 @@
 import { Effect, Ref } from "effect";
 
 import { ORT_CACHE_NAME } from "#/lib/offline/cache-names.ts";
+
 import { ModelCacheError } from "./errors.ts";
 
 export const MODEL_CACHE_NAME = "palico-model-v1";
@@ -36,6 +37,7 @@ const openBucket = (name: string, op: "open" = "open") =>
 // Set when a cache write failed (quota, private mode). The offline status shows
 // "Not saved in this browser" instead of "Works offline".
 const writeDroppedRef = Ref.makeUnsafe(false);
+
 export const modelCacheWriteDropped: Effect.Effect<boolean> =
 	Ref.get(writeDroppedRef);
 
@@ -86,16 +88,19 @@ export const modelCache = {
 export const prefetchOrtAssets = (urls: readonly string[]) =>
 	Effect.gen(function* () {
 		const cache = yield* openBucket(ORT_CACHE_NAME);
+
 		for (const url of urls) {
 			const hit = yield* Effect.tryPromise({
 				try: () => cache.match(url),
 				catch: (cause) =>
 					new ModelCacheError({ op: "match", message: String(cause) }),
 			});
+
 			if (hit) continue;
 			yield* Effect.tryPromise({
 				try: async () => {
 					const res = await fetch(url);
+
 					if (!res.ok) throw new Error(`${url} returned ${res.status}`);
 					await cache.put(url, res);
 				},
@@ -117,16 +122,20 @@ export const isModelCached = (
 		if (typeof caches === "undefined") return false;
 		const model = yield* openBucket(MODEL_CACHE_NAME);
 		const ort = yield* openBucket(ORT_CACHE_NAME);
+
 		const modelKeys = yield* Effect.tryPromise({
 			try: () => model.keys(),
 			catch: () => new ModelCacheError({ op: "match", message: "keys" }),
 		});
+
 		const hasModel = REQUIRED_MODEL_FILES.every((f) =>
 			modelKeys.some((r) => new URL(r.url).pathname.endsWith(f)),
 		);
+
 		const ortHits = yield* Effect.tryPromise({
 			try: () => Promise.all(ortUrls.map((u) => ort.match(u))),
 			catch: () => new ModelCacheError({ op: "match", message: "ort" }),
 		});
+
 		return hasModel && ortHits.every((h) => h !== undefined);
 	}).pipe(Effect.orElseSucceed(() => false));

@@ -14,7 +14,7 @@ import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
 import { StorageHost } from "#/lib/offline/hosts.ts";
 import { needsHomeScreenHint } from "#/lib/offline/platform.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
-import type { EngineId } from "#/lib/offline/shapes.ts";
+import { type EngineId, OfflineStatus } from "#/lib/offline/shapes.ts";
 
 const EXPLAIN = {
 	Ready:
@@ -33,23 +33,25 @@ export function OfflineInfo({ engine }: { engine?: EngineId }) {
 	const status = useOfflineStatus(engine);
 	const [open, setOpen] = useState(false);
 	const [persisted, setPersisted] = useState<boolean | undefined>();
-	const [homeHint, setHomeHint] = useState(false);
+
+	// Only read while open, so the server render never touches navigator.
+	const homeHint =
+		open &&
+		needsHomeScreenHint({
+			userAgent: navigator.userAgent,
+			maxTouchPoints: navigator.maxTouchPoints,
+			standalone: window.matchMedia("(display-mode: standalone)").matches,
+		});
 
 	useEffect(() => {
 		if (!open) return;
-		setHomeHint(
-			needsHomeScreenHint({
-				userAgent: navigator.userAgent,
-				maxTouchPoints: navigator.maxTouchPoints,
-				standalone: window.matchMedia("(display-mode: standalone)").matches,
-			}),
-		);
 		void offlineRuntime
 			.runPromise(StorageHost.pipe(Effect.flatMap((s) => s.persisted)))
 			.then(setPersisted);
 	}, [open]);
 
 	if (!status) return null;
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger
@@ -60,13 +62,14 @@ export function OfflineInfo({ engine }: { engine?: EngineId }) {
 			</PopoverTrigger>
 			<PopoverContent>
 				<p>{EXPLAIN[status._tag]}</p>
-				{persisted !== undefined && status._tag !== "Unavailable" && (
-					<p className="mt-2 text-xs text-muted-foreground">
-						{persisted
-							? "Your browser has agreed to keep saved files."
-							: "Your browser may clear saved files when space runs low."}
-					</p>
-				)}
+				{persisted !== undefined &&
+					!OfflineStatus.guards.Unavailable(status) && (
+						<p className="mt-2 text-xs text-muted-foreground">
+							{persisted
+								? "Your browser has agreed to keep saved files."
+								: "Your browser may clear saved files when space runs low."}
+						</p>
+					)}
 				{homeHint && (
 					<p className="mt-2 text-xs text-muted-foreground">
 						Add Palico to your Home Screen to keep tools offline on this device.

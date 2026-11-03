@@ -41,6 +41,7 @@ export const SUPPORTED_OFFICE_EXTENSIONS = [
 	"odt",
 	"rtf",
 ] as const;
+
 export type OfficeExtension = (typeof SUPPORTED_OFFICE_EXTENSIONS)[number];
 
 // `accept` attribute value for the file input (extension-based; MIME types for
@@ -64,6 +65,7 @@ export const ZETA_CDN_BASE = "https://cdn.zetaoffice.net/zetaoffice_latest/";
 export const OFFICE_CACHE_NAME = `zetaoffice-wasm-${ZETA_WASM_PKG}`;
 
 export const OfficeAssetKey = Schema.Literals(["js", "wasm", "data"]);
+
 export type OfficeAssetKey = Schema.Schema.Type<typeof OfficeAssetKey>;
 
 export const OfficeEngineAsset = Schema.Struct({
@@ -71,6 +73,7 @@ export const OfficeEngineAsset = Schema.Struct({
 	url: Schema.String,
 	mime: Schema.String,
 });
+
 export type OfficeEngineAsset = Schema.Schema.Type<typeof OfficeEngineAsset>;
 
 export const OFFICE_ENGINE_ASSETS: readonly OfficeEngineAsset[] = [
@@ -98,13 +101,16 @@ export const OFFICE_ENGINE_SIZE_LABEL = "~53 MB";
 // type without static-importing the office runtime.
 const PhaseChecking = Schema.Struct({ kind: Schema.Literal("checking") });
 const PhaseConsent = Schema.Struct({ kind: Schema.Literal("consent") });
+
 const PhaseDownloading = Schema.Struct({
 	kind: Schema.Literal("downloading"),
 	percent: Schema.Number,
 });
+
 const PhaseCaching = Schema.Struct({ kind: Schema.Literal("caching") });
 const PhasePreparing = Schema.Struct({ kind: Schema.Literal("preparing") });
 const PhaseReady = Schema.Struct({ kind: Schema.Literal("ready") });
+
 const PhaseError = Schema.Struct({
 	kind: Schema.Literal("error"),
 	message: Schema.String,
@@ -119,6 +125,7 @@ export const LoadPhase = Schema.Union([
 	PhaseReady,
 	PhaseError,
 ]);
+
 export type LoadPhase = Schema.Schema.Type<typeof LoadPhase>;
 
 // True iff every engine asset is already present in the Cache API. Used on

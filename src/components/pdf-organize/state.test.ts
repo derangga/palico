@@ -9,9 +9,16 @@ import {
 	organizeReducer,
 } from "./state.ts";
 
-// The reducer never touches the bitmap, so a stub is enough.
-const thumb = (index: number) =>
-	({ index, bitmap: {}, width: 10, height: 10 }) as unknown as PdfThumbnail;
+// SAFETY: the reducer never reads the bitmap, and jsdom has no ImageBitmap to
+// construct, so an empty stub stands in for it.
+const STUB_BITMAP = {} as ImageBitmap;
+
+const thumb = (index: number): PdfThumbnail => ({
+	index,
+	bitmap: STUB_BITMAP,
+	width: 10,
+	height: 10,
+});
 
 const run = (...actions: OrganizeAction[]): OrganizeState =>
 	actions.reduce(organizeReducer, initialOrganizeState);
@@ -46,6 +53,7 @@ describe("organizeReducer", () => {
 			{ type: "rotate", key: "0", dir: -1 },
 			{ type: "rotate", key: "0", dir: -1 },
 		);
+
 		expect(s.pages[0].rotation).toBe(180);
 		const back = run(...loaded(1), { type: "rotate", key: "0", dir: 1 });
 		expect(back.pages[0].rotation).toBe(90);

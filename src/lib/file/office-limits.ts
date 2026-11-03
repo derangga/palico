@@ -14,17 +14,20 @@ import {
 // Lowercased extension without the leading dot, or null if the name has none.
 export const officeExtension = (fileName: string): string | null => {
 	const dot = fileName.lastIndexOf(".");
+
 	if (dot < 0 || dot === fileName.length - 1) return null;
+
 	return fileName.slice(dot + 1).toLowerCase();
 };
+
+const isOfficeExtension = (ext: string): ext is OfficeExtension =>
+	SUPPORTED_OFFICE_EXTENSIONS.some((supported) => supported === ext);
 
 // Whether LibreOffice will convert this file here, based on its extension.
 export const isSupportedOffice = (fileName: string): boolean => {
 	const ext = officeExtension(fileName);
-	return (
-		ext !== null &&
-		(SUPPORTED_OFFICE_EXTENSIONS as readonly string[]).includes(ext)
-	);
+
+	return ext !== null && isOfficeExtension(ext);
 };
 
 export type FileCheck =
@@ -39,16 +42,16 @@ export const checkOfficeFile = (file: {
 	readonly size: number;
 }): FileCheck => {
 	const ext = officeExtension(file.name);
-	if (
-		ext === null ||
-		!(SUPPORTED_OFFICE_EXTENSIONS as readonly string[]).includes(ext)
-	) {
+
+	if (ext === null || !isOfficeExtension(ext)) {
 		return { kind: "unsupported" };
 	}
+
 	if (file.size > MAX_OFFICE_BYTES) {
 		return { kind: "too-large", limitBytes: MAX_OFFICE_BYTES };
 	}
-	return { kind: "ok", ext: ext as OfficeExtension };
+
+	return { kind: "ok", ext };
 };
 
 export type BatchCheck =
@@ -64,9 +67,12 @@ export const checkOfficeBatch = (
 	if (files.length > MAX_BATCH_FILES) {
 		return { kind: "too-many", limit: MAX_BATCH_FILES };
 	}
+
 	const total = files.reduce((sum, f) => sum + f.size, 0);
+
 	if (total > MAX_BATCH_BYTES) {
 		return { kind: "too-large-total", limitBytes: MAX_BATCH_BYTES };
 	}
+
 	return { kind: "ok" };
 };

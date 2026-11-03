@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useReducer } from "react";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { PageThumbnail } from "#/components/pdf-split/page-thumbnail.tsx";
@@ -13,17 +14,17 @@ import {
 import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import {
+	MAX_PDF_BYTES,
+	MAX_PDF_PAGES,
+	type SplitPart,
+} from "#/lib/file/pdf-types.ts";
+import {
 	allIndividualParts,
 	everyNPageParts,
 	extractPages,
 	loadPdf,
 	splitPdf,
 } from "#/lib/file/pdf.ts";
-import {
-	MAX_PDF_BYTES,
-	MAX_PDF_PAGES,
-	type SplitPart,
-} from "#/lib/file/pdf-types.ts";
 
 export const Route = createFileRoute("/pdf-split")({
 	component: PdfSplitPage,
@@ -57,15 +58,19 @@ function PdfSplitPage() {
 		);
 
 		const result = toastOnExit(exit, "Couldn't open this PDF.");
+
 		if (Option.isNone(result)) {
 			dispatch({ type: "reset" });
+
 			return;
 		}
+
 		dispatch({ type: "loadSuccess", pageCount: result.value.pageCount });
 	}
 
 	function handleFiles(files: FileList | null) {
 		const picked = files?.[0];
+
 		if (picked) void loadFile(picked);
 	}
 
@@ -73,12 +78,15 @@ function PdfSplitPage() {
 		if (!state.file || state.selected.size === 0) return;
 		const pageIndices = [...state.selected].sort((a, b) => a - b);
 		dispatch({ type: "workStart" });
+
 		const exit = await Effect.runPromiseExit(
 			extractPages({ id: crypto.randomUUID(), file: state.file, pageIndices }),
 		);
+
 		dispatch({ type: "workEnd" });
 
 		const result = toastOnExit(exit, "Couldn't extract those pages.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, `${baseName(state.file.name)}_extracted.pdf`);
 	}
@@ -86,12 +94,15 @@ function PdfSplitPage() {
 	async function runSplit(parts: ReadonlyArray<SplitPart>) {
 		if (!state.file || parts.length === 0) return;
 		dispatch({ type: "workStart" });
+
 		const exit = await Effect.runPromiseExit(
 			splitPdf({ id: crypto.randomUUID(), file: state.file, parts }),
 		);
+
 		dispatch({ type: "workEnd" });
 
 		const result = toastOnExit(exit, "Couldn't split this PDF.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, `${baseName(state.file.name)}_split.zip`);
 	}

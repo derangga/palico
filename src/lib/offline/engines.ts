@@ -3,6 +3,7 @@
 // model cache; this file only gives them one shape.
 
 import type { Effect } from "effect";
+
 import {
 	isEngineCached as isOfficeCached,
 	OFFICE_CACHE_NAME,

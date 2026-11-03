@@ -7,8 +7,11 @@ export function useObjectUrl(blob: Blob) {
 	const [url, setUrl] = useState<string | null>(null);
 	useEffect(() => {
 		const next = URL.createObjectURL(blob);
+		// oxlint-disable-next-line react/set-state-in-effect -- the URL must be created and revoked by the same effect; see the note above.
 		setUrl(next);
+
 		return () => URL.revokeObjectURL(next);
 	}, [blob]);
+
 	return url;
 }

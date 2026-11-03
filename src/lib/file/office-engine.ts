@@ -18,6 +18,7 @@ import {
 	Effect,
 	Option,
 	Ref,
+	Schema,
 	Semaphore,
 	SynchronizedRef,
 } from "effect";
@@ -45,7 +46,7 @@ interface EmscriptenFS {
 // A message port to LibreOffice's office thread. We set a single dispatcher on
 // it (in loadEngine) and route replies to the in-flight conversion.
 interface ThreadPort {
-	postMessage: (message: unknown) => void;
+	postMessage: (message: OfficeThreadRequest) => void;
 	onmessage: ((event: MessageEvent) => void) | null;
 }
 
@@ -56,10 +57,38 @@ interface EngineHandle {
 }
 
 // Reply shapes posted back by office_thread.js.
-type OfficeThreadReply =
-	| { readonly cmd: "start" }
-	| { readonly cmd: "converted"; readonly id: string; readonly to: string }
-	| { readonly cmd: "error"; readonly id: string; readonly message: string };
+// The one command we send to the office thread (see public/vendor/zetajs).
+interface OfficeThreadRequest {
+	readonly cmd: "convert";
+	readonly id: string;
+	readonly name: string;
+	readonly from: string;
+	readonly to: string;
+}
+
+const OfficeThreadReply = Schema.Union([
+	Schema.Struct({ cmd: Schema.Literal("start") }),
+	Schema.Struct({
+		cmd: Schema.Literal("converted"),
+		id: Schema.String,
+		to: Schema.String,
+	}),
+	Schema.Struct({
+		cmd: Schema.Literal("error"),
+		id: Schema.String,
+		message: Schema.String,
+	}),
+]);
+
+type OfficeThreadReply = typeof OfficeThreadReply.Type;
+
+// Globals shared with the vendored zetajs runtime (public/vendor/zetajs).
+declare global {
+	// Emscripten's file system, set once LibreOffice boots.
+	var FS: EmscriptenFS | undefined;
+	// Blob URLs for the engine assets, read by zetaHelper.js.
+	var __palicoZetaAssets: Record<string, string> | undefined;
+}
 
 // Module singleton via SynchronizedRef (per Effect patterns — no hidden mutable
 // `let`). SynchronizedRef serializes updateEffect, so the check-then-boot in
@@ -76,6 +105,7 @@ const engineRef = SynchronizedRef.makeUnsafe<Option.Option<EngineHandle>>(
 // concurrent convertToPdf calls queue on the permit instead of clobbering each
 // other, and Effect.ensuring clears the slot on success, failure, or interrupt.
 const convertSem = Semaphore.makeUnsafe(1);
+
 const pendingConvertRef = Ref.makeUnsafe<
 	Option.Option<Deferred.Deferred<OfficeThreadReply>>
 >(Option.none());
@@ -89,6 +119,7 @@ const emit = (
 
 const openCache: Effect.Effect<Option.Option<Cache>> = Effect.gen(function* () {
 	if (typeof caches === "undefined") return Option.none<Cache>();
+
 	return yield* Effect.tryPromise({
 		try: () => caches.open(OFFICE_CACHE_NAME),
 		catch: () => "cache-open-failed" as const,
@@ -158,23 +189,28 @@ const fetchAssetWithProgress = (
 				message: `Failed to download ${asset.key} (HTTP ${res.status}).`,
 			});
 		}
+
 		const body = res.body;
 
 		return yield* Effect.tryPromise({
 			try: async () => {
 				const reader = body.getReader();
-				const chunks: Uint8Array[] = [];
+				const chunks: Uint8Array<ArrayBuffer>[] = [];
 				let received = 0;
+
 				while (true) {
 					const { done, value } = await reader.read();
+
 					if (done) break;
 					chunks.push(value);
 					received += value.length;
 					onBytes(received);
 				}
-				const blob = new Blob(chunks as unknown as BlobPart[], {
+
+				const blob = new Blob(chunks, {
 					type: asset.mime,
 				});
+
 				return new Response(blob, { headers: { "Content-Type": asset.mime } });
 			},
 			catch: (cause) =>
@@ -230,6 +266,7 @@ const prepareAssets = (
 					),
 				{ concurrency: "unbounded" },
 			);
+
 			for (const [asset, opt] of hits) {
 				if (Option.isSome(opt)) responses.set(asset.url, opt.value);
 			}
@@ -239,30 +276,37 @@ const prepareAssets = (
 
 		if (missing.length > 0) {
 			yield* emit(onPhase, { kind: "downloading", percent: 0 });
+
 			const sizes = yield* Effect.forEach(missing, headSize, {
 				concurrency: "unbounded",
 			});
+
 			const totalAll = sizes.reduce((s, n) => s + n, 0);
 			const receivedPerAsset = new Map<string, number>();
 
 			for (const asset of missing) {
 				const fresh = yield* fetchAssetWithProgress(asset, (received) => {
 					receivedPerAsset.set(asset.url, received);
+
 					if (totalAll === 0) return;
 					let sum = 0;
+
 					for (const v of receivedPerAsset.values()) sum += v;
 					const percent = Math.min(100, Math.round((sum / totalAll) * 100));
 					onPhase({ kind: "downloading", percent });
 				});
+
 				responses.set(asset.url, fresh);
 			}
 
 			yield* emit(onPhase, { kind: "caching" });
+
 			if (Option.isSome(maybeCache)) {
 				yield* Effect.forEach(
 					missing,
 					(asset) => {
 						const r = responses.get(asset.url);
+
 						return r ? putInCache(maybeCache.value, asset, r) : Effect.void;
 					},
 					{ concurrency: 1 },
@@ -273,20 +317,22 @@ const prepareAssets = (
 		// Publish blob URLs keyed by bare filename (the `path` Emscripten passes
 		// to locateFile, e.g. "soffice.wasm").
 		const map: Record<string, string> = {};
+
 		for (const asset of OFFICE_ENGINE_ASSETS) {
 			const r = responses.get(asset.url);
+
 			if (!r) {
 				return yield* new OfficeEngineLoadError({
 					stage: "preparing",
 					message: `Engine asset "${asset.key}" is missing after download.`,
 				});
 			}
+
 			const fileName = asset.url.slice(asset.url.lastIndexOf("/") + 1);
 			map[fileName] = yield* buildBlobUrl(asset, r);
 		}
-		(
-			globalThis as { __palicoZetaAssets?: Record<string, string> }
-		).__palicoZetaAssets = map;
+
+		globalThis.__palicoZetaAssets = map;
 	});
 
 // Structural view of the dynamically-imported ZetaHelperMain constructor.
@@ -310,6 +356,8 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 			// stay in the main bundle and cannot become a static, code-split import.
 			try: () =>
 				// react-doctor-disable-next-line react-doctor/no-dynamic-import-path
+				// SAFETY: ZETA_HELPER_URL is our vendored zetaHelper.js, which exports
+				// the ZetaHelperMain class described by ZetaHelperMainCtor.
 				import(/* @vite-ignore */ ZETA_HELPER_URL) as Promise<{
 					ZetaHelperMain: ZetaHelperMainCtor;
 				}>,
@@ -329,11 +377,17 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 					threadJsType: "module",
 					wasmPkg: "free",
 				});
+
 				zHM.start(() => {
 					zHM.thrPort.onmessage = (event: MessageEvent) => {
-						const reply = event.data as OfficeThreadReply;
+						const reply: unknown = event.data;
+
+						// Not one of office_thread.js's replies: nothing to route.
+						if (!Schema.is(OfficeThreadReply)(reply)) return;
+
 						if (reply.cmd === "start") {
-							const fs = (globalThis as { FS?: EmscriptenFS }).FS;
+							const fs = globalThis.FS;
+
 							if (!fs) {
 								resume(
 									Effect.fail(
@@ -343,14 +397,19 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 										}),
 									),
 								);
+
 								return;
 							}
+
 							resume(Effect.succeed({ thrPort: zHM.thrPort, fs }));
+
 							return;
 						}
+
 						// convert replies -> route to the in-flight conversion. Resolve
 						// the Deferred outside an Effect context via doneUnsafe.
 						const pending = Effect.runSync(Ref.get(pendingConvertRef));
+
 						if (Option.isSome(pending)) {
 							Deferred.doneUnsafe(pending.value, Effect.succeed(reply));
 						}
@@ -380,11 +439,13 @@ export const loadEngine = (
 						yield* emit(onPhase, { kind: "preparing" });
 						const engine = yield* bootEngine;
 						yield* emit(onPhase, { kind: "ready" });
+
 						return Option.some(engine);
 					}),
 		);
 
 		const loaded = yield* SynchronizedRef.get(engineRef);
+
 		return yield* Option.match(loaded, {
 			onNone: () =>
 				Effect.fail(
@@ -412,10 +473,11 @@ export const convertToPdf = (params: {
 	readonly fileName: string;
 	readonly ext: string;
 	readonly bytes: Uint8Array;
-}): Effect.Effect<Uint8Array, OfficeConvertError> =>
+}): Effect.Effect<Uint8Array<ArrayBuffer>, OfficeConvertError> =>
 	convertSem.withPermits(1)(
 		Effect.gen(function* () {
 			const maybeEngine = yield* SynchronizedRef.get(engineRef);
+
 			const engine = yield* Option.match(maybeEngine, {
 				onNone: () =>
 					Effect.fail(
@@ -479,14 +541,17 @@ export const convertToPdf = (params: {
 								: "Failed to read converted PDF.",
 					}),
 			});
+
 			yield* Effect.sync(() => {
 				try {
 					engine.fs.unlink(from);
 				} catch {}
+
 				try {
 					engine.fs.unlink(to);
 				} catch {}
 			});
+
 			return copy;
 		}).pipe(Effect.ensuring(Ref.set(pendingConvertRef, Option.none()))),
 	);

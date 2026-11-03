@@ -1,5 +1,6 @@
-import { Effect, Option } from "effect";
+import { Effect, Option, Exit } from "effect";
 import { useDeferredValue, useEffect, useState } from "react";
+
 import { MarkdownPreviewPanel } from "#/components/markdown-preview-panel.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { MARKDOWN_DESCRIPTION } from "#/components/page-skeletons.tsx";
@@ -22,10 +23,12 @@ export function MarkdownWorkspace() {
 	// editor.
 	const [source, setSource] = useState(() => {
 		const exit = Effect.runSyncExit(loadMarkdown);
-		return exit._tag === "Success"
+
+		return Exit.isSuccess(exit)
 			? Option.getOrElse(exit.value, () => SAMPLE_MARKDOWN)
 			: SAMPLE_MARKDOWN;
 	});
+
 	// Fullscreen is an in-layout toggle: the editor is hidden and the preview
 	// takes the full content width (the sidebar and top bar stay put).
 	const [isFullscreen, setIsFullscreen] = useState(false);

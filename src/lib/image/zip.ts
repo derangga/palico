@@ -13,11 +13,10 @@ export const createZip = (
 			if (err) {
 				resume(Effect.fail(new ZipError({ message: err.message })));
 			} else {
-				resume(
-					Effect.succeed(
-						new Blob([data as BlobPart], { type: "application/zip" }),
-					),
-				);
+				// SAFETY: fflate allocates the zip output itself with new Uint8Array, so
+				// it is backed by a plain ArrayBuffer, never a SharedArrayBuffer.
+				const bytes = data as Uint8Array<ArrayBuffer>;
+				resume(Effect.succeed(new Blob([bytes], { type: "application/zip" })));
 			}
 		});
 	});

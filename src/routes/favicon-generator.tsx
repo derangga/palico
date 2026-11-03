@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { Download, ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -67,6 +67,7 @@ function FaviconGeneratorPage() {
 		() => (source ? URL.createObjectURL(source) : null),
 		[source],
 	);
+
 	useEffect(() => {
 		return () => {
 			if (sourceUrl) URL.revokeObjectURL(sourceUrl);
@@ -76,11 +77,13 @@ function FaviconGeneratorPage() {
 	// Each asset gets its own object URL for the preview; revoke on unmount/change.
 	const assetUrls = useMemo(() => {
 		if (!assets) return null;
+
 		return assets.map((a) => ({
 			name: a.name,
 			url: URL.createObjectURL(a.blob),
 		}));
 	}, [assets]);
+
 	useEffect(() => {
 		return () => {
 			if (assetUrls) for (const a of assetUrls) URL.revokeObjectURL(a.url);
@@ -95,27 +98,36 @@ function FaviconGeneratorPage() {
 		setSource(null);
 		setAssets(null);
 		setStatus("idle");
+
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
 	async function selectFile(files: FileList | null) {
 		const file = files?.[0];
+
 		if (!file) return;
+
 		if (!file.type.startsWith("image/")) {
 			toast.error(`"${file.name}" is not an image.`);
+
 			return;
 		}
+
 		setSource(file);
 		setAssets(null);
 		setStatus("processing");
 
 		const exit = await Effect.runPromiseExit(generateFavicons(file));
-		if (exit._tag === "Success") {
+
+		if (Exit.isSuccess(exit)) {
 			setAssets(exit.value);
 			setStatus("done");
+
 			return;
 		}
+
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+
 		if (failure) console.error(failure);
 		toast.error(faviconErrorMessage(failure));
 		setSource(null);
@@ -127,13 +139,17 @@ function FaviconGeneratorPage() {
 		setZipping(true);
 		const exit = await Effect.runPromiseExit(bundleFaviconZip(assets));
 		setZipping(false);
-		if (exit._tag === "Success") {
+
+		if (Exit.isSuccess(exit)) {
 			downloadBlob(exit.value, "favicons.zip");
+
 			return;
 		}
+
 		const failure: ZipError | undefined = Option.getOrUndefined(
 			Cause.findErrorOption(exit.cause),
 		);
+
 		console.error(failure);
 		toast.error("Couldn't bundle the zip.");
 	}
@@ -222,11 +238,13 @@ function FaviconGeneratorPage() {
 								{assets.map((asset, i) => {
 									const url = assetUrls[i]?.url;
 									const isIco = asset.mime === "image/x-icon";
+
 									const previewUrl = isIco
 										? // .ico can't render in <img> reliably — show the 32px PNG.
 											(assetUrls.find((u) => u.name === "favicon-32.png")
 												?.url ?? url)
 										: url;
+
 									return (
 										<li
 											key={asset.name}

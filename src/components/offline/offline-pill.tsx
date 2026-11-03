@@ -1,5 +1,5 @@
 import { type PillState, StatusPill } from "#/components/status-pill.tsx";
-import type { OfflineStatus } from "#/lib/offline/shapes.ts";
+import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import { cn } from "#/lib/utils.ts";
 
 const PILL: Record<OfflineStatus["_tag"], PillState> = {
@@ -18,20 +18,14 @@ export const OFFLINE_DOT: Record<OfflineStatus["_tag"], string> = {
 	Unavailable: "bg-muted-foreground",
 };
 
-export const offlineLabel = (status: OfflineStatus): string => {
-	switch (status._tag) {
-		case "Ready":
-			return "Works offline";
-		case "Preparing":
-			return "Getting ready for offline";
-		case "NeedsDownload":
-			return `Needs a ${status.sizeLabel} download`;
-		case "NotSaved":
-			return "Not saved on this device";
-		case "Unavailable":
-			return "Not available offline";
-	}
-};
+export const offlineLabel = (status: OfflineStatus): string =>
+	OfflineStatus.match(status, {
+		Ready: () => "Works offline",
+		Preparing: () => "Getting ready for offline",
+		NeedsDownload: ({ sizeLabel }) => `Needs a ${sizeLabel} download`,
+		NotSaved: () => "Not saved on this device",
+		Unavailable: () => "Not available offline",
+	});
 
 /** Tool page header: the shared tinted status pill. */
 export function OfflinePill({ status }: { status: OfflineStatus }) {

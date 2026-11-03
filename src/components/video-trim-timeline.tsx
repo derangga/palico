@@ -58,6 +58,7 @@ const fmt = (totalSeconds: number) => {
 	const mins = Math.floor(s / 60);
 	const secs = Math.floor(s % 60);
 	const tenths = Math.floor((s * 10) % 10);
+
 	return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${tenths}`;
 };
 
@@ -83,10 +84,13 @@ export function VideoTrimTimeline({
 	const secAt = useCallback(
 		(clientX: number) => {
 			const el = trackRef.current;
+
 			if (!el || duration <= 0) return 0;
 			const rect = el.getBoundingClientRect();
+
 			if (rect.width <= 0) return 0;
 			const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+
 			return ratio * duration;
 		},
 		[duration],
@@ -162,6 +166,7 @@ export function VideoTrimTimeline({
 			commit: (sec: number) => void,
 		) => {
 			let next: number | null = null;
+
 			switch (e.key) {
 				case "ArrowLeft":
 				case "ArrowDown":
@@ -180,6 +185,7 @@ export function VideoTrimTimeline({
 				default:
 					return;
 			}
+
 			e.preventDefault();
 			commit(clamp(next, min, max));
 		},
@@ -206,7 +212,7 @@ export function VideoTrimTimeline({
 					{thumbnails.length > 0
 						? thumbnails.map((src, i) => (
 								<img
-									// biome-ignore lint/suspicious/noArrayIndexKey: frames are positional and never reordered.
+									// oxlint-disable-next-line react/no-array-index-key -- frames are positional and never reordered.
 									key={i}
 									src={src}
 									alt=""
@@ -258,6 +264,7 @@ export function VideoTrimTimeline({
 				{/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role */}
 				<div
 					id={startHandleId}
+					// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- dual-thumb range, see the note above.
 					role="slider"
 					tabIndex={disabled ? -1 : 0}
 					aria-label="Trim start"
@@ -281,6 +288,7 @@ export function VideoTrimTimeline({
 				{/* react-doctor-disable-next-line react-doctor/prefer-tag-over-role */}
 				<div
 					id={endHandleId}
+					// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- dual-thumb range, see the note above.
 					role="slider"
 					tabIndex={disabled ? -1 : 0}
 					aria-label="Trim end"

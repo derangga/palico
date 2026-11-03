@@ -3,6 +3,7 @@ import { Cause, Effect, Exit, Option } from "effect";
 import { ImagePlay } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { VideoClipStage } from "#/components/video-clip-stage.tsx";
@@ -69,21 +70,26 @@ function GifShell() {
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
+
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
 			toast.error(`"${f.name}" is not a video.`);
+
 			return;
 		}
 
 		// This tool decodes video like the converter, so it uses the converter caps.
 		const verdict = checkFileSize(f.size, deviceClass());
+
 		if (verdict.kind === "rejected") {
 			toast.error(
 				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
 			);
+
 			return;
 		}
+
 		if (verdict.kind === "warn") {
 			toast(
 				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while making the GIF.`,
@@ -111,10 +117,12 @@ function GifShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
+
 			if (token.cancelled) return;
 
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { makeGif } = await import("#/lib/video/gif.ts");
+
 			const exit = await Effect.runPromiseExit(
 				withBusy(
 					makeGif(
@@ -130,6 +138,7 @@ function GifShell() {
 					),
 				),
 			);
+
 			if (token.cancelled) return;
 
 			if (Exit.isSuccess(exit)) {
@@ -144,6 +153,7 @@ function GifShell() {
 					onNone: () => "Could not make the GIF.",
 					onSome: (error) => error.message,
 				});
+
 				toast.error(message);
 			}
 		} catch (err) {
@@ -161,6 +171,7 @@ function GifShell() {
 	async function handleCancel() {
 		cancelTokenRef.current.cancelled = true;
 		dispatch({ type: "cancelStart" });
+
 		try {
 			const { disposeEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(disposeEngine);

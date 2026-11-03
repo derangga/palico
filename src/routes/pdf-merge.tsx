@@ -3,18 +3,15 @@ import { Effect, Option } from "effect";
 import { Download, Loader2, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { FileCard } from "#/components/pdf-merge/file-card.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
+import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
-import {
-	MAX_PDF_BYTES,
-	MAX_PDF_PAGES,
-	type PdfThumbnail,
-} from "#/lib/file/pdf-types.ts";
 
 export const Route = createFileRoute("/pdf-merge")({
 	component: PdfMergePage,
@@ -44,19 +41,20 @@ function PdfMergePage() {
 	// Load one file's cover thumbnail + page count (applies the shared load
 	// guards). Updates the placeholder in place on success; drops it on failure.
 	async function loadCover(id: string, file: File) {
-		let cover: PdfThumbnail | null = null;
 		const exit = await Effect.runPromiseExit(
-			loadPdf({ id, file, thumbnailLimit: 1 }, (thumbnail) => {
-				if (cover === null) cover = thumbnail;
-			}),
+			loadPdf({ id, file, thumbnailLimit: 1 }, () => {}),
 		);
 
 		const result = toastOnExit(exit, `Couldn't open "${file.name}".`);
+
 		if (Option.isNone(result)) {
 			setItems((prev) => prev.filter((item) => item.id !== id));
+
 			return;
 		}
-		const { pageCount } = result.value;
+
+		const { pageCount, thumbnails } = result.value;
+		const cover = thumbnails[0] ?? null;
 		setItems((prev) =>
 			prev.map((item) =>
 				item.id === id
@@ -69,19 +67,24 @@ function PdfMergePage() {
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
 		const accepted: File[] = [];
+
 		for (const file of Array.from(fileList)) {
 			if (file.type !== "application/pdf") {
 				toast.error(`"${file.name}" is not a PDF.`);
 				continue;
 			}
+
 			accepted.push(file);
 		}
 
 		const room = Math.max(MAX_MERGE_FILES - items.length, 0);
+
 		if (accepted.length > room) {
 			toast.error(`You can merge up to ${MAX_MERGE_FILES} PDFs at a time.`);
 		}
+
 		const taken = accepted.slice(0, room);
+
 		if (taken.length === 0) return;
 
 		const newItems: MergeItem[] = taken.map((file) => ({
@@ -91,7 +94,9 @@ function PdfMergePage() {
 			thumbnail: null,
 			pageCount: 0,
 		}));
+
 		setItems((prev) => [...prev, ...newItems]);
+
 		for (const item of newItems) void loadCover(item.id, item.file);
 	}
 
@@ -110,6 +115,7 @@ function PdfMergePage() {
 			const next = [...prev];
 			const [moved] = next.splice(from, 1);
 			next.splice(to, 0, moved);
+
 			return next;
 		});
 	}
@@ -117,15 +123,18 @@ function PdfMergePage() {
 	async function runMerge() {
 		if (items.length < 2) return;
 		setMerging(true);
+
 		const exit = await Effect.runPromiseExit(
 			mergePdfs({
 				id: crypto.randomUUID(),
 				files: items.map((item) => item.file),
 			}),
 		);
+
 		setMerging(false);
 
 		const result = toastOnExit(exit, "Couldn't merge these PDFs.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, "merged.pdf");
 	}
@@ -195,6 +204,7 @@ function PdfMergePage() {
 								onDrop={() => {
 									const from = dragIndex.current;
 									dragIndex.current = null;
+
 									if (from !== null) reorder(from, index);
 								}}
 							/>

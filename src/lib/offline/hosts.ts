@@ -26,7 +26,7 @@ export interface SwHandle {
 	readonly activateWaiting: Effect.Effect<void, SwUpdateError>;
 }
 
-export interface ServiceWorkerHostShape {
+export interface ServiceWorkerHostApi {
 	readonly supported: boolean;
 	readonly windowLoaded: Effect.Effect<void>;
 	readonly register: (
@@ -39,7 +39,7 @@ export interface ServiceWorkerHostShape {
 
 export class ServiceWorkerHost extends Context.Service<
 	ServiceWorkerHost,
-	ServiceWorkerHostShape
+	ServiceWorkerHostApi
 >()("palico/ServiceWorkerHost") {}
 
 const messageOf = (cause: unknown) =>
@@ -47,34 +47,44 @@ const messageOf = (cause: unknown) =>
 
 const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 	const sw = navigator.serviceWorker;
+
 	const events = Stream.callback<SwEvent>((queue) => {
 		const cleanups: Array<() => void> = [];
+
 		const watch = (worker: ServiceWorker) => {
 			const onState = () => {
 				if (worker.state === "installed" && sw.controller) {
 					Queue.offerUnsafe(queue, "update-waiting");
 				}
+
 				if (worker.state === "activated") Queue.offerUnsafe(queue, "activated");
 			};
+
 			worker.addEventListener("statechange", onState);
 			cleanups.push(() => worker.removeEventListener("statechange", onState));
 		};
+
 		const onUpdateFound = () => {
 			if (reg.installing) watch(reg.installing);
 		};
+
 		const onControllerChange = () =>
 			Queue.offerUnsafe(queue, "controller-changed");
+
 		if (reg.installing) watch(reg.installing);
 		reg.addEventListener("updatefound", onUpdateFound);
 		sw.addEventListener("controllerchange", onControllerChange);
+
 		return Effect.addFinalizer(() =>
 			Effect.sync(() => {
 				reg.removeEventListener("updatefound", onUpdateFound);
 				sw.removeEventListener("controllerchange", onControllerChange);
+
 				for (const c of cleanups) c();
 			}),
 		);
 	});
+
 	return {
 		initial: reg.active ? "active" : "installing",
 		hadController: sw.controller !== null,
@@ -98,6 +108,7 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 		if (document.readyState === "complete") return resume(Effect.void);
 		const done = () => resume(Effect.void);
 		window.addEventListener("load", done, { once: true });
+
 		return Effect.sync(() => window.removeEventListener("load", done));
 	}),
 	register: (url) =>
@@ -114,6 +125,7 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 		navigator.serviceWorker.addEventListener("controllerchange", done, {
 			once: true,
 		});
+
 		return Effect.sync(() =>
 			navigator.serviceWorker.removeEventListener("controllerchange", done),
 		);
@@ -123,7 +135,9 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 			if (document.visibilityState === "visible")
 				Queue.offerUnsafe(queue, undefined);
 		};
+
 		document.addEventListener("visibilitychange", onChange);
+
 		return Effect.addFinalizer(() =>
 			Effect.sync(() =>
 				document.removeEventListener("visibilitychange", onChange),
@@ -135,12 +149,12 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 
 // --- Cache storage ----------------------------------------------------------
 
-export interface CacheHostShape {
+export interface CacheHostApi {
 	readonly keys: Effect.Effect<readonly string[], OfflineCacheError>;
 	readonly delete: (name: string) => Effect.Effect<void, OfflineCacheError>;
 }
 
-export class CacheHost extends Context.Service<CacheHost, CacheHostShape>()(
+export class CacheHost extends Context.Service<CacheHost, CacheHostApi>()(
 	"palico/CacheHost",
 ) {}
 
@@ -160,7 +174,7 @@ export const CacheHostLive = Layer.succeed(CacheHost, {
 
 // --- Storage manager --------------------------------------------------------
 
-export interface StorageHostShape {
+export interface StorageHostApi {
 	// Raw estimate; decoded with StorageReport at the call site.
 	readonly estimate: Effect.Effect<unknown, StorageUnavailableError>;
 	// Denied (or unsupported) is a value, not an error.
@@ -168,10 +182,9 @@ export interface StorageHostShape {
 	readonly persisted: Effect.Effect<boolean>;
 }
 
-export class StorageHost extends Context.Service<
-	StorageHost,
-	StorageHostShape
->()("palico/StorageHost") {}
+export class StorageHost extends Context.Service<StorageHost, StorageHostApi>()(
+	"palico/StorageHost",
+) {}
 
 const storageApi = () =>
 	typeof navigator === "undefined" ? undefined : navigator.storage;
@@ -180,7 +193,9 @@ export const StorageHostLive = Layer.succeed(StorageHost, {
 	estimate: Effect.tryPromise({
 		try: () => {
 			const s = storageApi();
+
 			if (!s?.estimate) throw new Error("Storage estimates are unavailable.");
+
 			return s.estimate();
 		},
 		catch: (cause) =>

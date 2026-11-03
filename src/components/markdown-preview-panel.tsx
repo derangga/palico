@@ -1,4 +1,4 @@
-import { Cause, Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { Copy, Download, Maximize2, Minimize2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,10 +29,13 @@ export function MarkdownPreviewPanel({
 }) {
 	async function handleCopy() {
 		const exit = await Effect.runPromiseExit(copyMarkdown(source));
-		if (exit._tag === "Success") {
+
+		if (Exit.isSuccess(exit)) {
 			toast.success("Markdown copied to clipboard.");
+
 			return;
 		}
+
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		toast.error(failure?.message ?? "Couldn't copy to the clipboard.");
 	}
@@ -41,7 +44,8 @@ export function MarkdownPreviewPanel({
 		const exit = await Effect.runPromiseExit(
 			downloadMarkdown(source, DOWNLOAD_FILENAME),
 		);
-		if (exit._tag === "Success") return;
+
+		if (Exit.isSuccess(exit)) return;
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		toast.error(failure?.message ?? "Couldn't download the file.");
 	}

@@ -19,6 +19,7 @@ export const DiffInput = Schema.Struct({
 	changed: Schema.String,
 	language: DiffLanguage,
 });
+
 export type DiffInput = Schema.Schema.Type<typeof DiffInput>;
 
 // Plain interface on purpose: this carries opaque @pierre/diffs objects
@@ -48,6 +49,7 @@ const validateSize = (
 	input: DiffInput,
 ): Effect.Effect<void, DiffInputTooLargeError> => {
 	const size = Math.max(input.original.length, input.changed.length);
+
 	return size > MAX_DIFF_INPUT_CHARS
 		? Effect.fail(
 				new DiffInputTooLargeError({

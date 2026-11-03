@@ -21,6 +21,7 @@ export const DiffLanguage = Schema.Literals([
 	"sql",
 	"yaml",
 ]);
+
 export type DiffLanguage = typeof DiffLanguage.Type;
 
 export const DIFF_LANGUAGES: ReadonlyArray<{

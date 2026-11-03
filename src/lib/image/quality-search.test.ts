@@ -5,10 +5,13 @@ import { COMPRESS_MAX_PASSES, searchQuality } from "./quality-search.ts";
 // Fake encoder: output size grows linearly with quality (1000 bytes at q=1).
 const fakeEncoder = () => {
 	const calls: number[] = [];
+
 	const encode = async (q: number) => {
 		calls.push(q);
+
 		return new Blob([new Uint8Array(Math.round(q * 1000))]);
 	};
+
 	return { calls, encode };
 };
 
@@ -40,11 +43,13 @@ describe("searchQuality", () => {
 
 	it("does not search when the ceiling is the floor", async () => {
 		const { calls, encode } = fakeEncoder();
+
 		const r = await searchQuality(encode, {
 			targetBytes: 50,
 			max: 0.1,
 			min: 0.1,
 		});
+
 		expect(r).toMatchObject({ targetMet: false, passes: 1 });
 		expect(calls).toEqual([0.1]);
 	});

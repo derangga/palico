@@ -21,29 +21,34 @@ const waitFor = (
 ): Promise<void> =>
 	new Promise((resolve, reject) => {
 		let settled = false;
+
 		const cleanup = () => {
 			el.removeEventListener(event, onEvent);
 			el.removeEventListener("error", onError);
 			clearTimeout(timer);
 		};
+
 		const onEvent = () => {
 			if (settled) return;
 			settled = true;
 			cleanup();
 			resolve();
 		};
+
 		const onError = () => {
 			if (settled) return;
 			settled = true;
 			cleanup();
 			reject(new Error(`video "${event}" failed`));
 		};
+
 		const timer = setTimeout(() => {
 			if (settled) return;
 			settled = true;
 			cleanup();
 			reject(new Error(`video "${event}" timed out`));
 		}, timeoutMs);
+
 		el.addEventListener(event, onEvent, { once: true });
 		el.addEventListener("error", onError, { once: true });
 	});
@@ -66,6 +71,7 @@ const extract = async (
 		await waitFor(video, "loadeddata", 15000).catch(() => {});
 
 		const duration = video.duration;
+
 		if (!Number.isFinite(duration) || duration <= 0) {
 			throw new Error("Could not read the video duration.");
 		}
@@ -79,9 +85,11 @@ const extract = async (
 		canvas.width = w;
 		canvas.height = h;
 		const ctx = canvas.getContext("2d");
+
 		if (!ctx) throw new Error("Canvas 2D context unavailable.");
 
 		const urls: string[] = [];
+
 		for (let i = 0; i < count; i++) {
 			// Sample the middle of each evenly-sized slice; clamp off the last frame
 			// so we never seek exactly to the (sometimes empty) end.
@@ -95,6 +103,7 @@ const extract = async (
 			ctx.drawImage(video, 0, 0, w, h);
 			urls.push(canvas.toDataURL("image/jpeg", 0.6));
 		}
+
 		return urls;
 	} finally {
 		URL.revokeObjectURL(url);

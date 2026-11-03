@@ -23,11 +23,14 @@ export const toastOnExit = <A, E extends { readonly message: string }>(
 		onSuccess: Option.some,
 		onFailure: (cause) => {
 			console.error(Cause.pretty(cause));
+
 			const message = Option.match(Cause.findErrorOption(cause), {
 				onNone: () => fallback,
 				onSome: (error) => error.message,
 			});
+
 			toast.error(message);
+
 			return Option.none();
 		},
 	});

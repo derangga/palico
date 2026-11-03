@@ -1,11 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
-
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-
 import viteReact from "@vitejs/plugin-react";
 import type { Connect, Plugin, ViteDevServer } from "vite";
 import { defineConfig } from "vite";
@@ -21,6 +20,7 @@ import { defineConfig } from "vite";
 const serveVendorStatic = (): Plugin => {
 	const middleware: Connect.NextHandleFunction = (req, res, next) => {
 		const url = req.url?.split("?")[0];
+
 		if (!url || !url.startsWith("/vendor/")) return next();
 		const filePath = fileURLToPath(new URL(`./public${url}`, import.meta.url));
 		readFile(filePath)
@@ -31,18 +31,18 @@ const serveVendorStatic = (): Plugin => {
 			})
 			.catch(() => next());
 	};
+
 	const attach = (server: ViteDevServer) => {
 		// Unshift so this runs BEFORE Vite's transform middleware, which would
 		// otherwise reject the publicDir import.
 		server.middlewares.stack.unshift({ route: "", handle: middleware });
 	};
+
 	return {
 		name: "serve-vendor-static",
 		configureServer: attach,
 		configurePreviewServer: (server) => {
-			server.middlewares.use((req, res, next) =>
-				middleware(req as Connect.IncomingMessage, res, next),
-			);
+			server.middlewares.use(middleware);
 		},
 	};
 };

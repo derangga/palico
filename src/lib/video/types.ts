@@ -12,6 +12,7 @@ export const VideoOutputFormat = Schema.Literals([
 	"mkv",
 	"avi",
 ]);
+
 export type VideoOutputFormat = Schema.Schema.Type<typeof VideoOutputFormat>;
 
 export const VideoFormatMeta = Schema.Struct({
@@ -20,6 +21,7 @@ export const VideoFormatMeta = Schema.Struct({
 	mime: Schema.String,
 	ext: Schema.String,
 });
+
 export type VideoFormatMeta = Schema.Schema.Type<typeof VideoFormatMeta>;
 
 // Source of truth — both `VIDEO_OUTPUT_FORMATS` (ordered for the dropdown)
@@ -48,8 +50,9 @@ export const formatMeta = (value: VideoOutputFormat): VideoFormatMeta =>
 // into the literal union. Returns Result so callers can decide whether to fall
 // back, toast, or just ignore — without the `as VideoOutputFormat` escape hatch.
 const decodeFormat = Schema.decodeUnknownResult(VideoOutputFormat);
+
 export const parseVideoOutputFormat = (
-	value: unknown,
+	value: string | null,
 ): Result.Result<VideoOutputFormat, string> =>
 	Result.mapError(decodeFormat(value), (e) => e.message);
 
@@ -94,6 +97,7 @@ export const ENCODER_ARGS: Record<VideoOutputFormat, readonly string[]> = {
 export const outputFileName = (srcName: string, ext: string): string => {
 	const dot = srcName.lastIndexOf(".");
 	const base = dot > 0 ? srcName.slice(0, dot) : srcName;
+
 	return `${base}.${ext}`;
 };
 
@@ -102,9 +106,12 @@ export const outputFileName = (srcName: string, ext: string): string => {
 // with edge cases.
 export const inputExtension = (file: File): string => {
 	const match = /\.([^.]+)$/.exec(file.name);
+
 	if (match) return match[1].toLowerCase();
+
 	if (file.type.startsWith("video/")) {
 		return file.type.slice("video/".length);
 	}
+
 	return "bin";
 };

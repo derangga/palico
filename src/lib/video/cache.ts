@@ -17,6 +17,7 @@ export const CACHE_NAME = `ffmpeg-wasm-v${FFMPEG_CORE_VERSION}`;
 const CDN_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@${FFMPEG_CORE_VERSION}/dist/esm`;
 
 export const EngineAssetKey = Schema.Literals(["core", "wasm", "worker"]);
+
 export type EngineAssetKey = Schema.Schema.Type<typeof EngineAssetKey>;
 
 export const EngineAsset = Schema.Struct({
@@ -24,6 +25,7 @@ export const EngineAsset = Schema.Struct({
 	url: Schema.String,
 	mime: Schema.String,
 });
+
 export type EngineAsset = Schema.Schema.Type<typeof EngineAsset>;
 
 export const ENGINE_ASSETS: readonly EngineAsset[] = [
@@ -50,13 +52,16 @@ export const ENGINE_SIZE_LABEL = "~31 MB";
 // can name the type without static-importing @ffmpeg/*.
 const PhaseChecking = Schema.Struct({ kind: Schema.Literal("checking") });
 const PhaseConsent = Schema.Struct({ kind: Schema.Literal("consent") });
+
 const PhaseDownloading = Schema.Struct({
 	kind: Schema.Literal("downloading"),
 	percent: Schema.Number,
 });
+
 const PhaseCaching = Schema.Struct({ kind: Schema.Literal("caching") });
 const PhasePreparing = Schema.Struct({ kind: Schema.Literal("preparing") });
 const PhaseReady = Schema.Struct({ kind: Schema.Literal("ready") });
+
 const PhaseError = Schema.Struct({
 	kind: Schema.Literal("error"),
 	message: Schema.String,
@@ -71,6 +76,7 @@ export const LoadPhase = Schema.Union([
 	PhaseReady,
 	PhaseError,
 ]);
+
 export type LoadPhase = Schema.Schema.Type<typeof LoadPhase>;
 
 // True iff every engine asset is already present in the Cache API. Used on

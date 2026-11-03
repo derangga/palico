@@ -8,12 +8,15 @@ export const concat = (...parts: ReadonlyArray<Uint8Array | number[]>) => {
 	const arrays = parts.map((p) =>
 		p instanceof Uint8Array ? p : Uint8Array.from(p),
 	);
+
 	const out = new Uint8Array(arrays.reduce((n, a) => n + a.length, 0));
 	let at = 0;
+
 	for (const a of arrays) {
 		out.set(a, at);
 		at += a.length;
 	}
+
 	return out;
 };
 
@@ -31,17 +34,24 @@ export const tiff = (
 ): Uint8Array => {
 	const le = opts.le ?? false;
 	const first: Tag[] = [...ifd0];
+
 	if (opts.exif) first.push([0x8769, 4, 0]);
+
 	if (opts.gps) first.push([0x8825, 4, 0]);
+
 	const ifds = [first, opts.exif, opts.gps].filter(
 		(x): x is Tag[] => x !== undefined,
 	);
+
 	let at = 8;
+
 	const offsets = ifds.map((entries) => {
 		const o = at;
 		at += 2 + entries.length * 12 + 4;
+
 		return o;
 	});
+
 	const pointer = (tag: number) =>
 		tag === 0x8769 ? offsets[1] : offsets[opts.exif ? 2 : 1];
 
@@ -56,10 +66,12 @@ export const tiff = (
 		let p = offsets[k];
 		dv.setUint16(p, entries.length, le);
 		p += 2;
+
 		for (const [tag, type, raw] of entries) {
 			const value = tag === 0x8769 || tag === 0x8825 ? pointer(tag) : raw;
 			let data: Uint8Array;
 			let count: number;
+
 			if (type === 2) {
 				data = concat(enc.encode(String(value)), [0]);
 				count = data.length;
@@ -74,9 +86,11 @@ export const tiff = (
 				});
 				count = type === 5 ? nums.length / 2 : nums.length;
 			}
+
 			dv.setUint16(p, tag, le);
 			dv.setUint16(p + 2, type, le);
 			dv.setUint32(p + 4, count, le);
+
 			if (data.length <= 4) {
 				buf.set(data, p + 8);
 			} else {
@@ -84,10 +98,13 @@ export const tiff = (
 				buf.set(data, dataAt);
 				dataAt += data.length;
 			}
+
 			p += 12;
 		}
+
 		dv.setUint32(p, k === 0 && opts.thumbnail ? 999 : 0, le);
 	});
+
 	return buf.slice(0, dataAt);
 };
 
@@ -103,23 +120,29 @@ export const APP0_JFIF = segment(
 	0xe0,
 	bytes("JFIF\0\x01\x01\0\0\x01\0\x01\0\0"),
 );
+
 export const APP2_ICC = segment(
 	0xe2,
 	bytes("ICC_PROFILE\0\x01\x01fake-profile"),
 );
+
 export const APP14_ADOBE = segment(0xee, bytes("Adobe\0\x64\0\0\0\0\x01"));
 export const DQT = segment(0xdb, new Uint8Array(65).fill(7));
+
 export const SCAN = concat(
 	segment(0xda, Uint8Array.from([1, 1, 0, 0, 0x3f, 0])),
 	[0x12, 0x34, 0xff, 0x00, 0x56],
 	[0xff, 0xd9],
 );
+
 export const exifSegment = (block: Uint8Array) =>
 	segment(0xe1, concat(bytes("Exif\0\0"), block));
+
 export const XMP_SEGMENT = segment(
 	0xe1,
 	bytes("http://ns.adobe.com/xap/1.0/\0<x:xmpmeta>secret</x:xmpmeta>"),
 );
+
 export const COM_SEGMENT = segment(0xfe, bytes("hello"));
 
 export const jpeg = (...segments: Uint8Array[]) =>
@@ -132,6 +155,7 @@ export const chunk = (type: string, data: Uint8Array) => {
 	const head = new Uint8Array(8);
 	new DataView(head.buffer).setUint32(0, data.length);
 	head.set(bytes(type), 4);
+
 	return concat(head, data, [0xde, 0xad, 0xbe, 0xef]);
 };
 
@@ -147,6 +171,7 @@ export const riffChunk = (type: string, data: Uint8Array) => {
 	const head = new Uint8Array(8);
 	head.set(bytes(type), 0);
 	new DataView(head.buffer).setUint32(4, data.length, true);
+
 	return concat(head, data, data.length & 1 ? [0] : []);
 };
 
@@ -155,6 +180,7 @@ export const webp = (...chunks: Uint8Array[]) => {
 	const head = new Uint8Array(8);
 	head.set(bytes("RIFF"), 0);
 	new DataView(head.buffer).setUint32(4, body.length, true);
+
 	return concat(head, body);
 };
 
@@ -163,6 +189,7 @@ export const VP8X = riffChunk(
 	"VP8X",
 	Uint8Array.from([0x20 | 0x08 | 0x04, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
 );
+
 export const VP8 = riffChunk("VP8 ", Uint8Array.from([1, 2, 3, 4, 5]));
 
 // --- Common EXIF ------------------------------------------------------------
@@ -172,11 +199,13 @@ export const PHONE_EXIF: Tag[] = [
 	[0x0110, 2, "iPhone 15 Pro"],
 	[0x0131, 2, "17.1"],
 ];
+
 export const PHONE_EXIF_IFD: Tag[] = [
 	[0x9003, 2, "2024:05:01 10:22:33"],
 	[0xa434, 2, "iPhone 15 Pro back camera"],
 	[0x829a, 5, [1, 120]],
 ];
+
 // 48°51'30.24" N, 2°17'40.2" E (Eiffel Tower).
 export const PARIS_GPS: Tag[] = [
 	[1, 2, "N"],

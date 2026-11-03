@@ -6,6 +6,7 @@
 import { Effect, Option, Result, Schema } from "effect";
 
 export const AudioFormat = Schema.Literals(["mp3", "m4a", "opus", "wav"]);
+
 export type AudioFormat = Schema.Schema.Type<typeof AudioFormat>;
 
 export interface AudioFormatMeta {
@@ -73,8 +74,9 @@ export const audioFormatMeta = (value: AudioFormat): AudioFormatMeta =>
 	META[value];
 
 const decodeFormat = Schema.decodeUnknownResult(AudioFormat);
+
 export const parseAudioFormat = (
-	value: unknown,
+	value: string | null,
 ): Result.Result<AudioFormat, string> =>
 	Result.mapError(decodeFormat(value), (e) => e.message);
 
@@ -86,6 +88,7 @@ export const AudioStream = Schema.Struct({
 		Schema.withDecodingDefaultType(Effect.succeed(0)),
 	),
 });
+
 export type AudioStream = Schema.Schema.Type<typeof AudioStream>;
 
 const AudioProbe = Schema.fromJsonString(
@@ -95,6 +98,7 @@ const AudioProbe = Schema.fromJsonString(
 		),
 	}),
 );
+
 const decodeProbe = Schema.decodeUnknownResult(AudioProbe);
 
 // ffprobe JSON (`-select_streams a:0 -show_entries stream=codec_name,channels
@@ -118,15 +122,17 @@ export const buildAudioArgs = (
 	outputName: string,
 	format: AudioFormat,
 	stream: AudioStream,
-): { readonly args: string[]; readonly copied: boolean } => {
+) => {
 	const meta = META[format];
 	const copied = stream.codec_name === meta.copyCodec;
+
 	const codecArgs = copied
 		? ["-c:a", "copy"]
 		: [
 				...meta.encodeArgs,
 				...(meta.stereoOnly && stream.channels > 2 ? ["-ac", "2"] : []),
 			];
+
 	return {
 		args: ["-i", inputName, "-map", "0:a:0", ...codecArgs, outputName],
 		copied,

@@ -1,3 +1,4 @@
+import { Match } from "effect";
 import { CircleAlert, FileText, Loader2 } from "lucide-react";
 
 import {
@@ -59,13 +60,25 @@ export function EnginePanel({ phase, onStart }: EnginePanelProps) {
 	}
 
 	// Loading phases: downloading → caching → preparing.
-	const status =
-		phase.kind === "downloading"
-			? `Downloading engine ${phase.percent}%`
-			: phase.kind === "caching"
-				? "Caching engine"
-				: "Preparing tools";
-	const percent = phase.kind === "downloading" ? phase.percent : 100;
+	const { status, percent, detail } = Match.value(phase).pipe(
+		Match.discriminators("kind")({
+			downloading: ({ percent }) => ({
+				status: `Downloading engine ${percent}%`,
+				percent,
+				detail: "Fetching the engine. It will be cached for next time.",
+			}),
+			caching: () => ({
+				status: "Caching engine",
+				percent: 100,
+				detail: "Saving the engine to your browser cache.",
+			}),
+		}),
+		Match.orElse(() => ({
+			status: "Preparing tools",
+			percent: 100,
+			detail: "Initializing LibreOffice (1–3s).",
+		})),
+	);
 
 	return (
 		<div className="rounded-xl border bg-card p-6">
@@ -79,13 +92,7 @@ export function EnginePanel({ phase, onStart }: EnginePanelProps) {
 					style={{ width: `${percent}%` }}
 				/>
 			</div>
-			<p className="mt-3 text-xs text-muted-foreground">
-				{phase.kind === "downloading"
-					? "Fetching the engine. It will be cached for next time."
-					: phase.kind === "caching"
-						? "Saving the engine to your browser cache."
-						: "Initializing LibreOffice (1–3s)."}
-			</p>
+			<p className="mt-3 text-xs text-muted-foreground">{detail}</p>
 		</div>
 	);
 }

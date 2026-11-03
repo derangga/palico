@@ -13,8 +13,8 @@ import {
 } from "#/components/pdf-organize/state.ts";
 import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
-import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
+import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
 
 export const Route = createFileRoute("/pdf-organize")({
 	component: PdfOrganizePage,
@@ -27,22 +27,28 @@ function PdfOrganizePage() {
 
 	async function loadFile(file: File) {
 		dispatch({ type: "loadStart", file });
+
 		const exit = await Effect.runPromiseExit(
 			loadPdf({ id: crypto.randomUUID(), file }, (thumbnail) =>
 				dispatch({ type: "addThumbnail", thumbnail }),
 			),
 		);
+
 		const result = toastOnExit(exit, "Couldn't open this PDF.");
+
 		if (Option.isNone(result)) {
 			dispatch({ type: "reset" });
+
 			return;
 		}
+
 		dispatch({ type: "loadSuccess" });
 	}
 
 	async function save() {
 		if (!state.file || state.pages.length === 0) return;
 		dispatch({ type: "saveStart" });
+
 		const exit = await Effect.runPromiseExit(
 			extractPages({
 				id: crypto.randomUUID(),
@@ -51,8 +57,10 @@ function PdfOrganizePage() {
 				rotations: state.pages.map((p) => p.rotation),
 			}),
 		);
+
 		dispatch({ type: "saveEnd" });
 		const result = toastOnExit(exit, "Couldn't save this PDF.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(
 			result.value,
@@ -63,6 +71,7 @@ function PdfOrganizePage() {
 	const busy = state.rendering || state.saving;
 	const total = state.loaded.length;
 	const kept = state.pages.length;
+
 	const changed =
 		kept !== total ||
 		state.pages.some((p, i) => p.sourceIndex !== i || p.rotation !== 0);
@@ -98,6 +107,7 @@ function PdfOrganizePage() {
 					ariaLabel="Choose a PDF to organize"
 					onFiles={(files) => {
 						const picked = files?.[0];
+
 						if (picked) void loadFile(picked);
 					}}
 				/>

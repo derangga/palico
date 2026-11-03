@@ -63,6 +63,7 @@ const checkFile = (
 				)
 			: Effect.succeed("pdf");
 	}
+
 	if (!IMAGE_MIME_TYPES.includes(file.type)) {
 		return Effect.fail(
 			new UnsupportedFormatError({
@@ -72,6 +73,7 @@ const checkFile = (
 			}),
 		);
 	}
+
 	return file.size > MAX_FILE_BYTES
 		? Effect.fail(
 				new FileTooLargeError({
@@ -100,6 +102,7 @@ export const inspectFile = Effect.fn("Metadata.inspectFile")(function* (
 	const { id, file } = input;
 	const kind = yield* checkFile(file);
 	const buffer = yield* readBytes(file);
+
 	return kind === "pdf"
 		? yield* readPdfMetadataInWorker({ id, fileName: file.name, buffer })
 		: yield* readImageMetadata(file.name, new Uint8Array(buffer));
@@ -114,18 +117,20 @@ export const stripFile = Effect.fn("Metadata.stripFile")(function* (
 
 	let bytes: BlobPart;
 	let after: MetadataReport;
+
 	if (kind === "pdf") {
 		const result = yield* stripPdfMetadataInWorker({
 			id,
 			fileName: file.name,
 			buffer,
 		});
+
 		bytes = result.bytes;
 		after = result.after;
 	} else {
 		const out = yield* stripImageMetadata(file.name, new Uint8Array(buffer));
 		after = yield* readImageMetadata(file.name, out);
-		bytes = out as Uint8Array<ArrayBuffer>;
+		bytes = out;
 	}
 
 	if (after.fields.length > 0) {
@@ -137,6 +142,7 @@ export const stripFile = Effect.fn("Metadata.stripFile")(function* (
 				.join(", ")}.`,
 		});
 	}
+
 	return {
 		blob: new Blob([bytes], {
 			type: kind === "pdf" ? "application/pdf" : file.type,

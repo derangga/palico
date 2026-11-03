@@ -13,6 +13,7 @@ const SUPPRESS_KEY = "palico:video:suppress-small-time-warning";
 export const getSuppressSmallWarning: Effect.Effect<boolean> = Effect.try({
 	try: () => {
 		if (typeof localStorage === "undefined") return false;
+
 		return localStorage.getItem(SUPPRESS_KEY) === "true";
 	},
 	catch: () => "storage-unavailable" as const,

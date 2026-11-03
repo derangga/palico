@@ -1,6 +1,10 @@
+import { Schema } from "effect";
+
 import type { PdfThumbnail } from "#/lib/file/pdf-types.ts";
 
-export type SplitMode = "extract" | "every-n" | "all";
+export const SplitMode = Schema.Literals(["extract", "every-n", "all"]);
+
+export type SplitMode = typeof SplitMode.Type;
 
 export interface SplitState {
 	file: File | null;
@@ -69,10 +73,13 @@ export function splitReducer(
 			};
 		case "toggle": {
 			const next = new Set(state.selected);
+
 			if (next.has(action.index)) next.delete(action.index);
 			else next.add(action.index);
+
 			return { ...state, selected: next };
 		}
+
 		case "selectAll":
 			return {
 				...state,

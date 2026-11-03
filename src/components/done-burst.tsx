@@ -11,10 +11,13 @@ import { cn } from "#/lib/utils.ts";
 export function useJustDone(isDone: boolean): boolean {
 	const [prevDone, setPrevDone] = useState(isDone);
 	const [just, setJust] = useState(false);
+
 	if (isDone !== prevDone) {
 		setPrevDone(isDone);
+
 		if (isDone) setJust(true);
 	}
+
 	return just;
 }
 
@@ -38,6 +41,7 @@ const DOTS = DOT_COLOURS.map((colour, i) => {
 	const angle = (i / DOT_COLOURS.length) * Math.PI * 2;
 	// Alternate the reach so the ring reads as a burst, not a circle.
 	const reach = i % 2 === 0 ? 22 : 15;
+
 	return {
 		colour,
 		dx: `${(Math.cos(angle) * reach).toFixed(1)}px`,
@@ -52,8 +56,10 @@ export function DoneBurst() {
 	const [visible, setVisible] = useState(true);
 	useEffect(() => {
 		const id = window.setTimeout(() => setVisible(false), BURST_MS);
+
 		return () => window.clearTimeout(id);
 	}, []);
+
 	if (!visible) return null;
 
 	return (
@@ -68,7 +74,7 @@ export function DoneBurst() {
 						"done-burst-dot absolute -top-[3px] -left-[3px] size-1.5 rounded-full",
 						dot.colour,
 					)}
-					style={{ "--dx": dot.dx, "--dy": dot.dy } as React.CSSProperties}
+					style={{ "--dx": dot.dx, "--dy": dot.dy }}
 				/>
 			))}
 		</span>

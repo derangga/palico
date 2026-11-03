@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { OfflineStatus, ShellState } from "./shapes.ts";
 import { computeStatus } from "./status.ts";
 
 const engine = { sizeLabel: "~31 MB" };
@@ -7,41 +8,51 @@ const engine = { sizeLabel: "~31 MB" };
 describe("computeStatus", () => {
 	it("reports unavailable when workers are unsupported or failed", () => {
 		expect(
-			computeStatus({ shell: { _tag: "Unsupported" }, notSaved: false })._tag,
+			computeStatus({
+				shell: ShellState.cases.Unsupported.make({}),
+				notSaved: false,
+			})._tag,
 		).toBe("Unavailable");
 		expect(
 			computeStatus({
-				shell: { _tag: "Failed", message: "x" },
+				shell: ShellState.cases.Failed.make({ message: "x" }),
 				notSaved: false,
 			})._tag,
 		).toBe("Unavailable");
 	});
 
 	it("reports preparing while the worker installs", () => {
-		for (const _tag of ["Registering", "Installing"] as const) {
-			expect(computeStatus({ shell: { _tag }, notSaved: false })._tag).toBe(
-				"Preparing",
-			);
+		for (const shell of [
+			ShellState.cases.Registering.make({}),
+			ShellState.cases.Installing.make({}),
+		]) {
+			expect(computeStatus({ shell, notSaved: false })._tag).toBe("Preparing");
 		}
 	});
 
 	it("is ready for a tool without an engine once the shell is active", () => {
 		expect(
-			computeStatus({ shell: { _tag: "Active" }, notSaved: false }),
-		).toEqual({ _tag: "Ready" });
+			computeStatus({
+				shell: ShellState.cases.Active.make({}),
+				notSaved: false,
+			}),
+		).toEqual(OfflineStatus.cases.Ready.make({}));
 	});
 
 	it("waits for the first engine check", () => {
 		expect(
-			computeStatus({ shell: { _tag: "Active" }, engine, notSaved: false })
-				._tag,
+			computeStatus({
+				shell: ShellState.cases.Active.make({}),
+				engine,
+				notSaved: false,
+			})._tag,
 		).toBe("Preparing");
 	});
 
 	it("is ready when the engine is saved", () => {
 		expect(
 			computeStatus({
-				shell: { _tag: "Active" },
+				shell: ShellState.cases.Active.make({}),
 				engine,
 				cached: true,
 				notSaved: false,
@@ -52,18 +63,18 @@ describe("computeStatus", () => {
 	it("asks for a download when the engine is missing", () => {
 		expect(
 			computeStatus({
-				shell: { _tag: "Active" },
+				shell: ShellState.cases.Active.make({}),
 				engine,
 				cached: false,
 				notSaved: false,
 			}),
-		).toEqual({ _tag: "NeedsDownload", sizeLabel: "~31 MB" });
+		).toEqual(OfflineStatus.cases.NeedsDownload.make({ sizeLabel: "~31 MB" }));
 	});
 
 	it("reports NotSaved when a finished download did not stick", () => {
 		expect(
 			computeStatus({
-				shell: { _tag: "Active" },
+				shell: ShellState.cases.Active.make({}),
 				engine,
 				cached: false,
 				notSaved: true,

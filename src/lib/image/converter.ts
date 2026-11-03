@@ -20,6 +20,7 @@ export const ConvertInput = Schema.Struct({
 	file: Schema.instanceOf(File),
 	format: OutputFormat,
 });
+
 export type ConvertInput = Schema.Schema.Type<typeof ConvertInput>;
 
 export const ConvertOutput = Schema.Struct({
@@ -29,6 +30,7 @@ export const ConvertOutput = Schema.Struct({
 	height: Schema.Number,
 	size: Schema.Number,
 });
+
 export type ConvertOutput = Schema.Schema.Type<typeof ConvertOutput>;
 
 export const ProgressUpdate = Schema.Union([
@@ -53,6 +55,7 @@ export const ProgressUpdate = Schema.Union([
 		]),
 	}),
 ]);
+
 export type ProgressUpdate = Schema.Schema.Type<typeof ProgressUpdate>;
 
 export const validateSize = (
@@ -76,6 +79,7 @@ const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 ) {
 	yield* validateSize(input.file);
 	const meta = formatMeta(input.format);
+
 	const buffer = yield* Effect.tryPromise({
 		try: () => input.file.arrayBuffer(),
 		catch: (err) =>
@@ -84,6 +88,7 @@ const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	return yield* runImageWorker({
 		id: input.id,
 		fileName: input.file.name,
@@ -123,6 +128,7 @@ export const convertImages = (
 								error: result.failure,
 							}),
 				);
+
 				return result;
 			}),
 		{ concurrency: 5 },

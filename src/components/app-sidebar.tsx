@@ -20,6 +20,7 @@ import {
 	useSidebar,
 } from "#/components/ui/sidebar.tsx";
 import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
+import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import {
 	CATEGORY_STYLES,
 	type Tool,
@@ -41,8 +42,10 @@ function SidebarNavItem({
 }) {
 	const { isMobile, setOpenMobile } = useSidebar();
 	const offline = useOfflineStatus("engine" in item ? item.engine : undefined);
+
 	const isActive =
 		item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+
 	return (
 		<SidebarMenuItem>
 			<SidebarMenuButton
@@ -61,10 +64,11 @@ function SidebarNavItem({
 				/>
 				<span>{item.label}</span>
 				{offline &&
-					offline._tag !== "Unavailable" &&
+					!OfflineStatus.guards.Unavailable(offline) &&
 					"engine" in item &&
 					item.engine && (
 						<span
+							// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a coloured status dot, not a picture.
 							role="img"
 							aria-label={offlineLabel(offline)}
 							title={offlineLabel(offline)}
@@ -96,20 +100,24 @@ function ActivePill({
 	const pillRef = useRef<HTMLSpanElement>(null);
 	const placed = useRef(false);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger to re-place the pill
+	// pathname is the trigger to re-place the pill
 	useEffect(() => {
 		const root = rootRef.current;
 		const pill = pillRef.current;
+
 		if (!root || !pill) return;
 
 		const place = (animate: boolean) => {
 			const active = root.querySelector<HTMLElement>(
 				'[data-slot="sidebar-menu-button"][data-active]',
 			);
+
 			if (!active) {
 				pill.style.opacity = "0";
+
 				return;
 			}
+
 			const rootTop = root.getBoundingClientRect().top;
 			const box = active.getBoundingClientRect();
 			// Resizes (sidebar collapse, mobile item height) snap instead of sliding.
@@ -124,14 +132,20 @@ function ActivePill({
 		placed.current = true;
 		// The observer fires once on observe(); skip that so the slide survives.
 		let initial = true;
+
 		const observer = new ResizeObserver(() => {
 			if (initial) {
+				// oxlint-disable-next-line react/immutability -- initial is local to this effect and never read during render.
 				initial = false;
+
 				return;
 			}
+
 			place(false);
 		});
+
 		observer.observe(root);
+
 		return () => observer.disconnect();
 	}, [pathname]);
 

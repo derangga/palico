@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import {
 	CircleAlert,
 	Download,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+
 import {
 	EngineCheckingSkeleton,
 	EngineConsentCard,
@@ -92,6 +93,7 @@ function BackgroundRemovalPage() {
 
 	const startDownload = useCallback(async () => {
 		setGate({ kind: "downloading", percent: 0 });
+
 		const exit = await offlineRuntime.runPromiseExit(
 			guardedEngineLoad(
 				"bg-model",
@@ -102,11 +104,15 @@ function BackgroundRemovalPage() {
 				}),
 			),
 		);
-		if (exit._tag === "Success") {
+
+		if (Exit.isSuccess(exit)) {
 			setGate({ kind: "ready" });
+
 			return;
 		}
+
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+
 		if (failure) console.error(failure);
 		setGate({
 			kind: "error",
@@ -122,13 +128,18 @@ function BackgroundRemovalPage() {
 		let cancelled = false;
 		(async () => {
 			const loaded = await Effect.runPromise(isModelLoaded);
+
 			if (cancelled) return;
+
 			if (loaded) return setGate({ kind: "ready" });
 			const cached = await Effect.runPromise(isBackgroundModelCached);
+
 			if (cancelled) return;
+
 			if (cached) return void startDownload();
 			setGate({ kind: "consent" });
 		})();
+
 		return () => {
 			cancelled = true;
 		};
@@ -138,10 +149,12 @@ function BackgroundRemovalPage() {
 		() => (source ? URL.createObjectURL(source) : null),
 		[source],
 	);
+
 	const resultUrl = useMemo(
 		() => (result ? URL.createObjectURL(result) : null),
 		[result],
 	);
+
 	useEffect(() => {
 		return () => {
 			if (sourceUrl) URL.revokeObjectURL(sourceUrl);
@@ -159,11 +172,15 @@ function BackgroundRemovalPage() {
 
 	function selectFile(files: FileList | null) {
 		const file = files?.[0];
+
 		if (!file) return;
+
 		if (!file.type.startsWith("image/")) {
 			toast.error(`"${file.name}" is not an image.`);
+
 			return;
 		}
+
 		setSource(file);
 		setResult(null);
 		setStatus("idle");
@@ -173,6 +190,7 @@ function BackgroundRemovalPage() {
 		setSource(null);
 		setResult(null);
 		setStatus("idle");
+
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
@@ -186,13 +204,15 @@ function BackgroundRemovalPage() {
 			withBusy(removeBackground({ file: source })),
 		);
 
-		if (exit._tag === "Success") {
+		if (Exit.isSuccess(exit)) {
 			setResult(exit.value);
 			setStatus("done");
+
 			return;
 		}
 
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+
 		if (failure) console.error(failure);
 		toast.error(userMessageFor(failure));
 		setStatus("idle");
@@ -387,6 +407,7 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 	}
 
 	const percent = gate.kind === "downloading" ? gate.percent : 100;
+
 	return (
 		<div className="rounded-xl border bg-card p-6">
 			<div className="flex items-center gap-3">
