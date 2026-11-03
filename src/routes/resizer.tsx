@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { CircleAlert, Loader2 } from "lucide-react";
-import { useEffect, useId, useMemo, useReducer, useRef } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import { toast } from "sonner";
-
-import { Dropzone } from "#/components/resizer/dropzone.tsx";
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { ModeToggle } from "#/components/resizer/mode-toggle.tsx";
 import { PercentControls } from "#/components/resizer/percent-controls.tsx";
 import { PixelControls } from "#/components/resizer/pixel-controls.tsx";
@@ -30,8 +30,6 @@ export const Route = createFileRoute("/resizer")({ component: ResizerPage });
 const MB = 1024 * 1024;
 
 function ResizerPage() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const abortRef = useRef<AbortController | null>(null);
 	const lastEditedRef = useRef<"w" | "h">("w");
 
@@ -97,7 +95,6 @@ function ResizerPage() {
 
 	function reset() {
 		dispatch({ type: "reset" });
-		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
 	function changeWidth(value: string) {
@@ -176,20 +173,20 @@ function ResizerPage() {
 		: "";
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Image Resizer</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Resize an image by pixels or percentage — entirely in your browser.
-					Keeps the source format. Up to {Math.round(MAX_FILE_BYTES / MB)} MB
-					and {MAX_DIMENSION.toLocaleString()}px max.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Image Resizer">
+				Resize an image by pixels or percentage, entirely in your browser. Keeps
+				the source format. Up to {Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
+				{MAX_DIMENSION.toLocaleString()}px max.
+			</PageHeader>
 
 			{!source ? (
 				<Dropzone
-					inputId={inputId}
-					fileInputRef={fileInputRef}
+					label="Drag & drop an image here, or"
+					actionLabel="Choose a file"
+					hint={`Images up to ${Math.round(MAX_FILE_BYTES / MB)} MB, ${MAX_DIMENSION.toLocaleString()}px max`}
+					accept="image/*"
+					ariaLabel="Choose an image to resize"
 					onFiles={selectFile}
 				/>
 			) : (
@@ -234,7 +231,7 @@ function ResizerPage() {
 						{blockedByEnlarge && (
 							<p className="mt-4 flex items-center gap-1.5 text-sm text-destructive">
 								<CircleAlert className="size-4 shrink-0" />
-								Target {outW}×{outH}px is larger than the source — uncheck “Do
+								Target {outW}×{outH}px is larger than the source. Uncheck “Do
 								not enlarge” or choose a smaller size.
 							</p>
 						)}
@@ -287,6 +284,6 @@ function ResizerPage() {
 					)}
 				</>
 			)}
-		</div>
+		</PageShell>
 	);
 }

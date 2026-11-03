@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Cause, Effect, Either, Exit, Option } from "effect";
 import { Scissors } from "lucide-react";
-import { useEffect, useId, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { toast } from "sonner";
-
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CutterStage } from "#/components/video-cutter/cutter-stage.tsx";
-import { Dropzone } from "#/components/video-cutter/dropzone.tsx";
 import {
 	cutterReducer,
 	initialCutterState,
@@ -41,31 +41,24 @@ function VideoCutterPage() {
 	if (gate.phase.kind === "ready") return <CutterShell />;
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Video Cutter</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Trim a clip out of any video, entirely in your browser. The output
-					keeps the original format.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Video Cutter">
+				Trim a clip out of any video, entirely in your browser. The output keeps
+				the original format.
+			</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
-				declined={gate.declined}
 				onStart={gate.startLoad}
-				onDecline={gate.decline}
 				icon={Scissors}
 				consentDescription={CUTTER_CONSENT_DESCRIPTION}
 				disabledTitle="Video cutting is disabled"
 				enableLabel="Enable video cutting"
 			/>
-		</div>
+		</PageShell>
 	);
 }
 
 function CutterShell() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const objectUrlRef = useRef<string | null>(null);
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
@@ -160,7 +153,7 @@ function CutterShell() {
 		const verdict = checkCutterFileSize(f.size, deviceClass());
 		if (verdict.kind === "rejected") {
 			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)} — over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
+				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
 			);
 			return;
 		}
@@ -251,7 +244,7 @@ function CutterShell() {
 					type: "trimSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
-				toast.success("Your trimmed clip is ready — hit Save to download it.");
+				toast.success("Your trimmed clip is ready. Hit Save to download it.");
 			} else {
 				// Both failure types (EngineNotLoadedError | VideoTrimError) carry a
 				// typed `message`; defects (non-Fail causes) fall back to a generic.
@@ -288,19 +281,19 @@ function CutterShell() {
 	const canProceed = duration > 0 && outputDuration > 0 && !trimming;
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10 min-[769px]:max-w-6xl">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Video Cutter</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Trim a clip out of any video, entirely in your browser. The output
-					keeps the original format.
-				</p>
-			</div>
+		<PageShell className="min-[769px]:max-w-6xl">
+			<PageHeader title="Video Cutter">
+				Trim a clip out of any video, entirely in your browser. The output keeps
+				the original format.
+			</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					inputId={inputId}
-					fileInputRef={fileInputRef}
+					label="Drag & drop a video here, or"
+					actionLabel="Choose a video"
+					hint="One video file at a time"
+					accept="video/*"
+					ariaLabel="Choose a video to trim"
 					onFiles={addFiles}
 				/>
 			) : (
@@ -343,6 +336,6 @@ function CutterShell() {
 					/>
 				</div>
 			)}
-		</div>
+		</PageShell>
 	);
 }

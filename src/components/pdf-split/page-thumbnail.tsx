@@ -50,7 +50,7 @@ export function PageThumbnail({
 				ref={canvasRef}
 				width={thumbnail.width}
 				height={thumbnail.height}
-				className="h-auto w-full rounded-sm border border-border/60 bg-white shadow-xs"
+				className="h-auto w-full rounded-sm border border-border bg-white shadow-sm"
 			/>
 			<span className="text-xs font-medium text-muted-foreground">
 				{thumbnail.index + 1}

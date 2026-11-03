@@ -133,7 +133,7 @@ export function SplitControls({
 			<TabsContent value="all">
 				<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
 					<p className="text-sm text-muted-foreground">
-						Split every page into its own PDF —{" "}
+						Split every page into its own PDF:{" "}
 						<span className="font-medium text-foreground">
 							{pageCount} {pageCount === 1 ? "file" : "files"}
 						</span>

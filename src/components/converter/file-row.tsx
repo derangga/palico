@@ -1,9 +1,10 @@
 import { Download, ImageIcon, X } from "lucide-react";
-
 import { StatusBadge } from "#/components/converter/status-badge.tsx";
 import type { Item } from "#/components/converter/types.ts";
 import { formatBytes, handleSaveOne } from "#/components/converter/utils.ts";
+import { useJustDone } from "#/components/done-burst.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { cn } from "#/lib/utils.ts";
 
 export function FileRow({
 	item,
@@ -14,8 +15,15 @@ export function FileRow({
 	isRunning: boolean;
 	onRemove: () => void;
 }) {
+	const justDone = useJustDone(item.status === "done");
+
 	return (
-		<li className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+		<li
+			className={cn(
+				"animate-pop-in flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5",
+				justDone && "animate-done-tint",
+			)}
+		>
 			<ImageIcon className="size-4 shrink-0 text-muted-foreground" />
 			<div className="min-w-0 flex-1">
 				<p className="truncate text-sm font-medium">{item.file.name}</p>
@@ -25,11 +33,11 @@ export function FileRow({
 						item.outSize != null &&
 						` → ${formatBytes(item.outSize)} (${item.outLabel})`}
 					{item.status === "error" && item.message && (
-						<span className="text-destructive"> — {item.message}</span>
+						<span className="text-destructive">: {item.message}</span>
 					)}
 				</p>
 			</div>
-			<StatusBadge status={item.status} />
+			<StatusBadge status={item.status} celebrate={justDone} />
 			{item.status === "done" && item.outBlob && (
 				<Button variant="ghost" size="sm" onClick={() => handleSaveOne(item)}>
 					<Download />

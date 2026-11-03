@@ -1,5 +1,6 @@
 import { type FileContents, MultiFileDiff } from "@pierre/diffs/react";
 import { FileCheck2, X } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useMemo } from "react";
 
 import { LanguageSelect } from "#/components/language-select.tsx";
@@ -21,14 +22,19 @@ interface DiffViewProps {
 	readonly onBack: () => void;
 }
 
-// vitesse-light/dark are warm-toned Shiki themes that sit comfortably on the
-// cream surface. Diff add/remove colors stay conventional — those are diff
-// semantics, not the design system's destructive accent. Shared with the
-// workspace so the pool's highlighter and this renderer resolve the same themes.
+// The Catppuccin Shiki themes match the app flavours (Latte and Mocha), so the
+// diff sits on the same base colour as the page. Shared with the workspace so
+// the pool's highlighter and this renderer resolve the same themes.
 export const DIFF_THEME = {
-	light: "vitesse-light",
-	dark: "vitesse-dark",
+	light: "catppuccin-latte",
+	dark: "catppuccin-mocha",
 } as const;
+
+// Add and remove lines are a success or destructive tint (the library mixes the
+// base colour into the background). Line numbers sit on that tint, so they take
+// the foreground colour to stay readable in Latte, where green is too light.
+const DIFF_COLOR_VARS =
+	"[--diffs-addition-color-override:var(--success)] [--diffs-deletion-color-override:var(--destructive)] [--diffs-fg-number-addition-override:var(--foreground)] [--diffs-fg-number-deletion-override:var(--foreground)]";
 
 // A git-style proportional bar: up to 5 squares, additions first then
 // deletions, the remainder muted. Each side that has any lines shows at least
@@ -61,7 +67,7 @@ function DiffStatBar({
 					key={i}
 					className={
 						kind === "add"
-							? "size-2.5 rounded-xs bg-emerald-500"
+							? "size-2.5 rounded-xs bg-success"
 							: kind === "del"
 								? "size-2.5 rounded-xs bg-destructive"
 								: "size-2.5 rounded-xs bg-muted"
@@ -80,6 +86,7 @@ export function DiffView({
 	onLanguageChange,
 	onBack,
 }: DiffViewProps) {
+	const { resolvedTheme } = useTheme();
 	// Rebuild the file contents from the raw text with the live language so the
 	// toolbar's language switch re-highlights without recomputing the diff.
 	const oldFile = useMemo<FileContents>(
@@ -103,10 +110,12 @@ export function DiffView({
 		<div className="flex min-h-[calc(100svh-3.5rem)] flex-col">
 			<div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
 				<div className="flex items-center gap-2 text-sm font-semibold">
-					<span className="text-emerald-600 dark:text-emerald-500">
+					<span className="rounded-full bg-success/25 px-2 py-0.5 text-foreground">
 						+{result.additions}
 					</span>
-					<span className="text-destructive">−{result.deletions}</span>
+					<span className="rounded-full bg-destructive/20 px-2 py-0.5 text-foreground">
+						−{result.deletions}
+					</span>
 					<DiffStatBar
 						additions={result.additions}
 						deletions={result.deletions}
@@ -123,7 +132,9 @@ export function DiffView({
 
 			<div className="flex-1 overflow-auto p-4 sm:p-6">
 				{result.hasChanges ? (
-					<div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+					<div
+						className={`overflow-hidden rounded-lg border border-border bg-background shadow-sm ${DIFF_COLOR_VARS}`}
+					>
 						<MultiFileDiff
 							oldFile={oldFile}
 							newFile={newFile}
@@ -133,6 +144,7 @@ export function DiffView({
 								expandUnchanged: true,
 								disableFileHeader: true,
 								theme: DIFF_THEME,
+								themeType: resolvedTheme === "dark" ? "dark" : "light",
 							}}
 						/>
 					</div>

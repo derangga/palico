@@ -23,20 +23,68 @@ const mermaidRef = Ref.unsafeMake<Option.Option<MermaidApi>>(Option.none());
 // mid-flight and corrupt the surviving SVG.
 const renderSeq = Ref.unsafeMake(0);
 
+// Read one Catppuccin colour from the active flavour. The package sets
+// `--catppuccin-color-*` on <html> (`.latte` / `.mocha`), so reading it live keeps
+// diagrams in step with the theme without duplicating the palette here. Mermaid's
+// colour maths needs real hex values, which is what the package declares.
+const ctp = (name: string): string =>
+	getComputedStyle(document.documentElement)
+		.getPropertyValue(`--catppuccin-color-${name}`)
+		.trim();
+
+const themeVariables = () => ({
+	darkMode: document.documentElement.classList.contains("mocha"),
+	background: ctp("base"),
+	fontFamily: '"Nunito Variable", ui-sans-serif, system-ui, sans-serif',
+	primaryColor: ctp("surface0"),
+	primaryTextColor: ctp("text"),
+	primaryBorderColor: ctp("mauve"),
+	secondaryColor: ctp("surface1"),
+	secondaryTextColor: ctp("text"),
+	secondaryBorderColor: ctp("pink"),
+	tertiaryColor: ctp("mantle"),
+	tertiaryTextColor: ctp("text"),
+	tertiaryBorderColor: ctp("teal"),
+	lineColor: ctp("overlay2"),
+	textColor: ctp("text"),
+	mainBkg: ctp("surface0"),
+	nodeBorder: ctp("mauve"),
+	clusterBkg: ctp("mantle"),
+	clusterBorder: ctp("surface2"),
+	titleColor: ctp("text"),
+	edgeLabelBackground: ctp("base"),
+	noteBkgColor: ctp("yellow"),
+	noteTextColor: ctp("crust"),
+	noteBorderColor: ctp("yellow"),
+	actorBkg: ctp("surface0"),
+	actorBorder: ctp("mauve"),
+	actorTextColor: ctp("text"),
+	actorLineColor: ctp("overlay1"),
+	signalColor: ctp("text"),
+	signalTextColor: ctp("text"),
+	labelBoxBkgColor: ctp("surface0"),
+	labelBoxBorderColor: ctp("mauve"),
+	labelTextColor: ctp("text"),
+	loopTextColor: ctp("text"),
+	activationBkgColor: ctp("surface1"),
+	activationBorderColor: ctp("mauve"),
+	sequenceNumberColor: ctp("base"),
+	errorBkgColor: ctp("red"),
+	errorTextColor: ctp("base"),
+});
+
 // Apply config from the *current* theme. Called on every render (not just first
-// load) so toggling dark mode re-themes diagrams instead of baking the theme
-// into the memoized init. `suppressErrorRendering` stops mermaid from painting
-// its error-bomb SVG into document.body on parse failure (the normal mid-typing
+// load) so a theme change re-themes diagrams instead of baking the theme into
+// the memoized init. `suppressErrorRendering` stops mermaid from painting its
+// error-bomb SVG into document.body on parse failure (the normal mid-typing
 // state) — we surface failures inline via the error channel instead.
 const applyConfig = (api: MermaidApi): void => {
-	const isDark =
-		typeof document !== "undefined" &&
-		document.documentElement.classList.contains("dark");
 	api.initialize({
 		startOnLoad: false,
 		securityLevel: "strict",
 		suppressErrorRendering: true,
-		theme: isDark ? "dark" : "default",
+		theme: "base",
+		themeVariables: themeVariables(),
 	});
 };
 

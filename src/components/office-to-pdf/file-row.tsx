@@ -1,18 +1,14 @@
-import {
-	CheckCircle2,
-	CircleAlert,
-	Download,
-	FileText,
-	Loader2,
-	X,
-} from "lucide-react";
+import { Download, FileText, X } from "lucide-react";
 
+import { useJustDone } from "#/components/done-burst.tsx";
 import type {
 	ItemStatus,
 	OfficeItem,
 } from "#/components/office-to-pdf/types.ts";
 import { formatBytes } from "#/components/office-to-pdf/utils.ts";
+import { StatusPill } from "#/components/status-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { cn } from "#/lib/utils.ts";
 
 export function FileRow({
 	item,
@@ -25,8 +21,15 @@ export function FileRow({
 	onRemove: () => void;
 	onSave: () => void;
 }) {
+	const justDone = useJustDone(item.status === "done");
+
 	return (
-		<li className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+		<li
+			className={cn(
+				"animate-pop-in flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5",
+				justDone && "animate-done-tint",
+			)}
+		>
 			<FileText className="size-5 shrink-0 text-muted-foreground" />
 			<div className="min-w-0 flex-1">
 				<p className="truncate text-sm font-medium">{item.file.name}</p>
@@ -36,11 +39,11 @@ export function FileRow({
 						item.outSize != null &&
 						` → ${formatBytes(item.outSize)} (PDF)`}
 					{item.status === "error" && item.message && (
-						<span className="text-destructive"> — {item.message}</span>
+						<span className="text-destructive">: {item.message}</span>
 					)}
 				</p>
 			</div>
-			<StatusBadge status={item.status} />
+			<StatusBadge status={item.status} celebrate={justDone} />
 			{item.status === "done" && item.outBlob && (
 				<Button variant="ghost" size="sm" onClick={onSave}>
 					<Download />
@@ -61,12 +64,16 @@ export function FileRow({
 	);
 }
 
-function StatusBadge({ status }: { status: ItemStatus }) {
-	if (status === "converting")
-		return <Loader2 className="size-4 shrink-0 animate-spin text-primary" />;
+function StatusBadge({
+	status,
+	celebrate,
+}: {
+	status: ItemStatus;
+	celebrate: boolean;
+}) {
+	if (status === "converting") return <StatusPill state="working" />;
 	if (status === "done")
-		return <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />;
-	if (status === "error")
-		return <CircleAlert className="size-4 shrink-0 text-destructive" />;
+		return <StatusPill state="done" celebrate={celebrate} />;
+	if (status === "error") return <StatusPill state="failed" />;
 	return null;
 }

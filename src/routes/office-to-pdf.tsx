@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
-
 import { EnginePanel } from "#/components/office-to-pdf/engine-panel.tsx";
 import { OfficeShell } from "#/components/office-to-pdf/office-shell.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { isEngineCached, type LoadPhase } from "#/lib/file/office-types.ts";
 
 export const Route = createFileRoute("/office-to-pdf")({
@@ -14,10 +14,8 @@ export const Route = createFileRoute("/office-to-pdf")({
 
 function OfficeToPdfPage() {
 	const [phase, setPhase] = useState<LoadPhase>({ kind: "checking" });
-	const [declined, setDeclined] = useState(false);
 
 	const startLoad = useCallback(async () => {
-		setDeclined(false);
 		setPhase({ kind: "downloading", percent: 0 });
 		try {
 			// Dynamic import keeps the office runtime out of the route bundle until
@@ -36,7 +34,7 @@ function OfficeToPdfPage() {
 	}, []);
 
 	// On mount: peek the Cache API. If the engine is already cached, skip the
-	// consent dialog and go straight to preparing.
+	// consent step and go straight to preparing.
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
@@ -59,21 +57,13 @@ function OfficeToPdfPage() {
 			{phase.kind === "ready" ? (
 				<OfficeShell />
 			) : (
-				<div className="mx-auto w-full max-w-3xl px-6 py-10">
-					<div className="mb-6">
-						<h1 className="text-2xl font-bold">Word to PDF</h1>
-						<p className="mt-1 text-sm text-muted-foreground">
-							Convert Word, OpenDocument, and RTF files to PDF — entirely in
-							your browser. Nothing is uploaded.
-						</p>
-					</div>
-					<EnginePanel
-						phase={phase}
-						declined={declined}
-						onStart={startLoad}
-						onDecline={() => setDeclined(true)}
-					/>
-				</div>
+				<PageShell>
+					<PageHeader title="Word to PDF">
+						Convert Word, OpenDocument, and RTF files to PDF, entirely in your
+						browser. Nothing is uploaded.
+					</PageHeader>
+					<EnginePanel phase={phase} onStart={startLoad} />
+				</PageShell>
 			)}
 		</>
 	);

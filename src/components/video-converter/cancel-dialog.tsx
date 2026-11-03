@@ -36,10 +36,7 @@ export function CancelDialog({
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>Keep converting</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={onConfirm}
-						className="bg-destructive text-white hover:bg-destructive/90"
-					>
+					<AlertDialogAction variant="destructive" onClick={onConfirm}>
 						<Ban />
 						Cancel conversion
 					</AlertDialogAction>

@@ -1,13 +1,16 @@
-import { CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
-
 import type { ItemStatus } from "#/components/converter/types.ts";
+import { StatusPill } from "#/components/status-pill.tsx";
 
-export function StatusBadge({ status }: { status: ItemStatus }) {
-	if (status === "processing")
-		return <Loader2 className="size-4 shrink-0 animate-spin text-primary" />;
+export function StatusBadge({
+	status,
+	celebrate,
+}: {
+	status: ItemStatus;
+	celebrate?: boolean;
+}) {
+	if (status === "processing") return <StatusPill state="working" />;
 	if (status === "done")
-		return <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />;
-	if (status === "error")
-		return <CircleAlert className="size-4 shrink-0 text-destructive" />;
+		return <StatusPill state="done" celebrate={celebrate} />;
+	if (status === "error") return <StatusPill state="failed" />;
 	return null;
 }

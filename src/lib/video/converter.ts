@@ -95,7 +95,7 @@ const convertOne = (
 			outputMime: meta.mime,
 			label: "Encoder",
 			oomMessage:
-				"Your device ran out of memory — this video is too large or high-resolution to convert in the browser. Try a shorter clip or a lower-resolution copy.",
+				"Your device ran out of memory. This video is too large or high-resolution to convert in the browser. Try a shorter clip or a lower-resolution copy.",
 			readError: (message) =>
 				new VideoDecodeError({ fileName: input.file.name, message }),
 			jobError: (message) =>

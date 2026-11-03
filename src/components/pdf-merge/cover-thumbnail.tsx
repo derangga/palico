@@ -18,7 +18,7 @@ export function CoverThumbnail({ item }: { item: MergeItem }) {
 
 	if (item.status === "loading") {
 		return (
-			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-white">
+			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border bg-white shadow-sm">
 				<Loader2 className="size-4 animate-spin text-muted-foreground" />
 			</div>
 		);
@@ -26,7 +26,7 @@ export function CoverThumbnail({ item }: { item: MergeItem }) {
 
 	if (item.status === "error" || !item.thumbnail) {
 		return (
-			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border/60 bg-white">
+			<div className="flex h-14 w-11 shrink-0 items-center justify-center rounded-sm border border-border bg-white shadow-sm">
 				<CircleAlert className="size-4 text-destructive" />
 			</div>
 		);
@@ -37,7 +37,7 @@ export function CoverThumbnail({ item }: { item: MergeItem }) {
 			ref={canvasRef}
 			width={item.thumbnail.width}
 			height={item.thumbnail.height}
-			className="h-14 w-auto shrink-0 rounded-sm border border-border/60 bg-white shadow-xs"
+			className="h-14 w-auto shrink-0 rounded-sm border border-border bg-white shadow-sm"
 		/>
 	);
 }
