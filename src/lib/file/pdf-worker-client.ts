@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 
+import type { MetadataReport } from "#/lib/metadata/types.ts";
+
 import {
 	EncryptedPdfError,
 	InvalidPdfError,
@@ -45,6 +47,8 @@ const WORKER_RESPONSE_TYPES = new Set<string>([
 	"extracted",
 	"zipped",
 	"merged",
+	"metadata",
+	"stripped",
 	"error",
 ]);
 
@@ -235,6 +239,39 @@ export const mergePdfFiles = (params: {
 		},
 		[...params.buffers],
 		(res) => (res.type === "merged" ? Succeed(res.bytes) : Unhandled),
+	);
+
+// Read the document info + XMP of one PDF.
+export const readPdfMetadataInWorker = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffer: ArrayBuffer;
+}): Effect.Effect<MetadataReport, PdfLoadError> =>
+	runWorkerJob<MetadataReport>(
+		params.fileName,
+		{ type: "read-metadata", id: params.id, buffer: params.buffer },
+		[params.buffer],
+		(res) => (res.type === "metadata" ? Succeed(res.report) : Unhandled),
+	);
+
+// Strip the document info + XMP of one PDF. Resolves with the new bytes and
+// what a re-read of them still finds.
+export const stripPdfMetadataInWorker = (params: {
+	readonly id: string;
+	readonly fileName: string;
+	readonly buffer: ArrayBuffer;
+}): Effect.Effect<
+	{ readonly bytes: ArrayBuffer; readonly after: MetadataReport },
+	PdfLoadError
+> =>
+	runWorkerJob(
+		params.fileName,
+		{ type: "strip-metadata", id: params.id, buffer: params.buffer },
+		[params.buffer],
+		(res) =>
+			res.type === "stripped"
+				? Succeed({ bytes: res.bytes, after: res.after })
+				: Unhandled,
 	);
 
 const toTypedError = (

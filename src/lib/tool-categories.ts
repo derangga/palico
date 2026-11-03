@@ -1,6 +1,7 @@
 import {
 	Combine,
 	Eraser,
+	EyeOff,
 	FileDiff,
 	FileStack,
 	FileText,
@@ -111,6 +112,13 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		label: "Word to PDF",
 		blurb: "Turn Word, ODT and RTF files into PDF.",
 		icon: FileText,
+		category: "file",
+	},
+	{
+		to: "/strip-metadata",
+		label: "Remove Metadata",
+		blurb: "See and remove hidden data in photos and PDFs.",
+		icon: EyeOff,
 		category: "file",
 	},
 ];

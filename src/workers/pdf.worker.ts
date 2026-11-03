@@ -19,8 +19,10 @@ import type {
 	MergeRequest,
 	PdfWorkerRequest,
 	PdfWorkerResponse,
+	ReadMetadataRequest,
 	RenderRequest,
 	SplitRequest,
+	StripMetadataRequest,
 } from "#/lib/file/pdf-types.ts";
 
 GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
@@ -341,6 +343,41 @@ async function merge(req: MergeRequest): Promise<void> {
 	post({ type: "merged", id: req.id, bytes: buffer }, [buffer]);
 }
 
+// Remove Metadata tool. The pdf-lib logic lives in src/lib/file/pdf-metadata.ts
+// (unit tested); it is imported lazily like pdf-lib elsewhere in this worker.
+async function readMetadata(req: ReadMetadataRequest): Promise<void> {
+	const { loadForMetadata, readPdfMetadata } = await import(
+		"#/lib/file/pdf-metadata.ts"
+	);
+	let doc: import("pdf-lib").PDFDocument;
+	try {
+		doc = await loadForMetadata(req.buffer);
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
+	}
+	post({ type: "metadata", id: req.id, report: readPdfMetadata(doc) });
+}
+
+async function stripMetadata(req: StripMetadataRequest): Promise<void> {
+	const { loadForMetadata, stripPdfMetadata } = await import(
+		"#/lib/file/pdf-metadata.ts"
+	);
+	let doc: import("pdf-lib").PDFDocument;
+	try {
+		doc = await loadForMetadata(req.buffer);
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
+	}
+	const { bytes, after } = await stripPdfMetadata(doc);
+	const buffer = bytes.buffer.slice(
+		bytes.byteOffset,
+		bytes.byteOffset + bytes.byteLength,
+	) as ArrayBuffer;
+	post({ type: "stripped", id: req.id, bytes: buffer, after }, [buffer]);
+}
+
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
 	const fail = (err: unknown) =>
@@ -359,5 +396,9 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 		split(req).catch(fail);
 	} else if (req.type === "merge") {
 		merge(req).catch(fail);
+	} else if (req.type === "read-metadata") {
+		readMetadata(req).catch(fail);
+	} else if (req.type === "strip-metadata") {
+		stripMetadata(req).catch(fail);
 	}
 });
