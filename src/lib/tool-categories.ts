@@ -8,6 +8,7 @@ import {
 	FileText,
 	Film,
 	ImageIcon,
+	ImagePlay,
 	Images,
 	LayoutGrid,
 	type LucideIcon,
@@ -88,6 +89,13 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		label: "Video Cutter",
 		blurb: "Trim a clip out of any video.",
 		icon: Scissors,
+		category: "video",
+	},
+	{
+		to: "/video-to-gif",
+		label: "Video to GIF",
+		blurb: "Turn a short clip into an animated GIF.",
+		icon: ImagePlay,
 		category: "video",
 	},
 	{

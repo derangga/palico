@@ -40,6 +40,16 @@ export class VideoTrimError extends Schema.TaggedError<VideoTrimError>()(
 	},
 ) {}
 
+// The GIF tool re-encodes to a palette GIF; a distinct tag keeps its failures
+// apart from the converter's per-format VideoEncodeError.
+export class VideoGifError extends Schema.TaggedError<VideoGifError>()(
+	"VideoGifError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 // Extract Audio failures: reading or probing the file, encoding or copying
 // the stream, or reading the output back.
 export class AudioExtractError extends Schema.TaggedError<AudioExtractError>()(

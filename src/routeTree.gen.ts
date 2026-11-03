@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VideoToGifRouteImport } from './routes/video-to-gif'
 import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
@@ -27,6 +28,11 @@ import { Route as CompressorRouteImport } from './routes/compressor'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
 
+const VideoToGifRoute = VideoToGifRouteImport.update({
+  id: '/video-to-gif',
+  path: '/video-to-gif',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VideoCutterRoute = VideoCutterRouteImport.update({
   id: '/video-cutter',
   path: '/video-cutter',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
+  '/video-to-gif': typeof VideoToGifRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
+  '/video-to-gif': typeof VideoToGifRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
+  '/video-to-gif': typeof VideoToGifRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
+    | '/video-to-gif'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
+    | '/video-to-gif'
   id:
     | '__root__'
     | '/'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/strip-metadata'
     | '/video-converter'
     | '/video-cutter'
+    | '/video-to-gif'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -249,10 +261,18 @@ export interface RootRouteChildren {
   StripMetadataRoute: typeof StripMetadataRoute
   VideoConverterRoute: typeof VideoConverterRoute
   VideoCutterRoute: typeof VideoCutterRoute
+  VideoToGifRoute: typeof VideoToGifRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/video-to-gif': {
+      id: '/video-to-gif'
+      path: '/video-to-gif'
+      fullPath: '/video-to-gif'
+      preLoaderRoute: typeof VideoToGifRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/video-cutter': {
       id: '/video-cutter'
       path: '/video-cutter'
@@ -393,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   StripMetadataRoute: StripMetadataRoute,
   VideoConverterRoute: VideoConverterRoute,
   VideoCutterRoute: VideoCutterRoute,
+  VideoToGifRoute: VideoToGifRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

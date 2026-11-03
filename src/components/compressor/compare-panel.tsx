@@ -1,20 +1,8 @@
 import { X } from "lucide-react";
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
-
-// Create and revoke the URL in the same effect. A useMemo + cleanup pair breaks
-// under StrictMode: the dev double-mount revokes the memoized URL, and when the
-// panel opens from a click the effects flush before the <img> resolves it.
-function useObjectUrl(blob: Blob) {
-	const [url, setUrl] = useState<string | null>(null);
-	useEffect(() => {
-		const next = URL.createObjectURL(blob);
-		setUrl(next);
-		return () => URL.revokeObjectURL(next);
-	}, [blob]);
-	return url;
-}
+import { useObjectUrl } from "#/hooks/use-object-url.ts";
 
 // Before/after split view. The result image sits on top of the original and is
 // cut off at the split; a native range input moves the split, so it works with

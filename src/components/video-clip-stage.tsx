@@ -1,53 +1,42 @@
 // biome-ignore-all lint/a11y/useMediaCaption: the only <video> is a user-supplied local clip with no caption track available.
+// Preview, playback controls and selection timeline for one video. Shared by
+// /video-cutter and /video-to-gif; the state lives in useClipPlayer.
 import { Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
-import type { RefObject } from "react";
+import type { ReactNode } from "react";
 import { Button } from "#/components/ui/button.tsx";
 import { formatTime } from "#/components/video-cutter/utils.ts";
 import { VideoTrimTimeline } from "#/components/video-trim-timeline.tsx";
+import type { ClipPlayer } from "#/hooks/use-clip-player.ts";
 
-interface CutterStageProps {
-	videoRef: RefObject<HTMLVideoElement | null>;
-	objectUrl: string | null;
-	currentTime: number;
-	duration: number;
-	isPlaying: boolean;
-	start: number;
-	end: number;
-	thumbnails: string[];
-	trimming: boolean;
-	onLoadedMetadata: () => void;
-	onPlay: () => void;
-	onPause: () => void;
-	onSeekBack: () => void;
-	onSeekForward: () => void;
-	onTogglePlay: () => void;
-	onRestart: () => void;
-	onChangeStart: (sec: number) => void;
-	onChangeEnd: (sec: number) => void;
-	onScrub: (sec: number) => void;
+const SKIP_SECONDS = 5;
+
+interface VideoClipStageProps {
+	player: ClipPlayer;
+	// True while a job runs: the timeline handles lock.
+	disabled: boolean;
+	// Longest selection the tool accepts, in seconds.
+	maxSelection?: number;
+	// Short line under the timeline, such as the cutter's keyframe note.
+	note?: ReactNode;
 }
 
-export function CutterStage({
-	videoRef,
-	objectUrl,
-	currentTime,
-	duration,
-	isPlaying,
-	start,
-	end,
-	thumbnails,
-	trimming,
-	onLoadedMetadata,
-	onPlay,
-	onPause,
-	onSeekBack,
-	onSeekForward,
-	onTogglePlay,
-	onRestart,
-	onChangeStart,
-	onChangeEnd,
-	onScrub,
-}: CutterStageProps) {
+export function VideoClipStage({
+	player,
+	disabled,
+	maxSelection,
+	note,
+}: VideoClipStageProps) {
+	const {
+		videoRef,
+		objectUrl,
+		currentTime,
+		duration,
+		isPlaying,
+		start,
+		end,
+		thumbnails,
+	} = player;
+
 	return (
 		<div className="flex min-w-0 flex-col gap-2">
 			{/* User-supplied local video; no captions available. Biome's
@@ -57,9 +46,9 @@ export function CutterStage({
 				ref={videoRef}
 				src={objectUrl ?? undefined}
 				aria-label="Video preview"
-				onLoadedMetadata={onLoadedMetadata}
-				onPlay={onPlay}
-				onPause={onPause}
+				onLoadedMetadata={player.onLoadedMetadata}
+				onPlay={() => player.setPlaying(true)}
+				onPause={() => player.setPlaying(false)}
 				className="max-h-[60vh] w-full rounded-xl border bg-black"
 			/>
 
@@ -73,7 +62,7 @@ export function CutterStage({
 						variant="outline"
 						size="icon-sm"
 						aria-label="Restart from selection start"
-						onClick={onRestart}
+						onClick={player.restart}
 					>
 						<RotateCcw />
 					</Button>
@@ -81,14 +70,14 @@ export function CutterStage({
 						variant="outline"
 						size="icon-sm"
 						aria-label="Back 5 seconds"
-						onClick={onSeekBack}
+						onClick={() => player.seekTo(currentTime - SKIP_SECONDS)}
 					>
 						<SkipBack />
 					</Button>
 					<Button
 						size="icon-sm"
 						aria-label={isPlaying ? "Pause" : "Play"}
-						onClick={onTogglePlay}
+						onClick={player.togglePlay}
 					>
 						{isPlaying ? <Pause /> : <Play />}
 					</Button>
@@ -96,30 +85,27 @@ export function CutterStage({
 						variant="outline"
 						size="icon-sm"
 						aria-label="Forward 5 seconds"
-						onClick={onSeekForward}
+						onClick={() => player.seekTo(currentTime + SKIP_SECONDS)}
 					>
 						<SkipForward />
 					</Button>
 				</div>
 			</div>
 
-			{/* Trim selection */}
 			<VideoTrimTimeline
 				duration={duration}
 				start={start}
 				end={end}
 				currentTime={currentTime}
 				thumbnails={thumbnails}
-				disabled={trimming}
-				onChangeStart={onChangeStart}
-				onChangeEnd={onChangeEnd}
-				onScrub={onScrub}
+				maxSelection={maxSelection}
+				disabled={disabled}
+				onChangeStart={player.changeStart}
+				onChangeEnd={player.changeEnd}
+				onScrub={player.seekTo}
 			/>
 
-			<p className="text-xs text-muted-foreground">
-				Cuts snap to the nearest keyframe, so the clip may start up to a second
-				or two before your selection.
-			</p>
+			{note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
 		</div>
 	);
 }
