@@ -20,6 +20,7 @@ import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
+import { Route as ExtractAudioRouteImport } from './routes/extract-audio'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as CompressorRouteImport } from './routes/compressor'
@@ -81,6 +82,11 @@ const FaviconGeneratorRoute = FaviconGeneratorRouteImport.update({
   path: '/favicon-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExtractAudioRoute = ExtractAudioRouteImport.update({
+  id: '/extract-audio',
+  path: '/extract-audio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiffViewerRoute = DiffViewerRouteImport.update({
   id: '/diff-viewer',
   path: '/diff-viewer',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
+  '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
+  '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
+  '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
+    | '/extract-audio'
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
+    | '/extract-audio'
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
+    | '/extract-audio'
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
@@ -225,6 +237,7 @@ export interface RootRouteChildren {
   CompressorRoute: typeof CompressorRoute
   ConverterRoute: typeof ConverterRoute
   DiffViewerRoute: typeof DiffViewerRoute
+  ExtractAudioRoute: typeof ExtractAudioRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaviconGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/extract-audio': {
+      id: '/extract-audio'
+      path: '/extract-audio'
+      fullPath: '/extract-audio'
+      preLoaderRoute: typeof ExtractAudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/diff-viewer': {
       id: '/diff-viewer'
       path: '/diff-viewer'
@@ -361,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompressorRoute: CompressorRoute,
   ConverterRoute: ConverterRoute,
   DiffViewerRoute: DiffViewerRoute,
+  ExtractAudioRoute: ExtractAudioRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   MarkdownPreviewRoute: MarkdownPreviewRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,

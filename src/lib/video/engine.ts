@@ -27,6 +27,7 @@ export interface EngineHandle {
 	readonly writeFile: (name: string, data: Uint8Array) => Promise<unknown>;
 	readonly deleteFile: (name: string) => Promise<unknown>;
 	readonly exec: (args: string[]) => Promise<number>;
+	readonly ffprobe: (args: string[]) => Promise<number>;
 	readonly on: {
 		(event: "progress", handler: ProgressHandler): void;
 		(event: "log", handler: LogHandler): void;

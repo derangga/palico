@@ -1,4 +1,5 @@
 import {
+	AudioLines,
 	Combine,
 	Eraser,
 	EyeOff,
@@ -87,6 +88,13 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		label: "Video Cutter",
 		blurb: "Trim a clip out of any video.",
 		icon: Scissors,
+		category: "video",
+	},
+	{
+		to: "/extract-audio",
+		label: "Extract Audio",
+		blurb: "Save the sound of a video as MP3, M4A, Opus or WAV.",
+		icon: AudioLines,
 		category: "video",
 	},
 	{
