@@ -24,6 +24,8 @@ interface VideoTrimTimelineProps {
 	readonly thumbnails?: ReadonlyArray<string>;
 	/** Smallest allowed selection length. Defaults to 0.5s. */
 	readonly minSelection?: number;
+	/** Largest allowed selection length. Defaults to no limit. */
+	readonly maxSelection?: number;
 	/** Keyboard nudge step in seconds. Defaults to 1s. */
 	readonly step?: number;
 	readonly disabled?: boolean;
@@ -66,6 +68,7 @@ export function VideoTrimTimeline({
 	currentTime,
 	thumbnails = EMPTY_THUMBNAILS,
 	minSelection = 0.5,
+	maxSelection = Number.POSITIVE_INFINITY,
 	step = 1,
 	disabled = false,
 	onChangeStart,
@@ -100,34 +103,39 @@ export function VideoTrimTimeline({
 		[disabled, secAt],
 	);
 
+	// Allowed handle ranges: the selection stays between minSelection and
+	// maxSelection long, inside the source.
+	const startMin = Math.max(0, end - maxSelection);
+	const startMax = end - minSelection;
+	const endMin = start + minSelection;
+	const endMax = Math.min(duration, start + maxSelection);
+
 	const onStartHandleDown = useCallback(
 		(e: React.PointerEvent) =>
-			beginDrag(e, (sec) => onChangeStart(clamp(sec, 0, end - minSelection))),
-		[beginDrag, onChangeStart, end, minSelection],
+			beginDrag(e, (sec) => onChangeStart(clamp(sec, startMin, startMax))),
+		[beginDrag, onChangeStart, startMin, startMax],
 	);
 
 	const onStartHandleMove = useCallback(
 		(e: React.PointerEvent) => {
 			if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-			onChangeStart(clamp(secAt(e.clientX), 0, end - minSelection));
+			onChangeStart(clamp(secAt(e.clientX), startMin, startMax));
 		},
-		[secAt, onChangeStart, end, minSelection],
+		[secAt, onChangeStart, startMin, startMax],
 	);
 
 	const onEndHandleDown = useCallback(
 		(e: React.PointerEvent) =>
-			beginDrag(e, (sec) =>
-				onChangeEnd(clamp(sec, start + minSelection, duration)),
-			),
-		[beginDrag, onChangeEnd, start, minSelection, duration],
+			beginDrag(e, (sec) => onChangeEnd(clamp(sec, endMin, endMax))),
+		[beginDrag, onChangeEnd, endMin, endMax],
 	);
 
 	const onEndHandleMove = useCallback(
 		(e: React.PointerEvent) => {
 			if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-			onChangeEnd(clamp(secAt(e.clientX), start + minSelection, duration));
+			onChangeEnd(clamp(secAt(e.clientX), endMin, endMax));
 		},
-		[secAt, onChangeEnd, start, minSelection, duration],
+		[secAt, onChangeEnd, endMin, endMax],
 	);
 
 	// Click/drag on the track body (not a handle) scrubs the playhead.
@@ -260,7 +268,7 @@ export function VideoTrimTimeline({
 					onPointerDown={onStartHandleDown}
 					onPointerMove={onStartHandleMove}
 					onKeyDown={(e) =>
-						handleKey(e, start, 0, end - minSelection, onChangeStart)
+						handleKey(e, start, startMin, startMax, onChangeStart)
 					}
 					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${startPct}%` }}
@@ -282,9 +290,7 @@ export function VideoTrimTimeline({
 					aria-valuetext={fmt(end)}
 					onPointerDown={onEndHandleDown}
 					onPointerMove={onEndHandleMove}
-					onKeyDown={(e) =>
-						handleKey(e, end, start + minSelection, duration, onChangeEnd)
-					}
+					onKeyDown={(e) => handleKey(e, end, endMin, endMax, onChangeEnd)}
 					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${endPct}%` }}
 				>
