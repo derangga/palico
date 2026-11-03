@@ -69,11 +69,22 @@ export class PdfWorkerError extends Schema.TaggedError<PdfWorkerError>()(
 	},
 ) {}
 
+// PDF to Images: rendering every page at the chosen DPI would hold more than
+// MAX_RASTER_TOTAL_PIXELS in memory. The message suggests a lower DPI.
+export class PdfRasterBudgetError extends Schema.TaggedError<PdfRasterBudgetError>()(
+	"PdfRasterBudgetError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 export type PdfLoadError =
 	| PdfTooLargeError
 	| PdfTooManyPagesError
 	| InvalidPdfError
 	| EncryptedPdfError
+	| PdfRasterBudgetError
 	| PdfWorkerError;
 
 // Raised when copying/saving pages into a new PDF fails (pdf-lib).

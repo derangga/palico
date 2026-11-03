@@ -11,12 +11,16 @@ import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
 	type PdfThumbnail,
+	type RasterDpi,
+	type RasterFormat,
+	type Rotation,
 	type SplitPart,
 	THUMBNAIL_WIDTH,
 } from "./pdf-types.ts";
 import {
 	extractPdfPages,
 	mergePdfFiles,
+	rasterizePdfToZip,
 	renderPdfThumbnails,
 	splitPdfToZip,
 } from "./pdf-worker-client.ts";
@@ -73,13 +77,15 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 	);
 });
 
-// Copy the selected 0-based page indices (in document order) into a new PDF and
+// Copy the given 0-based page indices (in the given order) into a new PDF and
 // return it as a downloadable Blob. The file is re-read here so the original
 // File stays the source of truth (its buffer was transferred away during render).
 export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 	readonly id: string;
 	readonly file: File;
 	readonly pageIndices: ReadonlyArray<number>;
+	// Organize PDF: degrees to add to each page, same order as pageIndices.
+	readonly rotations?: ReadonlyArray<Rotation>;
 }) {
 	const buffer = yield* Effect.tryPromise({
 		try: () => params.file.arrayBuffer(),
@@ -94,6 +100,7 @@ export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 		fileName: params.file.name,
 		buffer,
 		pageIndices: params.pageIndices,
+		rotations: params.rotations,
 	});
 	return new Blob([result], { type: "application/pdf" });
 });
@@ -178,4 +185,37 @@ export const mergePdfs = Effect.fn("Pdf.mergePdfs")(function* (params: {
 		buffers,
 	});
 	return new Blob([merged], { type: "application/pdf" });
+});
+
+// Render every page to PNG or JPEG and return them zipped as one Blob. Same
+// re-read rationale as extractPages. `onProgress` fires as pages finish.
+export const pdfToImages = Effect.fn("Pdf.pdfToImages")(function* (
+	params: {
+		readonly id: string;
+		readonly file: File;
+		readonly format: RasterFormat;
+		readonly dpi: RasterDpi;
+	},
+	onProgress: (pagesDone: number, pageCount: number) => void,
+) {
+	const buffer = yield* Effect.tryPromise({
+		try: () => params.file.arrayBuffer(),
+		catch: (err) =>
+			new InvalidPdfError({
+				fileName: params.file.name,
+				message: err instanceof Error ? err.message : "Could not read file.",
+			}),
+	});
+	return yield* rasterizePdfToZip(
+		{
+			id: params.id,
+			fileName: params.file.name,
+			buffer,
+			maxPages: MAX_PDF_PAGES,
+			format: params.format,
+			dpi: params.dpi,
+			baseName: baseName(params.file.name),
+		},
+		onProgress,
+	);
 });

@@ -6,6 +6,7 @@ import {
 	EncryptedPdfError,
 	InvalidPdfError,
 	type PdfLoadError,
+	PdfRasterBudgetError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
 } from "./errors.ts";
@@ -14,7 +15,10 @@ import {
 	type PdfThumbnail,
 	type PdfWorkerRequest,
 	type PdfWorkerResponse,
+	type RasterDpi,
+	type RasterFormat,
 	type RenderedPdf,
+	type Rotation,
 	type SplitPart,
 } from "./pdf-types.ts";
 
@@ -49,6 +53,7 @@ const WORKER_RESPONSE_TYPES = new Set<string>([
 	"merged",
 	"metadata",
 	"stripped",
+	"zip-chunk",
 	"error",
 ]);
 
@@ -189,6 +194,7 @@ export const extractPdfPages = (params: {
 	readonly fileName: string;
 	readonly buffer: ArrayBuffer;
 	readonly pageIndices: ReadonlyArray<number>;
+	readonly rotations?: ReadonlyArray<Rotation>;
 }): Effect.Effect<ArrayBuffer, PdfLoadError> =>
 	runWorkerJob<ArrayBuffer>(
 		params.fileName,
@@ -197,6 +203,7 @@ export const extractPdfPages = (params: {
 			id: params.id,
 			buffer: params.buffer,
 			pageIndices: [...params.pageIndices],
+			rotations: params.rotations && [...params.rotations],
 		},
 		[params.buffer],
 		(res) => (res.type === "extracted" ? Succeed(res.bytes) : Unhandled),
@@ -274,6 +281,49 @@ export const stripPdfMetadataInWorker = (params: {
 				: Unhandled,
 	);
 
+// Render every page to PNG/JPEG and collect the streamed zip chunks into one
+// Blob. `onProgress` fires with each chunk so the UI can show pages done.
+export const rasterizePdfToZip = (
+	params: {
+		readonly id: string;
+		readonly fileName: string;
+		readonly buffer: ArrayBuffer;
+		readonly maxPages: number;
+		readonly format: RasterFormat;
+		readonly dpi: RasterDpi;
+		readonly baseName: string;
+	},
+	onProgress: (pagesDone: number, pageCount: number) => void,
+): Effect.Effect<Blob, PdfLoadError> =>
+	Effect.suspend(() => {
+		const chunks: ArrayBuffer[] = [];
+		return runWorkerJob<Blob>(
+			params.fileName,
+			{
+				type: "rasterize",
+				id: params.id,
+				buffer: params.buffer,
+				maxPages: params.maxPages,
+				format: params.format,
+				dpi: params.dpi,
+				baseName: params.baseName,
+			},
+			[params.buffer],
+			(res) => {
+				switch (res.type) {
+					case "zip-chunk":
+						chunks.push(res.bytes);
+						onProgress(res.pagesDone, res.pageCount);
+						return Continue;
+					case "done":
+						return Succeed(new Blob(chunks, { type: "application/zip" }));
+					default:
+						return Unhandled;
+				}
+			},
+		);
+	});
+
 const toTypedError = (
 	fileName: string,
 	res: Extract<PdfWorkerResponse, { type: "error" }>,
@@ -288,6 +338,8 @@ const toTypedError = (
 				limit: MAX_PDF_PAGES,
 				message: res.message,
 			});
+		case "too-large":
+			return new PdfRasterBudgetError({ fileName, message: res.message });
 		case "worker":
 			return new PdfWorkerError({ fileName, message: res.message });
 		default:

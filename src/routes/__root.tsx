@@ -82,6 +82,8 @@ const PAGE_CRUMBS: Record<string, { group?: string; title: string }> = {
 	"/diff-viewer": { group: "File", title: "Diff Viewer" },
 	"/pdf-split": { group: "File", title: "Split PDF" },
 	"/pdf-merge": { group: "File", title: "Merge PDFs" },
+	"/pdf-organize": { group: "File", title: "Organize PDF" },
+	"/pdf-to-images": { group: "File", title: "PDF to Images" },
 	"/office-to-pdf": { group: "File", title: "Word to PDF" },
 };
 
