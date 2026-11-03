@@ -20,6 +20,8 @@ import {
 	Star,
 } from "lucide-react";
 
+import type { EngineId } from "#/lib/offline/shapes.ts";
+
 /**
  * The one registry of tools. The home grid and the sidebar both read it, and
  * `categoryOfPath` lets any page find its category from the URL.
@@ -34,6 +36,8 @@ export type Tool = {
 	blurb: string;
 	icon: LucideIcon;
 	category: ToolCategory;
+	/** The opt-in download this tool needs, if any (drives the offline pill). */
+	engine?: EngineId;
 };
 
 export const CATEGORIES: ReadonlyArray<{ id: ToolCategory; label: string }> = [
@@ -70,6 +74,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Cut out the subject of any image.",
 		icon: Eraser,
 		category: "image",
+		engine: "bg-model",
 	},
 	{
 		to: "/favicon-generator",
@@ -84,6 +89,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Convert to MP4, WebM, MOV, MKV or AVI.",
 		icon: Film,
 		category: "video",
+		engine: "ffmpeg",
 	},
 	{
 		to: "/video-cutter",
@@ -91,6 +97,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Trim a clip out of any video.",
 		icon: Scissors,
 		category: "video",
+		engine: "ffmpeg",
 	},
 	{
 		to: "/video-compressor",
@@ -98,6 +105,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Shrink a video to fit an upload limit.",
 		icon: Minimize2,
 		category: "video",
+		engine: "ffmpeg",
 	},
 	{
 		to: "/video-to-gif",
@@ -105,6 +113,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Turn a short clip into an animated GIF.",
 		icon: ImagePlay,
 		category: "video",
+		engine: "ffmpeg",
 	},
 	{
 		to: "/extract-audio",
@@ -112,6 +121,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Save the sound of a video as MP3, M4A, Opus or WAV.",
 		icon: AudioLines,
 		category: "video",
+		engine: "ffmpeg",
 	},
 	{
 		to: "/markdown-preview",
@@ -161,6 +171,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Turn Word, ODT and RTF files into PDF.",
 		icon: FileText,
 		category: "file",
+		engine: "office",
 	},
 	{
 		to: "/strip-metadata",

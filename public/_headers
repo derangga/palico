@@ -23,3 +23,8 @@
 # vite.config.ts's serveVendorStatic applies these instead.)
 /vendor/*
   Cross-Origin-Resource-Policy: same-origin
+
+# The service worker script must never be served from a stale HTTP cache, or a
+# fixed worker would take up to 24 h to reach users. (COOP/COEP come from /*.)
+/sw.js
+  Cache-Control: no-cache

@@ -15,6 +15,7 @@ import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize } from "#/lib/video/limits.ts";
 import { inputExtension, parseVideoOutputFormat } from "#/lib/video/types.ts";
@@ -121,9 +122,11 @@ function CutterShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { trimVideo } = await import("#/lib/video/trim.ts");
 			const exit = await Effect.runPromiseExit(
-				trimVideo(
-					{ file, startSec: start, endSec: end },
-					() => token.cancelled,
+				withBusy(
+					trimVideo(
+						{ file, startSec: start, endSec: end },
+						() => token.cancelled,
+					),
 				),
 			);
 			if (token.cancelled) return;

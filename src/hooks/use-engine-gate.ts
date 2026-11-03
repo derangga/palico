@@ -11,6 +11,8 @@
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
 
+import { guardedEngineLoad } from "#/lib/offline/gate.ts";
+import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { isEngineCached, type LoadPhase } from "#/lib/video/cache.ts";
 
 export function useEngineGate() {
@@ -20,7 +22,12 @@ export function useEngineGate() {
 		setPhase({ kind: "downloading", percent: 0 });
 		try {
 			const { loadEngine } = await import("#/lib/video/engine.ts");
-			await Effect.runPromise(loadEngine((next) => setPhase(next)));
+			await offlineRuntime.runPromise(
+				guardedEngineLoad(
+					"ffmpeg",
+					loadEngine((next) => setPhase(next)),
+				),
+			);
 		} catch (err) {
 			setPhase({
 				kind: "error",

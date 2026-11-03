@@ -13,6 +13,7 @@ import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize } from "#/lib/video/limits.ts";
 
@@ -100,12 +101,14 @@ function ExtractShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { extractAudio } = await import("#/lib/video/extract-audio.ts");
 			const exit = await Effect.runPromiseExit(
-				extractAudio(
-					{ file, format },
-					() => token.cancelled,
-					(p) => {
-						if (!token.cancelled) dispatch({ type: "progress", percent: p });
-					},
+				withBusy(
+					extractAudio(
+						{ file, format },
+						() => token.cancelled,
+						(p) => {
+							if (!token.cancelled) dispatch({ type: "progress", percent: p });
+						},
+					),
 				),
 			);
 			if (token.cancelled) return;

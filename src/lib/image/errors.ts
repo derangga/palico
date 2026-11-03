@@ -68,6 +68,16 @@ export class InferenceError extends Schema.TaggedError<InferenceError>()(
 	},
 ) {}
 
+// The model/ORT Cache API bucket could not be read or written. Never fatal: a
+// read failure is a cache miss and a write failure only means "not saved offline".
+export class ModelCacheError extends Schema.TaggedError<ModelCacheError>()(
+	"ModelCacheError",
+	{
+		op: Schema.Literal("open", "match", "put"),
+		message: Schema.String,
+	},
+) {}
+
 export type BackgroundRemovalError =
 	| FileTooLargeError
 	| DimensionsTooLargeError

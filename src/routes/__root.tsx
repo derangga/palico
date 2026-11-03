@@ -7,9 +7,11 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { Effect, Fiber } from "effect";
 import { useEffect, useRef, useState } from "react";
 
 import { AppSidebar } from "#/components/app-sidebar.tsx";
+import { UpdatePrompt } from "#/components/offline/update-prompt.tsx";
 import { ThemeProvider } from "#/components/theme-provider.tsx";
 import { ThemeToggle } from "#/components/theme-toggle.tsx";
 import {
@@ -18,6 +20,8 @@ import {
 	SidebarTrigger,
 } from "#/components/ui/sidebar.tsx";
 import { Toaster } from "#/components/ui/sonner.tsx";
+import { startOffline } from "#/lib/offline/register.ts";
+import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { cn } from "#/lib/utils.ts";
 
 import appCss from "../styles.css?url";
@@ -94,6 +98,15 @@ function RootLayout() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const crumb = PAGE_CRUMBS[pathname] ?? { title: "Palico" };
 
+	// Production only: the worker would cache stale modules during `vite dev`.
+	useEffect(() => {
+		if (!import.meta.env.PROD) return;
+		const fiber = offlineRuntime.runFork(startOffline);
+		return () => {
+			Effect.runFork(Fiber.interrupt(fiber));
+		};
+	}, []);
+
 	// Fade the page in after a pointer-driven navigation only: not on first load,
 	// not for keyboard navigation (the last input before the route change).
 	const keyboardDriven = useRef(false);
@@ -120,6 +133,7 @@ function RootLayout() {
 
 	return (
 		<SidebarProvider>
+			<UpdatePrompt />
 			<AppSidebar />
 			<SidebarInset>
 				<header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/70 px-4 backdrop-blur-md supports-backdrop-filter:bg-background/60">

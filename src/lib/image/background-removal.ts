@@ -14,6 +14,8 @@ import {
 	InferenceError,
 	ModelLoadError,
 } from "./errors.ts";
+import { isModelCached, modelCache, prefetchOrtAssets } from "./model-cache.ts";
+import { ORT_ASSET_URLS } from "./ort-assets.ts";
 import { MAX_DIMENSION, MAX_FILE_BYTES } from "./types.ts";
 
 // Single-file ML feature. transformers.js owns its own threading
@@ -71,8 +73,15 @@ const buildPipeline = (
 		try: async () => {
 			const { pipeline, env } = await import("@huggingface/transformers");
 			env.allowLocalModels = false;
-			// Cache API is unreliable on iOS Safari; rely on browser HTTP cache
+			// Our own Cache API bucket (see model-cache.ts) so the weights are
+			// queryable and survive offline. The default transformers.js cache was
+			// unreliable on iOS Safari, hence a custom one; verify on a device.
 			env.useBrowserCache = false;
+			env.useCustomCache = true;
+			env.customCache = modelCache;
+			// Self-host ONNX Runtime (default is jsdelivr, which fails offline).
+			if (env.backends.onnx.wasm)
+				env.backends.onnx.wasm.wasmPaths = ORT_ASSET_URLS;
 			const model = await pipeline("image-segmentation", MODEL_ID, {
 				device,
 				dtype: "fp32",
@@ -246,6 +255,12 @@ export const isModelLoaded: Effect.Effect<boolean> = Ref.get(modelRef).pipe(
 	Effect.map(Option.isSome),
 );
 
+// True once the weights and ORT files are in the Cache API, i.e. the tool works
+// offline on a cold page load.
+export const isBackgroundModelCached: Effect.Effect<boolean> = isModelCached(
+	Object.values(ORT_ASSET_URLS),
+);
+
 // Download and build the model without running inference, so the route can
 // front the one-time download with a consent gate before any image is picked
 // (mirrors video loadEngine). The model is memoized in modelRef, so the later
@@ -253,7 +268,12 @@ export const isModelLoaded: Effect.Effect<boolean> = Ref.get(modelRef).pipe(
 export const loadBackgroundModel = (
 	onProgress?: (p: RemoveProgress) => void,
 ): Effect.Effect<void, ModelLoadError> =>
-	loadPipeline(aggregateDownloadProgress(onProgress)).pipe(Effect.asVoid);
+	prefetchOrtAssets(Object.values(ORT_ASSET_URLS)).pipe(
+		// Best effort: without the stored ORT files the tool still works online.
+		Effect.ignore,
+		Effect.andThen(loadPipeline(aggregateDownloadProgress(onProgress))),
+		Effect.asVoid,
+	);
 
 export const removeBackground = (
 	input: RemoveBackgroundInput,

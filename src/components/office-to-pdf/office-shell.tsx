@@ -22,6 +22,7 @@ import {
 	MB,
 	OFFICE_ACCEPT,
 } from "#/lib/file/office-types.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 
 export function OfficeShell() {
 	const inputId = useId();
@@ -110,7 +111,7 @@ export function OfficeShell() {
 			// the shared engine state, so Promise.all is not an option here.
 			// react-doctor-disable-next-line react-doctor/async-await-in-loop
 			const exit = await Effect.runPromiseExit(
-				convertFileToPdf({ id: target.id, file: target.file }),
+				withBusy(convertFileToPdf({ id: target.id, file: target.file })),
 			);
 			if (exit._tag === "Success") {
 				ok += 1;

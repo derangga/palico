@@ -418,7 +418,7 @@ in both themes without a halo.
 
 - **Hero:** Home only, as the cropped art (content box 1131x992, nearly square) in WebP with 1x and 2x variants, optionally AVIF. Never serve the uncropped 2 MB PNG. The idle bob applies here.
 - **Sidebar:** A separate face-only crop. Not the full body at small sizes. Tilt or wink on hover.
-- **Favicons and app icons:** The same face crop: 16, 32, 64, ico, apple-touch, android 192 and 512, `logo192` and `logo512`. `site.webmanifest` `theme_color` and `background_color` use the Base colour, not pure white.
+- **Favicons and app icons:** The same face crop: 16, 32, 64, ico, apple-touch, android 192 and 512. `site.webmanifest` `theme_color` and `background_color` use the Base colour, not pure white.
 - **No extra poses.** There is one image. Empty and error states reuse it; loading states use whole-image motion (bob, tilt), not a hammer swing or new art.
 - **Do not recolour, outline or crop it differently** per theme. If it needs more contrast, change the surface behind it.
 - **Not on tool pages** except empty and error states, where it appears once, small.

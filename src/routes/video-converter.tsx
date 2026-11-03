@@ -20,6 +20,7 @@ import {
 } from "#/components/video-converter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	checkFileSize,
@@ -199,15 +200,17 @@ function ConverterShell() {
 			const { convertVideos } = await import("#/lib/video/converter.ts");
 
 			const outputs = await Effect.runPromise(
-				convertVideos(
-					inputs,
-					(update) => {
-						dispatch({ type: "progressUpdate", update, formatLabel });
-						if (update.status === "done" || update.status === "error") {
-							dispatch({ type: "batchTick" });
-						}
-					},
-					() => token.cancelled,
+				withBusy(
+					convertVideos(
+						inputs,
+						(update) => {
+							dispatch({ type: "progressUpdate", update, formatLabel });
+							if (update.status === "done" || update.status === "error") {
+								dispatch({ type: "batchTick" });
+							}
+						},
+						() => token.cancelled,
+					),
 				),
 			);
 

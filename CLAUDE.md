@@ -34,6 +34,9 @@ Read the matching file before starting that kind of work.
   `docs/video-converter.md`, `docs/video-cutter.md`, `docs/video-to-gif.md`,
   `docs/extract-audio.md`, `docs/video-compressor.md`:
   how each tool works end to end and why it is built that way.
+- `docs/offline-pwa.md`: the service worker, offline status pills, update flow and
+  storage handling. Read it before touching `src/sw.ts`, `public/_headers`,
+  `src/lib/offline/` or an engine's cache.
 - `docs/image-worker-crashed-debugging.md`: the checklist for an "Image worker
   crashed" error in production.
 - `docs/ui-audit.md`, `docs/ui-colorful-exploration.md`: the reasoning behind the

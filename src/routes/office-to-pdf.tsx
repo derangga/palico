@@ -5,6 +5,8 @@ import { EnginePanel } from "#/components/office-to-pdf/engine-panel.tsx";
 import { OfficeShell } from "#/components/office-to-pdf/office-shell.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { isEngineCached, type LoadPhase } from "#/lib/file/office-types.ts";
+import { guardedEngineLoad } from "#/lib/offline/gate.ts";
+import { offlineRuntime } from "#/lib/offline/runtime.ts";
 
 export const Route = createFileRoute("/office-to-pdf")({
 	component: OfficeToPdfPage,
@@ -21,7 +23,12 @@ function OfficeToPdfPage() {
 			// Dynamic import keeps the office runtime out of the route bundle until
 			// the user opts into the one-time engine download.
 			const { loadEngine } = await import("#/lib/file/office-engine.ts");
-			await Effect.runPromise(loadEngine((next) => setPhase(next)));
+			await offlineRuntime.runPromise(
+				guardedEngineLoad(
+					"office",
+					loadEngine((next) => setPhase(next)),
+				),
+			);
 		} catch (err) {
 			setPhase({
 				kind: "error",

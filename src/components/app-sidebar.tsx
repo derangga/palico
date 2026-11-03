@@ -3,6 +3,10 @@ import { Home } from "lucide-react";
 import { type ReactNode, useEffect, useRef } from "react";
 
 import {
+	OFFLINE_DOT,
+	offlineLabel,
+} from "#/components/offline/offline-pill.tsx";
+import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
@@ -15,16 +19,18 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "#/components/ui/sidebar.tsx";
+import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
 import {
 	CATEGORY_STYLES,
 	type Tool,
 	toolGroups,
 } from "#/lib/tool-categories.ts";
+import { cn } from "#/lib/utils.ts";
 
 const homeItem = { to: "/", label: "Home", icon: Home } as const;
 
 type NavItem = Pick<Tool, "to" | "label" | "icon"> &
-	Partial<Pick<Tool, "category">>;
+	Partial<Pick<Tool, "category" | "engine">>;
 
 function SidebarNavItem({
 	item,
@@ -34,6 +40,7 @@ function SidebarNavItem({
 	pathname: string;
 }) {
 	const { isMobile, setOpenMobile } = useSidebar();
+	const offline = useOfflineStatus("engine" in item ? item.engine : undefined);
 	const isActive =
 		item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
 	return (
@@ -53,6 +60,20 @@ function SidebarNavItem({
 					className={item.category && CATEGORY_STYLES[item.category].ink}
 				/>
 				<span>{item.label}</span>
+				{offline &&
+					offline._tag !== "Unavailable" &&
+					"engine" in item &&
+					item.engine && (
+						<span
+							role="img"
+							aria-label={offlineLabel(offline)}
+							title={offlineLabel(offline)}
+							className={cn(
+								"ml-auto size-1.5 shrink-0 rounded-full group-data-[collapsible=icon]:hidden",
+								OFFLINE_DOT[offline._tag],
+							)}
+						/>
+					)}
 			</SidebarMenuButton>
 		</SidebarMenuItem>
 	);
