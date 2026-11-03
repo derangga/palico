@@ -1,29 +1,47 @@
 # Effect Atom Patterns
 
-Effect Atom is a reactive state management library that integrates with Effect-TS. It provides atoms (reactive containers), automatic dependency tracking, and seamless React integration.
+Effect Atom is a reactive state management library that integrates with Effect. It provides atoms (reactive containers), automatic dependency tracking, and seamless React integration.
+
+> **Effect v4.** The React package is **`@effect/atom-react`**. `Atom` and `AsyncResult`
+> are imported from **`effect/reactivity`** (the `effect/unstable/reactivity` path from the
+> release candidates is gone). The module is still marked `@stability unstable`, so pin your
+> Effect version.
 
 ## Core Concepts
 
 - **Atoms**: Reactive state containers with automatic dependency tracking
-- **Result**: Handles async/effectful computations with initial, success, and failure states
-- **Finalizers**: Built-in cleanup for resources and event listeners
-- **Families**: Dynamic atom creation for per-entity state
+- **AsyncResult**: Handles async and effectful computations with initial, success, and failure states
+- **Finalizers**: Built in cleanup for resources and event listeners
+- **Families**: Dynamic atom creation for per entity state
+
+## Imports at a Glance
+
+```typescript
+// Core atom and result modules, from effect
+import { Atom, AsyncResult } from "effect/reactivity"
+
+// React bindings, from the framework package
+import { useAtom, useAtomMount, useAtomSet, useAtomValue } from "@effect/atom-react"
+```
+
+Sibling packages `@effect/atom-solid` and `@effect/atom-vue` follow the same split.
 
 ## Creating Atoms
 
 ### Basic Atoms
 
 ```typescript
-import { Atom } from "@effect-atom/atom-react"
+import { Atom } from "effect/reactivity"
 
 // Simple value atom
 const countAtom = Atom.make(0)
 
-// With keepAlive - persists when no components subscribe
+// With keepAlive, persists when no components subscribe
 const persistentCountAtom = Atom.make(0).pipe(Atom.keepAlive)
 ```
 
 **Rule:** Use `Atom.keepAlive` for global state that should persist across component unmounts.
+Define atoms outside components.
 
 ### Derived Atoms
 
@@ -52,7 +70,7 @@ const scrollYAtom = Atom.make((get) => {
 ```
 
 **Critical:**
-- Use `get.setSelf` to update the atom's own value
+- Use `get.setSelf` to update the atom own value
 - Always add finalizers with `get.addFinalizer()` to clean up side effects
 - Finalizers run when the atom is rebuilt or disposed
 
@@ -76,12 +94,12 @@ const resolvedThemeAtom = Atom.transform(themeAtom, (get) => {
 
 ## Atom Families
 
-Use `Atom.family` for per-entity state:
+Use `Atom.family` for per entity state:
 
 ```typescript
-import { Atom } from "@effect-atom/atom-react"
+import { Atom } from "effect/reactivity"
 
-// Create a family of atoms - one per channelId
+// Create a family of atoms, one per channelId
 const replyToMessageAtomFamily = Atom.family((channelId: string) =>
     Atom.make<string | null>(null).pipe(Atom.keepAlive)
 )
@@ -105,7 +123,7 @@ const modalAtomFamily = Atom.family((type: ModalType) =>
 ```
 
 **Use families for:**
-- Per-resource state (users, channels, documents)
+- Per resource state (users, channels, documents)
 - Modal instances
 - Form state per entity
 - Any parameterized state
@@ -114,8 +132,8 @@ const modalAtomFamily = Atom.family((type: ModalType) =>
 
 ### Reading Atom Values
 
-```typescript
-import { useAtomValue } from "@effect-atom/atom-react"
+```tsx
+import { useAtomValue } from "@effect/atom-react"
 
 function Counter() {
     const count = useAtomValue(countAtom)
@@ -125,8 +143,8 @@ function Counter() {
 
 ### Updating Atom Values
 
-```typescript
-import { useAtomSet } from "@effect-atom/atom-react"
+```tsx
+import { useAtomSet } from "@effect/atom-react"
 
 function IncrementButton() {
     const setCount = useAtomSet(countAtom)
@@ -140,8 +158,8 @@ function IncrementButton() {
 
 ### Reading and Writing Together
 
-```typescript
-import { useAtom } from "@effect-atom/atom-react"
+```tsx
+import { useAtom } from "@effect/atom-react"
 
 function CounterControl() {
     const [count, setCount] = useAtom(countAtom)
@@ -158,8 +176,8 @@ function CounterControl() {
 
 Use `useAtomMount` to activate atoms without reading their value:
 
-```typescript
-import { useAtomMount } from "@effect-atom/atom-react"
+```tsx
+import { useAtomMount } from "@effect/atom-react"
 
 function App() {
     // Activate side effects without subscribing to value
@@ -177,7 +195,7 @@ function App() {
 
 When using mutation atoms with `mode: "promise"`, derive loading state from `result.waiting` instead of managing separate `useState`:
 
-```typescript
+```tsx
 const [result, mutate] = useAtom(myMutation, { mode: "promise" })
 const isLoading = result.waiting // No useState needed
 
@@ -188,15 +206,15 @@ const handleSubmit = async () => {
     } catch (err) {
         showError(err)
     }
-    // No finally - result.waiting updates automatically
+    // No finally block, result.waiting updates automatically
 }
 
 <Button disabled={isLoading}>{isLoading ? "Loading..." : "Submit"}</Button>
 ```
 
 **Why this is preferred:**
-- Single source of truth — loading state lives on the Result
-- No `finally` blocks or manual state resets
+- Single source of truth, loading state lives on the AsyncResult
+- No manual state resets
 - Automatically synchronized with the mutation lifecycle
 
 ### Dialog Components Own Their Mutations
@@ -206,8 +224,8 @@ Move mutation logic INTO dialog components rather than keeping it in page compon
 **Dialog owns:** mutation hook, loading state, toast notifications
 **Parent provides:** data props, `onSuccess` callback
 
-```typescript
-// CORRECT - dialog owns its mutation
+```tsx
+// CORRECT, dialog owns its mutation
 function ArchivePaywallDialog({
     paywall,
     onSuccess,
@@ -251,37 +269,55 @@ function PaywallPage() {
 
 ### reactivityKeys for Cache Invalidation
 
-Mutations can specify `reactivityKeys` to automatically invalidate queries that share the same keys — no manual `refresh()` calls needed.
+Mutations can specify `reactivityKeys` to automatically invalidate queries that share the same keys, with no manual `refresh()` calls needed.
+
+`reactivityKeys` lives on `AtomRuntime.fn`, so both atoms hang off a runtime built from the
+layer that provides your services. `Atom.runtime` already provides `Reactivity` itself, so you
+do not merge `Reactivity.layer` in:
 
 ```typescript
-// Mutation atom with reactivityKeys
-const archivePaywallMutation = Atom.make(
-    Effect.fn(function* (payload: { paywallId: string }) {
-        yield* paywallService.archive(payload.paywallId)
-    }),
-    { reactivityKeys: ["paywalls"] }
+import { Effect } from "effect"
+import { Atom, Reactivity } from "effect/reactivity"
+
+const runtime = Atom.runtime(PaywallService.layer)
+
+// Query atom. Reactivity.stream re runs the effect when the keys are invalidated
+const paywallsAtom = runtime.atom(
+    Reactivity.stream(
+        Effect.gen(function* () {
+            const paywalls = yield* PaywallService
+            return yield* paywalls.list()
+        }),
+        ["paywalls"],
+    )
 )
 
-// Query atom with matching reactivityKeys — auto-invalidated after mutation
-const paywallsAtom = Atom.make(
-    Effect.fn(function* () {
-        return yield* paywallService.list()
-    }),
-    { reactivityKeys: ["paywalls"] }
+// Mutation atom. reactivityKeys is an option on runtime.fn
+const archivePaywallMutation = runtime.fn(
+    (payload: { paywallId: string }) =>
+        Effect.gen(function* () {
+            const paywalls = yield* PaywallService
+            yield* paywalls.archive(payload.paywallId)
+        }),
+    { reactivityKeys: ["paywalls"] },
 )
 ```
 
 **Rules:**
 - Both the mutation and query must share at least one matching key
-- After the mutation succeeds, all atoms with matching keys re-execute
-- Replaces manual patterns like calling `refreshPaywalls()` after mutations
+- After the mutation succeeds, all atoms with matching keys re execute
+- This pattern takes the place of manual calls such as `refreshPaywalls()` after mutations
+- For an existing query atom, `runtime.atom(effect).pipe(Atom.withReactivity(["paywalls"]))`
+  refreshes it on the same keys without switching to `Reactivity.stream`
+- `Atom.make` has no `reactivityKeys` option. Its options are `{ initialValue, uninterruptible }`,
+  and it takes an `Effect` or a `Stream`, never a function that returns one
 
-## Working with Effects and Results
+## Working with Effects and AsyncResult
 
-### Effectful Atoms Return Result
+### Effectful Atoms Return AsyncResult
 
 ```typescript
-import { Atom, Result } from "@effect-atom/atom-react"
+import { Atom, AsyncResult } from "effect/reactivity"
 import { Effect } from "effect"
 
 const userAtom = Atom.make(
@@ -289,100 +325,113 @@ const userAtom = Atom.make(
         const response = yield* fetchUser()
         return response
     })
-) // Type: Atom<Result<User, Error>>
+) // Type: Atom<AsyncResult<User, Error>>
 ```
 
-### Handling Results with Result.builder (Recommended)
+`AsyncResult` has three states, `Initial`, `Success`, and `Failure`, plus a `waiting` flag that is
+orthogonal to all three. A `Success` can have `waiting: true` while it refreshes.
 
-**Use `Result.builder`** for rendering Result types. It provides a chainable API with granular error handling and type narrowing.
+### Rendering with AsyncResult.match
 
-```typescript
-import { Result, useAtomValue } from "@effect-atom/atom-react"
+Use `AsyncResult.match` for the three states:
+
+```tsx
+import { AsyncResult } from "effect/reactivity"
+import { useAtomValue } from "@effect/atom-react"
 
 function UserProfile() {
     const userResult = useAtomValue(userAtom)
 
-    return Result.builder(userResult)
-        .onInitial(() => <div>Loading...</div>)
-        .onError((error) => <div>Error: {error.message}</div>)
-        .onSuccess((user) => <div>Hello, {user.name}!</div>)
-        .render()
+    return AsyncResult.match(userResult, {
+        onInitial: () => <div>Loading...</div>,
+        onFailure: (failure) => <div>Error: {String(failure.cause)}</div>,
+        onSuccess: (success) => <div>Hello, {success.value.name}!</div>,
+    })
 }
 ```
 
-### Result.builder with Tagged Errors
+Each handler receives the **variant**, not the bare value, so success is `success.value`.
 
-**Key advantage**: Handle specific error types with `onErrorTag`:
+### Typed Errors with AsyncResult.matchWithError
 
-```typescript
+`matchWithError` splits a failure into a typed error and a defect. Branch on `_tag` inside
+`onError`:
+
+```tsx
 function ResourceEmbed({ url }: { url: string }) {
     const resourceResult = useAtomValue(resourceAtom)
 
-    return Result.builder(resourceResult)
-        .onInitial(() => <Skeleton />)
-        .onErrorTag("NotFoundError", (error) => (
-            <ErrorCard message={error.message} />
-        ))
-        .onErrorTag("UnauthorizedError", () => (
-            <ConnectPrompt provider="GitHub" />
-        ))
-        .onErrorTag("RateLimitError", (error) => (
-            <RetryCard retryAfter={error.retryAfter} />
-        ))
-        .onError((error) => (
-            // Fallback for any other errors
-            <ErrorCard message="Something went wrong" />
-        ))
-        .onSuccess((data) => <ResourceCard data={data} />)
-        .render()
+    return AsyncResult.matchWithError(resourceResult, {
+        onInitial: () => <Skeleton />,
+        onError: (error) => {
+            switch (error._tag) {
+                case "NotFoundError":
+                    return <ErrorCard message={error.message} />
+                case "UnauthorizedError":
+                    return <ConnectPrompt provider="GitHub" />
+                case "RateLimitError":
+                    return <RetryCard retryAfter={error.retryAfter} />
+                default:
+                    return <ErrorCard message="Something went wrong" />
+            }
+        },
+        onDefect: (defect) => <ErrorCard message="Unexpected error" />,
+        onSuccess: (success) => <ResourceCard data={success.value} />,
+    })
 }
 ```
 
-### Result.builder Methods
+A `switch` on `_tag` narrows each branch. The `default` case handles remaining errors. An
+unhandled state is a **compile error**.
 
-| Method | Purpose |
+Explicit `_tag` checks also work outside match helpers:
+
+```tsx
+function StatusBadge() {
+    const result = useAtomValue(resourceAtom)
+    if (result._tag === "Initial") return <Skeleton />
+    if (result._tag === "Failure") return <ErrorCard message={String(result.cause)} />
+    return <span>{result.value.name}</span>
+}
+```
+
+### AsyncResult API
+
+| API | Purpose |
 |--------|---------|
-| `onInitial(fn)` | Handle initial/loading state |
-| `onInitialOrWaiting(fn)` | Handle both initial and waiting states |
-| `onWaiting(fn)` | Handle waiting/refetching state |
-| `onSuccess(fn)` | Handle success with value |
-| `onError(fn)` | Handle any error |
-| `onErrorTag(tag, fn)` | Handle specific tagged error (removes from type) |
-| `onErrorIf(predicate, fn)` | Handle errors matching predicate |
-| `onFailure(fn)` | Handle failure with full Cause |
-| `onDefect(fn)` | Handle unexpected defects |
-| `render()` | Return result (null if unhandled initial) |
-| `orElse(fn)` | Provide fallback value |
-| `orNull()` | Return null for unhandled cases |
+| `AsyncResult.match(r, {...})` | Exhaustive 3 case match: `onInitial` / `onFailure` / `onSuccess` |
+| `AsyncResult.matchWithError(r, {...})` | Splits failure into `onError` (typed) and `onDefect` |
+| `AsyncResult.getOrElse(r, fn)` | Extract the value, or a fallback |
+| `AsyncResult.value(r)` | `Option<A>` of the current value |
+| `AsyncResult.isInitial(r)` | Guard for the initial state |
+| `AsyncResult.isSuccess(r)` | Guard for success (narrows to `Success<A, E>`) |
+| `AsyncResult.isFailure(r)` | Guard for failure (narrows to `Failure<A, E>`) |
+| `AsyncResult.isWaiting(r)` | `true` while an async computation or refresh is in flight |
+| `result.waiting` | The same flag, read directly off any variant |
 
-### Extracting Values with orElse
+### Extracting Values with getOrElse
 
-For non-rendering use cases, extract values with `orElse`:
+For non rendering use cases:
 
 ```typescript
 function useRepositories() {
     const reposResult = useAtomValue(repositoriesAtom)
 
     // Extract array or empty fallback
-    const repositories = Result.builder(reposResult)
-        .onSuccess((data) => data.repositories)
-        .orElse(() => [])
-
-    return repositories
+    return AsyncResult.getOrElse(reposResult, () => [])
 }
 ```
 
-### Result.getOrElse for Simple Extraction
+### Guards for Early Returns
 
-For simple value extraction without error handling:
+When a component only cares about the success path:
 
-```typescript
+```tsx
 function UserName() {
     const userResult = useAtomValue(userAtom)
-    const user = Result.getOrElse(userResult, () => null)
 
-    if (!user) return <span>Loading...</span>
-    return <span>{user.name}</span>
+    if (!AsyncResult.isSuccess(userResult)) return <span>Loading...</span>
+    return <span>{userResult.value.name}</span>
 }
 ```
 
@@ -390,18 +439,17 @@ function UserName() {
 
 | Pattern | Use Case |
 |---------|----------|
-| `Result.builder` | UI rendering with multiple error types |
-| `Result.builder + onErrorTag` | APIs with tagged errors (HttpApi, RPC) |
-| `Result.builder + orElse` | Extracting values with fallback |
-| `Result.getOrElse` | Simple value extraction |
-| `Result.match` | Simple 3-case exhaustive matching |
+| `AsyncResult.match` | UI rendering, all three states, no typed error branching |
+| `AsyncResult.matchWithError` | APIs with tagged errors (HttpApi, RPC) |
+| `AsyncResult.getOrElse` | Extracting values with a fallback |
+| `AsyncResult.isSuccess` guard | Early return when only success matters |
 
 ### Accessing Results in Derived Atoms
 
 ```typescript
 const userProfileAtom = Atom.make(
-    Effect.fnUntraced(function* (get: Atom.Context) {
-        // Unwrap Result to get the value (waits for success)
+    Effect.fnUntraced(function* (get: Atom.AtomContext) {
+        // Unwrap AsyncResult to get the value (waits for success)
         const user = yield* get.result(userAtom)
         const posts = yield* fetchUserPosts(user.id)
         return { user, posts }
@@ -409,27 +457,46 @@ const userProfileAtom = Atom.make(
 )
 ```
 
+The context type is `Atom.AtomContext`.
+
 ## Batching Updates
 
-Use `Atom.batch` for multiple updates:
+`Atom.batch` takes a **synchronous** callback and coalesces the writes made inside it, rebuilding
+stale nodes and notifying listeners once at the end. The writes have to be synchronous, which
+means the registry's own `set` and `update`:
 
 ```typescript
-const openModal = (type: ModalType, metadata?: Record<string, unknown>) => {
-    Atom.batch(() => {
-        Atom.update(modalAtomFamily(type), (state) => ({
-            ...state,
-            isOpen: true,
-            metadata,
-        }))
-    })
+import * as React from "react"
+import { RegistryContext } from "@effect/atom-react"
+import { Atom } from "effect/reactivity"
+
+const useOpenModal = () => {
+    const registry = React.useContext(RegistryContext)
+
+    return (type: ModalType, metadata?: Record<string, unknown>) => {
+        Atom.batch(() => {
+            registry.update(modalAtomFamily(type), (state) => ({
+                ...state,
+                isOpen: true,
+                metadata,
+            }))
+            registry.set(lastOpenedAtom, type)
+        })
+    }
 }
 ```
+
+`Atom.set` and `Atom.update` are the **Effect returning** variants: they produce
+`Effect<void, never, AtomRegistry>` and do nothing until run. Calling one inside an `Atom.batch`
+callback builds an Effect and throws it away, so the update silently never happens, and
+TypeScript will not flag it. Inside a batch, reach for `registry.set` / `registry.update`, which
+return `void`.
 
 ## localStorage Persistence
 
 ```typescript
 import { BrowserKeyValueStore } from "@effect/platform-browser"
-import { Atom } from "@effect-atom/atom-react"
+import { Atom } from "effect/reactivity"
 import { Schema } from "effect"
 
 // Create runtime with localStorage
@@ -439,24 +506,26 @@ const localStorageRuntime = Atom.runtime(BrowserKeyValueStore.layerLocalStorage)
 const themeAtom = Atom.kvs({
     runtime: localStorageRuntime,
     key: "app-theme",
-    schema: Schema.Literal("dark", "light", "system"),
+    schema: Schema.Literals(["dark", "light", "system"]),
     defaultValue: () => "system" as const,
 })
 ```
+
+`Schema.Literals` takes one array argument. `Schema.Literal` takes exactly one value.
 
 ## Anti-Patterns
 
 ### FORBIDDEN: Creating Atoms Inside Components
 
-```typescript
-// WRONG - creates new atom on every render
+```tsx
+// WRONG, creates new atom on every render
 function Counter() {
     const countAtom = Atom.make(0) // New atom each render!
     const count = useAtomValue(countAtom)
     return <div>{count}</div>
 }
 
-// CORRECT - define atoms outside components
+// CORRECT, define atoms outside components
 const countAtom = Atom.make(0)
 
 function Counter() {
@@ -467,8 +536,9 @@ function Counter() {
 
 ### FORBIDDEN: Imperative Updates from React Components
 
-```typescript
-// WRONG - doesn't trigger React re-renders
+```tsx
+// WRONG, twice over: Atom.update returns an unrun Effect, so nothing happens at all,
+// and even a real write here bypasses the hook that would re-render the component
 export const openModal = (type: string) => {
     Atom.batch(() => {
         Atom.update(modalAtomFamily(type), (s) => ({ ...s, isOpen: true }))
@@ -479,7 +549,7 @@ function Component() {
     return <button onClick={() => openModal("settings")}>Open</button>
 }
 
-// CORRECT - use hooks for React integration
+// CORRECT, use hooks for React integration
 export const useModal = (type: string) => {
     const state = useAtomValue(modalAtomFamily(type))
     const setState = useAtomSet(modalAtomFamily(type))
@@ -499,19 +569,19 @@ export const useModal = (type: string) => {
 **When imperative updates ARE acceptable:**
 - Event listeners outside React (keyboard shortcuts)
 - Effects running on atom changes
-- Non-UI state (analytics, logging)
+- Non UI state (analytics, logging)
 
 ### FORBIDDEN: Missing Finalizers
 
 ```typescript
-// WRONG - memory leak!
+// WRONG, memory leak!
 const scrollAtom = Atom.make((get) => {
     const onScroll = () => get.setSelf(window.scrollY)
     window.addEventListener("scroll", onScroll)
     return window.scrollY
 })
 
-// CORRECT - cleanup registered
+// CORRECT, cleanup registered
 const scrollAtom = Atom.make((get) => {
     const onScroll = () => get.setSelf(window.scrollY)
     window.addEventListener("scroll", onScroll)
@@ -523,40 +593,40 @@ const scrollAtom = Atom.make((get) => {
 ### FORBIDDEN: Missing keepAlive for Global State
 
 ```typescript
-// WRONG - state resets when component unmounts
+// WRONG, state resets when component unmounts
 export const modalStateAtom = Atom.make({ isOpen: false })
 
-// CORRECT - state persists
+// CORRECT, state persists
 export const modalStateAtom = Atom.make({ isOpen: false }).pipe(Atom.keepAlive)
 ```
 
-### FORBIDDEN: Ignoring Result Types
+### FORBIDDEN: Ignoring AsyncResult States
 
-```typescript
-// WRONG - doesn't handle loading/error states
+```tsx
+// WRONG, does not handle loading and error states
 const userResult = useAtomValue(userAtom)
 return <div>Hello, {userResult.name}</div> // Type error!
 
-// CORRECT - use Result.builder to handle all states
+// CORRECT, match all states
 const userResult = useAtomValue(userAtom)
-return Result.builder(userResult)
-    .onInitial(() => <div>Loading...</div>)
-    .onError((error) => <div>Error: {error.message}</div>)
-    .onSuccess((user) => <div>Hello, {user.name}</div>)
-    .render()
+return AsyncResult.match(userResult, {
+    onInitial: () => <div>Loading...</div>,
+    onFailure: (failure) => <div>Error: {String(failure.cause)}</div>,
+    onSuccess: (success) => <div>Hello, {success.value.name}</div>,
+})
 ```
 
 ### FORBIDDEN: Updating State During Render
 
-```typescript
-// WRONG - side effect during render
+```tsx
+// WRONG, side effect during render
 function Component() {
     const count = useAtomValue(countAtom)
     Atom.set(countAtom, count + 1) // Never do this!
     return <div>{count}</div>
 }
 
-// CORRECT - use effects or event handlers
+// CORRECT, use effects or event handlers
 function Component() {
     const count = useAtomValue(countAtom)
     const setCount = useAtomSet(countAtom)
@@ -572,7 +642,7 @@ function Component() {
 ### FORBIDDEN: useState for Mutation Loading State
 
 ```typescript
-// WRONG - manual loading state management
+// WRONG, manual loading state management
 function DeleteDialog({ id }: { id: string }) {
     const [, deleteThing] = useAtom(deleteMutation, { mode: "promise" })
     const [isLoading, setIsLoading] = useState(false)
@@ -587,7 +657,7 @@ function DeleteDialog({ id }: { id: string }) {
     }
 }
 
-// CORRECT - derive from result.waiting
+// CORRECT, derive from result.waiting
 function DeleteDialog({ id }: { id: string }) {
     const [result, deleteThing] = useAtom(deleteMutation, { mode: "promise" })
     const isLoading = result.waiting
@@ -604,8 +674,8 @@ function DeleteDialog({ id }: { id: string }) {
 
 ### FORBIDDEN: Mutations in Parent Components
 
-```typescript
-// WRONG - parent manages the mutation
+```tsx
+// WRONG, parent manages the mutation
 function PaywallPage() {
     const [result, archivePaywall] = useAtom(archivePaywallMutation, { mode: "promise" })
 
@@ -617,7 +687,7 @@ function PaywallPage() {
     return <ConfirmDialog onConfirm={handleArchive} loading={result.waiting} />
 }
 
-// CORRECT - dialog owns its mutation
+// CORRECT, dialog owns its mutation
 function PaywallPage() {
     return <ArchivePaywallDialog paywall={paywall} onSuccess={() => navigate("/paywalls")} />
 }
@@ -629,11 +699,11 @@ function PaywallPage() {
 ### Selective Re-rendering
 
 ```typescript
-// WRONG - subscribes to entire state
+// WRONG, subscribes to entire state
 const state = useAtomValue(appStateAtom)
 const userName = state.user.name
 
-// CORRECT - derive focused atom
+// CORRECT, derive focused atom
 const userNameAtom = Atom.map(appStateAtom, (state) => state.user.name)
 const userName = useAtomValue(userNameAtom)
 ```
@@ -642,12 +712,12 @@ const userName = useAtomValue(userNameAtom)
 
 Use `Atom.keepAlive` for:
 - Global application state
-- Modal/dialog state
+- Modal and dialog state
 - User preferences
 - Authentication state
 - Frequently accessed derived state
 
 Skip `keepAlive` for:
-- Component-local state that should reset
+- Component local state that should reset
 - Temporary form state
 - State tied to component lifecycle

@@ -18,7 +18,6 @@ page in ads.
 - Work on a branch. If you are on `master`, create one before the first edit.
 - Before finishing a code change, run the type check and the Biome check from
   the `package.json` scripts, and fix the errors in files you touched.
-- Track work in bd (beads), not markdown TODOs. Run `bd prime` for the workflow.
 
 ## Where to look
 

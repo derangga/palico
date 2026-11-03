@@ -1,5 +1,7 @@
 # Error Patterns
 
+> **Effect v4.** `Schema.TaggedError` defines serializable errors with `_tag` discrimination. HTTP status is set with the `{ httpApiStatus: n }` annotations argument. `Effect.catch`, `Effect.catchCause`, and `Effect.catchDefect` handle all errors, causes, and defects. `catchTag` and `catchTags` handle tagged errors. `Cause` holds a flat `reasons` array. These tools are the backbone of this file.
+
 ## Why Explicit Error Types?
 
 Generic errors like `BadRequestError` or `NotFoundError` seem convenient but create problems:
@@ -7,7 +9,7 @@ Generic errors like `BadRequestError` or `NotFoundError` seem convenient but cre
 | Generic Error | Problems |
 |--------------|----------|
 | `NotFoundError` | Which resource? How should frontend recover? |
-| `BadRequestError` | What's invalid? Can user fix it? |
+| `BadRequestError` | What is invalid? Can user fix it? |
 | `UnauthorizedError` | Session expired? Wrong credentials? Missing permission? |
 | `InternalServerError` | Retryable? User action needed? |
 
@@ -19,14 +21,14 @@ Generic errors like `BadRequestError` or `NotFoundError` seem convenient but cre
 
 ### Anti-Pattern: Generic Error Mapping
 
-> See also: `anti-patterns.md` — [Leaking Implementation Errors Across Boundaries], [Duplicating Error Handling in Every Route Handler]
+> See also: [Leaking Implementation Errors Across Boundaries] and [Duplicating Error Handling in Every Route Handler] in `anti-patterns.md`
 
 ```typescript
 // ❌ WRONG - Collapsing to generic HTTP errors
 export class NotFoundError extends Schema.TaggedError<NotFoundError>()(
     "NotFoundError",
     { message: Schema.String },
-    HttpApiSchema.annotations({ status: 404 }),
+    { httpApiStatus: 404 },
 ) {}
 
 // At API boundaries:
@@ -42,27 +44,36 @@ Effect.catchTags({
 // - Debugging is harder (which resource was missing?)
 ```
 
-```typescript
+```tsx
 // ✅ CORRECT - Keep explicit errors all the way to frontend
 export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
     "UserNotFoundError",
     { userId: UserId, message: Schema.String },
-    HttpApiSchema.annotations({ status: 404 }),
+    { httpApiStatus: 404 },
 ) {}
 
 export class ChannelNotFoundError extends Schema.TaggedError<ChannelNotFoundError>()(
     "ChannelNotFoundError",
     { channelId: ChannelId, message: Schema.String },
-    HttpApiSchema.annotations({ status: 404 }),
+    { httpApiStatus: 404 },
 ) {}
 
-// Frontend can handle each case:
-Result.builder(result)
-    .onErrorTag("UserNotFoundError", (err) => <UserNotFoundMessage userId={err.userId} />)
-    .onErrorTag("ChannelNotFoundError", (err) => <ChannelDeletedMessage />)
-    .onErrorTag("SessionExpiredError", () => <RedirectToLogin />)
-    .render()
+// Frontend can handle each case
+AsyncResult.matchWithError(result, {
+    onInitial: () => <Skeleton />,
+    onError: (err) => {
+        switch (err._tag) {
+            case "UserNotFoundError": return <UserNotFoundMessage userId={err.userId} />
+            case "ChannelNotFoundError": return <ChannelDeletedMessage />
+            case "SessionExpiredError": return <RedirectToLogin />
+        }
+    },
+    onDefect: () => <GenericError />,
+    onSuccess: (s) => <Content data={s.value} />,
+})
 ```
+
+See `effect-atom-patterns.md` for frontend handling with `AsyncResult.match`.
 
 ## Error Naming Conventions
 
@@ -73,6 +84,8 @@ Result.builder(result)
 | `{Feature}Error` | `SessionExpiredError`, `RateLimitExceededError` | Feature-specific failures |
 | `{Integration}Error` | `WorkOSUserFetchError`, `StripePaymentError` | External service errors |
 | `Invalid{Field}Error` | `InvalidEmailError`, `InvalidPasswordError` | Validation failures |
+
+The core library uses `*Error` classes (`NoSuchElementError`, `TimeoutError`, `UnknownError`), so this convention matches the core library.
 
 ### Rich Error Context
 
@@ -86,7 +99,7 @@ export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
         userId: UserId,         // Which user?
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 404 }),
+    { httpApiStatus: 404 },
 ) {}
 
 // Action errors → include input that failed
@@ -97,7 +110,7 @@ export class UserCreateError extends Schema.TaggedError<UserCreateError>()(
         reason: Schema.String,  // Why? "duplicate", "invalid domain"
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 400 }),
+    { httpApiStatus: 400 },
 ) {}
 
 // Integration errors → include service name and retryable flag
@@ -108,7 +121,7 @@ export class StripePaymentError extends Schema.TaggedError<StripePaymentError>()
         retryable: Schema.Boolean,
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 402 }),
+    { httpApiStatus: 402 },
 ) {}
 
 // Auth errors → include expiry info
@@ -116,10 +129,10 @@ export class SessionExpiredError extends Schema.TaggedError<SessionExpiredError>
     "SessionExpiredError",
     {
         sessionId: SessionId,
-        expiredAt: Schema.DateTimeUtc,
+        expiredAt: Schema.DateTimeUtcFromString,
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 401 }),
+    { httpApiStatus: 401 },
 ) {}
 ```
 
@@ -130,13 +143,13 @@ export class SessionExpiredError extends Schema.TaggedError<SessionExpiredError>
 1. **Serialization** - Errors can be sent over RPC/network
 2. **Type safety** - `_tag` discriminator enables `catchTag`
 3. **Consistent structure** - All errors have predictable shape
-4. **HTTP status mapping** - Via `HttpApiSchema.annotations`
+4. **HTTP status mapping** - Via the `{ httpApiStatus: n }` annotation
 
 ### Basic Error Definition
 
 ```typescript
 import { Schema } from "effect"
-import { HttpApiSchema } from "@effect/platform"
+import { HttpApiSchema } from "effect/http-api"
 
 export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
     "UserNotFoundError",
@@ -144,7 +157,7 @@ export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
         userId: UserId,
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 404 }),
+    { httpApiStatus: 404 },
 ) {}
 
 export class UserCreateError extends Schema.TaggedError<UserCreateError>()(
@@ -153,7 +166,7 @@ export class UserCreateError extends Schema.TaggedError<UserCreateError>()(
         message: Schema.String,
         cause: Schema.optional(Schema.String),
     },
-    HttpApiSchema.annotations({ status: 400 }),
+    { httpApiStatus: 400 },
 ) {}
 
 export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
@@ -161,7 +174,7 @@ export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
     {
         message: Schema.String,
     },
-    HttpApiSchema.annotations({ status: 401 }),
+    { httpApiStatus: 401 },
 ) {}
 
 export class ForbiddenError extends Schema.TaggedError<ForbiddenError>()(
@@ -170,9 +183,14 @@ export class ForbiddenError extends Schema.TaggedError<ForbiddenError>()(
         message: Schema.String,
         requiredPermission: Schema.optional(Schema.String),
     },
-    HttpApiSchema.annotations({ status: 403 }),
+    { httpApiStatus: 403 },
 ) {}
 ```
+
+Apply HTTP status through the third argument, the annotations object: `{ httpApiStatus: 404 }`.
+`HttpApiSchema.status(code)` writes the same annotation, but it returns `S["Rebuild"]`, so piping
+it in a class heritage clause makes the class reference itself and fails to compile. Reach for it
+on plain schema values instead, as in `User.pipe(HttpApiSchema.status(201))`.
 
 ### Required Fields
 
@@ -183,7 +201,20 @@ Every error should have:
 
 ## Error Handling with catchTag/catchTags
 
-**Never use `catchAll` or `mapError`** when you can use `catchTag`/`catchTags`. These preserve type information and enable precise error handling.
+**Never use `Effect.catch` or `mapError`** when you can use `catchTag`/`catchTags`. These
+preserve type information and enable precise error handling.
+
+`catchTag` and `catchTags` handle tagged errors. The full set of handlers is:
+
+| Handler | Use For |
+| --- | --- |
+| `Effect.catch` | All typed errors |
+| `Effect.catchCause` | Full cause |
+| `Effect.catchDefect` | Defects |
+| `Effect.catchFilter` | Filtered errors with `Filter` |
+| `Effect.catchCauseFilter` | Filtered causes |
+| `Effect.catchTag` | One tagged error |
+| `Effect.catchTags` | Multiple tagged errors |
 
 ### catchTag for Single Error Types
 
@@ -226,12 +257,14 @@ const processOrder = Effect.fn("OrderService.processOrder")(function* (input: Or
 })
 ```
 
-### Why Not catchAll?
+### Why Not Effect.catch?
+
+Blanket `Effect.catch` stays forbidden when a tagged handler applies.
 
 ```typescript
 // WRONG - Loses type information
 yield* effect.pipe(
-    Effect.catchAll((err) =>
+    Effect.catch((err) =>
         Effect.fail(new InternalServerError({ message: "Something failed" }))
     )
 )
@@ -241,6 +274,28 @@ yield* effect.pipe(
 // 2. Hides useful error context
 // 3. Makes debugging harder
 // 4. Frontend can't show specific messages
+```
+
+### catchReason / catchReasons
+
+When a tagged error carries a nested `reason`, `catchReason` handles one reason **without**
+removing the parent error from the error channel:
+
+```typescript
+// Handle only the rate-limit reason of an AiError; other reasons still propagate
+effect.pipe(
+    Effect.catchReason("AiError", "RateLimitError", (reason) =>
+        Effect.sleep(reason.retryAfter).pipe(Effect.andThen(effect))
+    )
+)
+
+// Several reasons at once
+effect.pipe(
+    Effect.catchReasons("AiError", {
+        RateLimitError: (reason) => backOff(reason),
+        QuotaExceededError: () => Effect.fail(new QuotaError({ message: "Out of quota" })),
+    })
+)
 ```
 
 ## Error Remapping Pattern
@@ -280,17 +335,20 @@ const findUser = Effect.fn("UserService.findUser")(function* (id: UserId) {
 
 ## Retryable Errors Pattern
 
-For errors that may be transient, add a `retryable` property:
+For errors that may be transient, add a `retryable` property. Express schema defaults with
+`withDecodingDefaultType`, whose default value is an **`Effect`**:
 
 ```typescript
+import { Effect, Schema } from "effect"
+
 export class ServiceUnavailableError extends Schema.TaggedError<ServiceUnavailableError>()(
     "ServiceUnavailableError",
     {
         message: Schema.String,
         cause: Schema.optional(Schema.String),
-        retryable: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+        retryable: Schema.Boolean.pipe(Schema.withDecodingDefaultType(Effect.succeed(true))),
     },
-    HttpApiSchema.annotations({ status: 503 }),
+    { httpApiStatus: 503 },
 ) {}
 
 export class RateLimitError extends Schema.TaggedError<RateLimitError>()(
@@ -298,9 +356,9 @@ export class RateLimitError extends Schema.TaggedError<RateLimitError>()(
     {
         message: Schema.String,
         retryAfter: Schema.optional(Schema.Number),
-        retryable: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+        retryable: Schema.Boolean.pipe(Schema.withDecodingDefaultType(Effect.succeed(true))),
     },
-    HttpApiSchema.annotations({ status: 429 }),
+    { httpApiStatus: 429 },
 ) {}
 
 // Non-retryable error
@@ -309,15 +367,18 @@ export class ValidationError extends Schema.TaggedError<ValidationError>()(
     {
         message: Schema.String,
         field: Schema.String,
-        retryable: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+        retryable: Schema.Boolean.pipe(Schema.withDecodingDefaultType(Effect.succeed(false))),
     },
-    HttpApiSchema.annotations({ status: 400 }),
+    { httpApiStatus: 400 },
 ) {}
 ```
 
 ### Retry Based on Error Property
 
-> See also: `anti-patterns.md` — [Manual Retry/Timeout Logic] for why manual retry loops are forbidden
+> See also: [Manual Retry/Timeout Logic] in `anti-patterns.md` for why manual retry loops are forbidden
+
+`Effect.retry` takes an options object combining a schedule with `times` / `while` /
+`until`:
 
 ```typescript
 import { Effect, Schedule } from "effect"
@@ -326,34 +387,74 @@ const withRetry = <A, E extends { retryable?: boolean }, R>(
     effect: Effect.Effect<A, E, R>
 ): Effect.Effect<A, E, R> =>
     effect.pipe(
-        Effect.retry(
-            Schedule.exponential("100 millis").pipe(
-                Schedule.intersect(Schedule.recurs(3)),
-                Schedule.whileInput((err: E) => err.retryable === true),
-            )
-        ),
+        Effect.retry({
+            times: 3,
+            schedule: Schedule.exponential("100 millis"),
+            while: (err) => err.retryable === true,
+        })
     )
 
 // Usage
 yield* callExternalApi(request).pipe(withRetry)
 ```
 
-## Error Unions for Activities
+`Schedule.while` continues while a predicate over `meta.input` and `meta.output` returns true. For "retry N times with backoff while X", the options object above is the direct route.
 
-When defining workflow activities, use explicit error unions:
+## Working with Cause
+
+`Cause` is a wrapper around a flat array of reasons:
 
 ```typescript
-// Activity error type - union of possible errors
-export type GetChannelMembersError =
-    | DatabaseError
-    | ChannelNotFoundError
+interface Cause<E> {
+    readonly reasons: ReadonlyArray<Reason<E>>
+}
 
+type Reason<E> = Fail<E> | Die | Interrupt
+```
+
+An empty cause is an empty `reasons` array, and multiple failures are collected into one flat array.
+
+```typescript
+// Iterate reasons in a flat loop
+const describe = (cause: Cause.Cause<AppError>) => {
+    for (const reason of cause.reasons) {
+        switch (reason._tag) {
+            case "Fail": return reason.error
+            case "Die": return reason.defect
+            case "Interrupt": return reason.fiberId
+        }
+    }
+}
+```
+
+### Extractors and Predicates
+
+| API | Result |
+| --- | --- |
+| `Cause.findErrorOption(cause)` | First typed error as `Option` |
+| `Cause.findError(cause)` | First typed error as `Result` |
+| `Cause.findDefect(cause)` | First defect as `Result` |
+| `cause.reasons.filter(Cause.isFailReason)` | Typed error values as an array |
+| `cause.reasons.filter(Cause.isDieReason)` | Defect values as an array |
+| `Cause.hasFails(cause)` | True when a `Fail` reason is present |
+| `Cause.hasDies(cause)` | True when a `Die` reason is present |
+| `Cause.hasInterrupts(cause)` | True when an `Interrupt` reason is present |
+| `Cause.combine(a, b)` | Combined flat reasons |
+
+`findError` and `findDefect` return `Result`; use `findErrorOption` when you want an `Option`.
+See `testing-patterns.md` for asserting on tagged errors via `Exit` and `Cause`.
+
+## Error Unions for Activities
+
+When defining workflow activities, use explicit error unions. `Schema.Union` takes one array:
+
+```typescript
 export class DatabaseError extends Schema.TaggedError<DatabaseError>()(
     "DatabaseError",
     {
         message: Schema.String,
         cause: Schema.optional(Schema.String),
-        retryable: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+        retryable: Schema.Boolean.pipe(Schema.withDecodingDefaultType(Effect.succeed(true))),
     },
 ) {}
 
@@ -362,50 +463,54 @@ export class ChannelNotFoundError extends Schema.TaggedError<ChannelNotFoundErro
     {
         channelId: ChannelId,
         message: Schema.String,
-        retryable: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+        retryable: Schema.Boolean.pipe(Schema.withDecodingDefaultType(Effect.succeed(false))),
     },
 ) {}
+
+export type GetChannelMembersError = DatabaseError | ChannelNotFoundError
 
 // In activity definition
 yield* Activity.make({
     name: "GetChannelMembers",
     success: ChannelMembersResult,
-    error: Schema.Union(DatabaseError, ChannelNotFoundError),
+    error: Schema.Union([DatabaseError, ChannelNotFoundError]),
     execute: Effect.gen(function* () {
         // ...
     }),
 })
 ```
 
+See `rpc-cluster-patterns.md`. `Activity` lives in `effect/workflow`.
+
 ## HTTP Status Codes (Without Generic Errors)
 
 **Map HTTP status codes at the error level, not by creating generic error classes.** Each explicit error can have its own HTTP status.
 
 ```typescript
-// ✅ CORRECT - Domain errors with HTTP status annotations
+// ✅ CORRECT - Domain errors with their own status
 export class UserNotFoundError extends Schema.TaggedError<UserNotFoundError>()(
     "UserNotFoundError",
     { userId: UserId, message: Schema.String },
-    HttpApiSchema.annotations({ status: 404 }),  // Status on specific error
+    { httpApiStatus: 404 },
 ) {}
 
 export class ChannelNotFoundError extends Schema.TaggedError<ChannelNotFoundError>()(
     "ChannelNotFoundError",
     { channelId: ChannelId, message: Schema.String },
-    HttpApiSchema.annotations({ status: 404 }),  // Same status, different error
-) {}
+    { httpApiStatus: 404 },
+) {}  // Same status, different error
 
 export class SessionExpiredError extends Schema.TaggedError<SessionExpiredError>()(
     "SessionExpiredError",
-    { sessionId: SessionId, expiredAt: Schema.DateTimeUtc, message: Schema.String },
-    HttpApiSchema.annotations({ status: 401 }),
+    { sessionId: SessionId, expiredAt: Schema.DateTimeUtcFromString, message: Schema.String },
+    { httpApiStatus: 401 },
 ) {}
 
 export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentialsError>()(
     "InvalidCredentialsError",
     { message: Schema.String },
-    HttpApiSchema.annotations({ status: 401 }),  // Same status, different meaning
-) {}
+    { httpApiStatus: 401 },
+) {}  // Same status, different meaning
 ```
 
 ```typescript
@@ -413,7 +518,7 @@ export class InvalidCredentialsError extends Schema.TaggedError<InvalidCredentia
 export class UnauthorizedError extends Schema.TaggedError<UnauthorizedError>()(
     "UnauthorizedError",
     { message: Schema.String },
-    HttpApiSchema.annotations({ status: 401 }),
+    { httpApiStatus: 401 },
 ) {}
 
 // Then mapping everything to it - loses critical information!
@@ -430,24 +535,33 @@ Effect.catchTags({
 Generic errors are only acceptable for **truly unrecoverable internal errors** where:
 - The frontend can only show "Something went wrong"
 - No user action can fix it
-- You're hiding internal details for security
+- You hide internal details for security
 
 ```typescript
 // Acceptable for unrecoverable errors
 export class InternalServerError extends Schema.TaggedError<InternalServerError>()(
     "InternalServerError",
     { message: Schema.String, requestId: Schema.optional(Schema.String) },
-    HttpApiSchema.annotations({ status: 500 }),
+    { httpApiStatus: 500 },
 ) {}
 
-// Use sparingly - only for truly unexpected errors
-Effect.catchAll((unexpectedError) =>
-    Effect.fail(new InternalServerError({
-        message: "An unexpected error occurred",
-        requestId: context.requestId,
-    }))
-)
+// Use sparingly, only for truly unexpected errors. Blanket `Effect.catch` stays forbidden,
+// so map known tags explicitly.
+Effect.catchTags({
+    DatabaseError: () =>
+        Effect.fail(new InternalServerError({
+            message: "An unexpected error occurred",
+            requestId: context.requestId,
+        })),
+    ConnectionError: () =>
+        Effect.fail(new InternalServerError({
+            message: "An unexpected error occurred",
+            requestId: context.requestId,
+        })),
+})
 ```
+
+A decode failure is a `Schema.SchemaError`. Catch it with `catchTag("SchemaError", ...)` when recovery is possible. When a decode failure inside a service signals a programming bug, prefer `Effect.die` so it surfaces as a defect instead of a handled failure.
 
 ## Error Logging
 
@@ -466,3 +580,4 @@ const processWithLogging = Effect.fn("OrderService.process")(function* (orderId:
     )
 })
 ```
+
