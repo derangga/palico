@@ -4,14 +4,14 @@ import { Schema } from "effect";
 // thread (src/lib/metadata/image-read.ts); PDFs in the PDF worker
 // (src/lib/file/pdf-metadata.ts). Both produce a MetadataReport.
 
-export const MetadataGroup = Schema.Literal(
+export const MetadataGroup = Schema.Literals([
 	"Location",
 	"Device",
 	"Dates",
 	"People",
 	"Software",
 	"Other",
-);
+]);
 export type MetadataGroup = Schema.Schema.Type<typeof MetadataGroup>;
 
 // One removable piece of hidden data, e.g. { Device, "Camera", "Apple iPhone 15" }.

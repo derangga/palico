@@ -1,4 +1,4 @@
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import { validateSize } from "./converter.ts";
 import { type ConvertError, DecodeError } from "./errors.ts";
@@ -7,7 +7,7 @@ import { runImageWorker } from "./worker-client.ts";
 
 // "same" keeps JPEG and WebP. PNG and anything else becomes WebP: canvas
 // ignores `quality` for PNG, and WebP keeps transparency.
-export const CompressFormat = Schema.Literal("same", "jpeg", "webp");
+export const CompressFormat = Schema.Literals(["same", "jpeg", "webp"]);
 export type CompressFormat = Schema.Schema.Type<typeof CompressFormat>;
 
 export const CompressInput = Schema.Struct({
@@ -89,7 +89,7 @@ const compressOne = Effect.fn("ImageCompressor.compressOne")(function* (
 	} satisfies CompressOutput;
 });
 
-// Same shape as convertImages: bounded concurrency, per-file Either so one bad
+// Same shape as convertImages: bounded concurrency, per-file Result so one bad
 // image never aborts the rest, progress reported per file.
 export const compressImages = (
 	inputs: ReadonlyArray<CompressInput>,
@@ -102,18 +102,18 @@ export const compressImages = (
 				yield* Effect.sync(() =>
 					onProgress({ id: input.id, status: "processing" }),
 				);
-				const result = yield* Effect.either(compressOne(input));
+				const result = yield* Effect.result(compressOne(input));
 				yield* Effect.sync(() =>
-					Either.isRight(result)
+					Result.isSuccess(result)
 						? onProgress({
 								id: input.id,
 								status: "done",
-								output: result.right,
+								output: result.success,
 							})
 						: onProgress({
 								id: input.id,
 								status: "error",
-								error: result.left,
+								error: result.failure,
 							}),
 				);
 				return result;
@@ -121,6 +121,6 @@ export const compressImages = (
 		{ concurrency: 5 },
 	).pipe(
 		Effect.map((results) =>
-			results.flatMap((r) => (Either.isRight(r) ? [r.right] : [])),
+			results.flatMap((r) => (Result.isSuccess(r) ? [r.success] : [])),
 		),
 	);

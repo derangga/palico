@@ -36,7 +36,7 @@
     "@tanstack/router-plugin": "1.168.18",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "effect": "3.21.4",
+    "effect": "4.1.2",
     "fflate": "0.8.3",
     "lucide-react": "1.21.0",
     "mermaid": "11.16.0",
@@ -59,7 +59,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@catppuccin/tailwindcss": "1.0.0",
-    "@effect/language-service": "0.86.2",
+    "@effect/language-service": "0.87.5",
     "@tailwindcss/typography": "0.5.20",
     "@tanstack/devtools-vite": "0.8.1",
     "@tanstack/router-cli": "1.167.17",

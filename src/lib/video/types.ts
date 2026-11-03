@@ -3,15 +3,15 @@
 // Pure module — no @ffmpeg/* imports. Both the /video-converter route (for
 // the format dropdown) and the converter pipeline import from here.
 
-import { Either, Schema } from "effect";
+import { Result, Schema } from "effect";
 
-export const VideoOutputFormat = Schema.Literal(
+export const VideoOutputFormat = Schema.Literals([
 	"mp4",
 	"webm",
 	"mov",
 	"mkv",
 	"avi",
-);
+]);
 export type VideoOutputFormat = Schema.Schema.Type<typeof VideoOutputFormat>;
 
 export const VideoFormatMeta = Schema.Struct({
@@ -45,13 +45,13 @@ export const formatMeta = (value: VideoOutputFormat): VideoFormatMeta =>
 	META[value];
 
 // Best-effort parse of an unknown value (e.g. `<Select onValueChange>` payload)
-// into the literal union. Returns Either so callers can decide whether to fall
+// into the literal union. Returns Result so callers can decide whether to fall
 // back, toast, or just ignore — without the `as VideoOutputFormat` escape hatch.
-const decodeFormat = Schema.decodeUnknownEither(VideoOutputFormat);
+const decodeFormat = Schema.decodeUnknownResult(VideoOutputFormat);
 export const parseVideoOutputFormat = (
 	value: unknown,
-): Either.Either<VideoOutputFormat, string> =>
-	Either.mapLeft(decodeFormat(value), (e) => e.message);
+): Result.Result<VideoOutputFormat, string> =>
+	Result.mapError(decodeFormat(value), (e) => e.message);
 
 // Per-format ffmpeg encoder presets. The pipeline prepends `-i <input>` and
 // appends the output filename; everything between is from here.

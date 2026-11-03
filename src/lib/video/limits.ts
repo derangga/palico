@@ -22,7 +22,7 @@ export const MAX_FILES = 5;
 // "mobile". Kept local so this module stays free of React/DOM imports.
 const MOBILE_VIEWPORT_MAX = 768;
 
-export const DeviceClass = Schema.Literal("mobile", "desktop");
+export const DeviceClass = Schema.Literals(["mobile", "desktop"]);
 export type DeviceClass = Schema.Schema.Type<typeof DeviceClass>;
 
 // iOS Safari + Android Chrome are tighter on memory, so they get lower caps.
@@ -73,11 +73,11 @@ export const classifyDevice = (input: {
 
 // Verdict carries numbers only — the route composes the user-facing copy so the
 // warm/brand strings live next to the other toast copy (mirrors converter.tsx).
-export const SizeVerdict = Schema.Union(
+export const SizeVerdict = Schema.Union([
 	Schema.Struct({ kind: Schema.Literal("ok") }),
 	Schema.Struct({ kind: Schema.Literal("warn"), warnMB: Schema.Number }),
 	Schema.Struct({ kind: Schema.Literal("rejected"), capMB: Schema.Number }),
-);
+]);
 export type SizeVerdict = Schema.Schema.Type<typeof SizeVerdict>;
 
 const verdictFor = (

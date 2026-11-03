@@ -30,7 +30,7 @@ type SegmentationModel = (
 	input: HTMLCanvasElement,
 ) => Promise<ImageSegmentationPipelineOutput[]>;
 
-export const RemoveProgress = Schema.Union(
+export const RemoveProgress = Schema.Union([
 	Schema.Struct({
 		stage: Schema.Literal("downloading"),
 		percent: Schema.Number,
@@ -38,7 +38,7 @@ export const RemoveProgress = Schema.Union(
 	Schema.Struct({
 		stage: Schema.Literal("processing"),
 	}),
-);
+]);
 export type RemoveProgress = Schema.Schema.Type<typeof RemoveProgress>;
 
 // Schema-derived data slice — the callback below can't be schema'd, so the
@@ -96,7 +96,7 @@ const buildPipeline = (
 // cache stays inside the Effect graph instead of a mutable `let` — mirrors the
 // engine singleton in video/engine.ts. Failures never reach Ref.set, so the user
 // can retry by clicking Proceed again.
-const modelRef = Ref.unsafeMake<Option.Option<SegmentationModel>>(
+const modelRef = Ref.makeUnsafe<Option.Option<SegmentationModel>>(
 	Option.none(),
 );
 
@@ -108,7 +108,7 @@ const loadPipeline = (
 		if (Option.isSome(cached)) return cached.value;
 
 		const model = yield* buildPipeline("webgpu", onEvent).pipe(
-			Effect.orElse(() => buildPipeline("wasm", onEvent)),
+			Effect.catch(() => buildPipeline("wasm", onEvent)),
 		);
 		yield* Ref.set(modelRef, Option.some(model));
 		return model;

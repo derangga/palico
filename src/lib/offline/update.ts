@@ -23,13 +23,15 @@ export const applyUpdate = Effect.gen(function* () {
 		});
 	}
 	yield* SubscriptionRef.set(updateRef, "applying");
-	const changed = yield* Effect.fork(host.awaitControllerChange);
+	const changed = yield* Effect.forkChild(host.awaitControllerChange);
 	yield* handle.value.activateWaiting;
 	yield* Fiber.join(changed).pipe(
-		Effect.timeoutFail({
+		Effect.timeoutOrElse({
 			duration: "5 seconds",
-			onTimeout: () =>
-				new SwUpdateError({ message: "The update did not finish." }),
+			orElse: () =>
+				Effect.fail(
+					new SwUpdateError({ message: "The update did not finish." }),
+				),
 		}),
 	);
 	yield* host.reload;

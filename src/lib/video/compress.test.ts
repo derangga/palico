@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // jsdom gives fetchFile (inside runFfmpegJob) the FileReader that node lacks.
 
-import { Effect, Either, Exit } from "effect";
+import { Effect, Exit, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -97,7 +97,7 @@ describe("planVideoKbps", () => {
 describe("parseDurationProbe", () => {
 	it("reads ffprobe's string duration", () => {
 		expect(parseDurationProbe('{"format":{"duration":"12.345000"}}')).toEqual(
-			Either.right(12.345),
+			Result.succeed(12.345),
 		);
 	});
 
@@ -107,7 +107,7 @@ describe("parseDurationProbe", () => {
 		['{"format":{"duration":"0.000000"}}'],
 		["not json"],
 	])("rejects %s", (json) => {
-		expect(Either.isLeft(parseDurationProbe(json))).toBe(true);
+		expect(Result.isFailure(parseDurationProbe(json))).toBe(true);
 	});
 });
 

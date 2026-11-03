@@ -43,7 +43,7 @@ export const RenderRequest = Schema.Struct({
 });
 export type RenderRequest = Schema.Schema.Type<typeof RenderRequest>;
 
-export const Rotation = Schema.Literal(0, 90, 180, 270);
+export const Rotation = Schema.Literals([0, 90, 180, 270]);
 export type Rotation = Schema.Schema.Type<typeof Rotation>;
 
 // Copy the given 0-based page indices (in the order provided) into a new PDF.
@@ -105,10 +105,10 @@ export type StripMetadataRequest = Schema.Schema.Type<
 >;
 
 // PDF to Images: render every page to PNG or JPEG and stream them into a zip.
-export const RasterFormat = Schema.Literal("png", "jpeg");
+export const RasterFormat = Schema.Literals(["png", "jpeg"]);
 export type RasterFormat = Schema.Schema.Type<typeof RasterFormat>;
 
-export const RasterDpi = Schema.Literal(72, 150, 300);
+export const RasterDpi = Schema.Literals([72, 150, 300]);
 export type RasterDpi = Schema.Schema.Type<typeof RasterDpi>;
 
 export const RasterizeRequest = Schema.Struct({
@@ -123,7 +123,7 @@ export const RasterizeRequest = Schema.Struct({
 });
 export type RasterizeRequest = Schema.Schema.Type<typeof RasterizeRequest>;
 
-export const PdfWorkerRequest = Schema.Union(
+export const PdfWorkerRequest = Schema.Union([
 	RenderRequest,
 	ExtractRequest,
 	SplitRequest,
@@ -131,24 +131,24 @@ export const PdfWorkerRequest = Schema.Union(
 	ReadMetadataRequest,
 	StripMetadataRequest,
 	RasterizeRequest,
-);
+]);
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
-export const PdfWorkerErrorReason = Schema.Literal(
+export const PdfWorkerErrorReason = Schema.Literals([
 	"invalid",
 	"encrypted",
 	"too-many-pages",
 	// Rasterize: the whole job would exceed MAX_RASTER_TOTAL_PIXELS.
 	"too-large",
 	"worker",
-);
+]);
 export type PdfWorkerErrorReason = Schema.Schema.Type<
 	typeof PdfWorkerErrorReason
 >;
 
 // The worker streams its result: one "meta", then one "page" per rendered
 // thumbnail, then "done". Any failure is reported as a single "error".
-export const PdfWorkerResponse = Schema.Union(
+export const PdfWorkerResponse = Schema.Union([
 	Schema.Struct({
 		type: Schema.Literal("meta"),
 		id: Schema.String,
@@ -207,7 +207,7 @@ export const PdfWorkerResponse = Schema.Union(
 		message: Schema.String,
 		pageCount: Schema.optional(Schema.Number),
 	}),
-);
+]);
 export type PdfWorkerResponse = Schema.Schema.Type<typeof PdfWorkerResponse>;
 
 // --- Domain types (UI-facing) ----------------------------------------------

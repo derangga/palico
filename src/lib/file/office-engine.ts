@@ -13,7 +13,14 @@
 // progress, persisted in the Cache API) and hand them to Emscripten as blob
 // URLs via the `globalThis.__palicoZetaAssets` map the vendored file consults.
 
-import { Deferred, Effect, Option, Ref, SynchronizedRef } from "effect";
+import {
+	Deferred,
+	Effect,
+	Option,
+	Ref,
+	Semaphore,
+	SynchronizedRef,
+} from "effect";
 
 import { OfficeConvertError, OfficeEngineLoadError } from "./errors.ts";
 import {
@@ -57,9 +64,9 @@ type OfficeThreadReply =
 // Module singleton via SynchronizedRef (per Effect patterns — no hidden mutable
 // `let`). SynchronizedRef serializes updateEffect, so the check-then-boot in
 // loadEngine runs under a lock: concurrent callers can't both observe `none` and
-// boot two ~53 MB engines. Reads still go through `Ref.get` (SynchronizedRef is
-// a Ref), so convertToPdf/isEngineReady are unchanged.
-const engineRef = SynchronizedRef.unsafeMake<Option.Option<EngineHandle>>(
+// boot two ~53 MB engines. Reads go through `SynchronizedRef.get` (in v4 it is
+// no longer a Ref).
+const engineRef = SynchronizedRef.makeUnsafe<Option.Option<EngineHandle>>(
 	Option.none(),
 );
 
@@ -68,8 +75,8 @@ const engineRef = SynchronizedRef.unsafeMake<Option.Option<EngineHandle>>(
 // hidden mutable `let`; the slot is a Ref, mirroring engineRef above). Two
 // concurrent convertToPdf calls queue on the permit instead of clobbering each
 // other, and Effect.ensuring clears the slot on success, failure, or interrupt.
-const convertSem = Effect.unsafeMakeSemaphore(1);
-const pendingConvertRef = Ref.unsafeMake<
+const convertSem = Semaphore.makeUnsafe(1);
+const pendingConvertRef = Ref.makeUnsafe<
 	Option.Option<Deferred.Deferred<OfficeThreadReply>>
 >(Option.none());
 
@@ -99,7 +106,7 @@ const peekCache = (
 		try: () => cache.match(asset.url),
 		catch: () => "cache-match-failed" as const,
 	}).pipe(
-		Effect.map(Option.fromNullable),
+		Effect.map(Option.fromNullishOr),
 		Effect.orElseSucceed(() => Option.none<Response>()),
 	);
 
@@ -316,7 +323,7 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 				}),
 		});
 
-		return yield* Effect.async<EngineHandle, OfficeEngineLoadError>(
+		return yield* Effect.callback<EngineHandle, OfficeEngineLoadError>(
 			(resume) => {
 				const zHM = new mod.ZetaHelperMain(OFFICE_THREAD_URL, {
 					threadJsType: "module",
@@ -342,10 +349,10 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 							return;
 						}
 						// convert replies -> route to the in-flight conversion. Resolve
-						// the Deferred outside an Effect context via unsafeDone.
+						// the Deferred outside an Effect context via doneUnsafe.
 						const pending = Effect.runSync(Ref.get(pendingConvertRef));
 						if (Option.isSome(pending)) {
-							Deferred.unsafeDone(pending.value, Effect.succeed(reply));
+							Deferred.doneUnsafe(pending.value, Effect.succeed(reply));
 						}
 					};
 				});
@@ -377,7 +384,7 @@ export const loadEngine = (
 					}),
 		);
 
-		const loaded = yield* Ref.get(engineRef);
+		const loaded = yield* SynchronizedRef.get(engineRef);
 		return yield* Option.match(loaded, {
 			onNone: () =>
 				Effect.fail(
@@ -391,9 +398,9 @@ export const loadEngine = (
 	});
 
 // True once the engine singleton is booted this session.
-export const isEngineReady: Effect.Effect<boolean> = Ref.get(engineRef).pipe(
-	Effect.map(Option.isSome),
-);
+export const isEngineReady: Effect.Effect<boolean> = SynchronizedRef.get(
+	engineRef,
+).pipe(Effect.map(Option.isSome));
 
 // Convert one document's bytes to PDF bytes via the booted engine. Writes the
 // input to a canonical /tmp path (preserving the extension so LO can sniff the
@@ -408,7 +415,7 @@ export const convertToPdf = (params: {
 }): Effect.Effect<Uint8Array, OfficeConvertError> =>
 	convertSem.withPermits(1)(
 		Effect.gen(function* () {
-			const maybeEngine = yield* Ref.get(engineRef);
+			const maybeEngine = yield* SynchronizedRef.get(engineRef);
 			const engine = yield* Option.match(maybeEngine, {
 				onNone: () =>
 					Effect.fail(

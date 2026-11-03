@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { CircleAlert, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import { toast } from "sonner";
@@ -139,13 +139,13 @@ function ResizerPage() {
 		}
 
 		// Cancellation: acquireUseRelease has already terminated the worker.
-		if (exit.cause._tag === "Interrupt") {
+		if (Cause.hasInterruptsOnly(exit.cause)) {
 			dispatch({ type: "cancel" });
 			return;
 		}
 
 		// Surface the typed pipeline error message.
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		const message =
 			failure && "message" in failure
 				? failure.message

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { Download, ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -115,7 +115,7 @@ function FaviconGeneratorPage() {
 			setStatus("done");
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		if (failure) console.error(failure);
 		toast.error(faviconErrorMessage(failure));
 		setSource(null);
@@ -131,8 +131,9 @@ function FaviconGeneratorPage() {
 			downloadBlob(exit.value, "favicons.zip");
 			return;
 		}
-		const failure: ZipError | undefined =
-			exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure: ZipError | undefined = Option.getOrUndefined(
+			Cause.findErrorOption(exit.cause),
+		);
 		console.error(failure);
 		toast.error("Couldn't bundle the zip.");
 	}

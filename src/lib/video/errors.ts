@@ -99,7 +99,7 @@ export class TargetTooSmallError extends Schema.TaggedError<TargetTooSmallError>
 export class EngineLoadError extends Schema.TaggedError<EngineLoadError>()(
 	"EngineLoadError",
 	{
-		stage: Schema.Literal("downloading", "caching", "preparing"),
+		stage: Schema.Literals(["downloading", "caching", "preparing"]),
 		message: Schema.String,
 	},
 ) {}

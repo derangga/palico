@@ -8,7 +8,7 @@ import { ZipError } from "./errors.ts";
 export const createZip = (
 	files: Record<string, Uint8Array>,
 ): Effect.Effect<Blob, ZipError> =>
-	Effect.async<Blob, ZipError>((resume) => {
+	Effect.callback<Blob, ZipError>((resume) => {
 		zip(files, { level: 0 }, (err, data) => {
 			if (err) {
 				resume(Effect.fail(new ZipError({ message: err.message })));

@@ -1,11 +1,5 @@
-import {
-	Effect,
-	Fiber,
-	Layer,
-	SubscriptionRef,
-	TestClock,
-	TestContext,
-} from "effect";
+import { Effect, Fiber, Layer, SubscriptionRef } from "effect";
+import { TestClock } from "effect/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { makeFakeCache, makeFakeSw, settle } from "./fakes.ts";
@@ -31,15 +25,13 @@ const run = (
 	const cache = makeFakeCache(cacheNames);
 	return Effect.runPromise(
 		Effect.gen(function* () {
-			const fiber = yield* Effect.fork(startOffline);
+			const fiber = yield* Effect.forkChild(startOffline);
 			yield* settle;
 			yield* check;
 			yield* Fiber.interrupt(fiber);
 			return cache;
 		}).pipe(
-			Effect.provide(
-				Layer.mergeAll(sw.layer, cache.layer, TestContext.TestContext),
-			),
+			Effect.provide(Layer.mergeAll(sw.layer, cache.layer, TestClock.layer())),
 		),
 	);
 };

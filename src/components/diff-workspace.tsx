@@ -1,7 +1,7 @@
 import { useWorkerPool, WorkerPoolContextProvider } from "@pierre/diffs/react";
 // Vite bundles the package's worker entry; `?worker` yields a Worker constructor.
 import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { FileDiff, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -57,7 +57,7 @@ export function DiffWorkspace() {
 			setResult(exit.value);
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		if (failure) console.error(failure);
 		toast.error(failure?.message ?? "Couldn't compute the difference.");
 	}

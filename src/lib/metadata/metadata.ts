@@ -1,4 +1,4 @@
-import { Effect, type Either } from "effect";
+import { Effect, type Result } from "effect";
 
 import { type PdfLoadError, PdfTooLargeError } from "#/lib/file/errors.ts";
 import { MAX_PDF_BYTES } from "#/lib/file/pdf-types.ts";
@@ -146,18 +146,18 @@ export const stripFile = Effect.fn("Metadata.stripFile")(function* (
 });
 
 // Run `task` over a batch with bounded concurrency. Each file's outcome is
-// reported as an Either so one bad file never stops the rest. Kept at 3 since
+// reported as a Result so one bad file never stops the rest. Kept at 3 since
 // every PDF spins up its own worker holding up to 50 MB.
 export const forEachFile = <A, E>(
 	inputs: ReadonlyArray<FileInput>,
 	task: (input: FileInput) => Effect.Effect<A, E>,
-	onResult: (id: string, result: Either.Either<A, E>) => void,
+	onResult: (id: string, result: Result.Result<A, E>) => void,
 ): Effect.Effect<void> =>
 	Effect.forEach(
 		inputs,
 		(input) =>
 			task(input).pipe(
-				Effect.either,
+				Effect.result,
 				Effect.flatMap((result) =>
 					Effect.sync(() => onResult(input.id, result)),
 				),

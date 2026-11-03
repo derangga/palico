@@ -1,4 +1,4 @@
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -90,18 +90,18 @@ describe("readImageMetadata: JPEG", () => {
 			segment(0xe1, bytes("Exif\0\0MM")).slice(0, 6),
 		);
 		const result = Effect.runSync(
-			Effect.either(readImageMetadata("broken.jpg", truncated)),
+			Effect.result(readImageMetadata("broken.jpg", truncated)),
 		);
-		expect(Either.isLeft(result) && result.left._tag).toBe(
+		expect(Result.isFailure(result) && result.failure._tag).toBe(
 			"MetadataParseError",
 		);
 	});
 
 	it("rejects files that are not JPEG, PNG or WebP", () => {
 		const result = Effect.runSync(
-			Effect.either(readImageMetadata("a.gif", bytes("GIF89a....."))),
+			Effect.result(readImageMetadata("a.gif", bytes("GIF89a....."))),
 		);
-		expect(Either.isLeft(result) && result.left._tag).toBe(
+		expect(Result.isFailure(result) && result.failure._tag).toBe(
 			"UnsupportedFormatError",
 		);
 	});

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect, Either } from "effect";
+import { Effect, Result } from "effect";
 import { FileArchive, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -60,12 +60,12 @@ function StripMetadataPage() {
 
 		Effect.runPromise(
 			forEachFile(added, inspectFile, (id, result) =>
-				Either.isRight(result)
+				Result.isSuccess(result)
 					? update(id, {
-							status: result.right.fields.length > 0 ? "found" : "nothing",
-							before: result.right,
+							status: result.success.fields.length > 0 ? "found" : "nothing",
+							before: result.success,
 						})
-					: update(id, { status: "error", message: result.left.message }),
+					: update(id, { status: "error", message: result.failure.message }),
 			),
 		);
 	}
@@ -83,15 +83,15 @@ function StripMetadataPage() {
 		let ok = 0;
 		await Effect.runPromise(
 			forEachFile(targets, stripFile, (id, result) => {
-				if (Either.isRight(result)) {
+				if (Result.isSuccess(result)) {
 					ok++;
 					update(id, {
 						status: "clean",
-						blob: result.right.blob,
-						after: result.right.after,
+						blob: result.success.blob,
+						after: result.success.after,
 					});
 				} else {
-					update(id, { status: "error", message: result.left.message });
+					update(id, { status: "error", message: result.failure.message });
 				}
 			}),
 		);

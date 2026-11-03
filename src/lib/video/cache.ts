@@ -16,7 +16,7 @@ export const CACHE_NAME = `ffmpeg-wasm-v${FFMPEG_CORE_VERSION}`;
 // file sizes this tool targets.
 const CDN_BASE = `https://cdn.jsdelivr.net/npm/@ffmpeg/core-mt@${FFMPEG_CORE_VERSION}/dist/esm`;
 
-export const EngineAssetKey = Schema.Literal("core", "wasm", "worker");
+export const EngineAssetKey = Schema.Literals(["core", "wasm", "worker"]);
 export type EngineAssetKey = Schema.Schema.Type<typeof EngineAssetKey>;
 
 export const EngineAsset = Schema.Struct({
@@ -62,7 +62,7 @@ const PhaseError = Schema.Struct({
 	message: Schema.String,
 });
 
-export const LoadPhase = Schema.Union(
+export const LoadPhase = Schema.Union([
 	PhaseChecking,
 	PhaseConsent,
 	PhaseDownloading,
@@ -70,7 +70,7 @@ export const LoadPhase = Schema.Union(
 	PhasePreparing,
 	PhaseReady,
 	PhaseError,
-);
+]);
 export type LoadPhase = Schema.Schema.Type<typeof LoadPhase>;
 
 // True iff every engine asset is already present in the Cache API. Used on

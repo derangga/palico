@@ -10,7 +10,7 @@
 // the user); the route surfaces it honestly. Because nothing is decoded, ffmpeg
 // emits no `progress` events — callers show an indeterminate "trimming" state.
 
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import { type EngineHandle, getEngine } from "./engine.ts";
 import { type EngineNotLoadedError, VideoTrimError } from "./errors.ts";
@@ -41,8 +41,8 @@ export type TrimVideoOutput = Schema.Schema.Type<typeof TrimVideoOutput>;
 export const outputContainer = (file: File): { ext: string; mime: string } => {
 	const ext = inputExtension(file);
 	const parsed = parseVideoOutputFormat(ext);
-	if (Either.isRight(parsed)) {
-		const meta = formatMeta(parsed.right);
+	if (Result.isSuccess(parsed)) {
+		const meta = formatMeta(parsed.success);
 		return { ext: meta.ext, mime: meta.mime };
 	}
 	return { ext, mime: file.type || `video/${ext}` };

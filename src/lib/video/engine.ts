@@ -41,14 +41,14 @@ export interface EngineHandle {
 // Module-singleton via Ref. Initialization is a constant; every read and
 // write goes through Ref.get / Ref.set so the singleton stays inside the
 // Effect graph instead of being a hidden mutable `let`.
-const engineRef = Ref.unsafeMake<Option.Option<EngineHandle>>(Option.none());
+const engineRef = Ref.makeUnsafe<Option.Option<EngineHandle>>(Option.none());
 
 // Blob URLs backing the engine assets (~31MB of data pinned per set). Kept
 // alive for the engine's whole lifetime — emscripten pthread workers can
 // importScripts the core blob lazily at exec time, so revoking right after
 // ffmpeg.load risks breaking later execs. Revoked in disposeEngine so every
 // cancel → re-load cycle releases the previous set instead of leaking it.
-const blobUrlsRef = Ref.unsafeMake<ReadonlyArray<string>>([]);
+const blobUrlsRef = Ref.makeUnsafe<ReadonlyArray<string>>([]);
 
 const revokeTrackedBlobUrls: Effect.Effect<void> = Ref.getAndSet(
 	blobUrlsRef,
@@ -192,7 +192,7 @@ const peekCache = (
 		try: () => cache.match(asset.url),
 		catch: () => "cache-match-failed" as const,
 	}).pipe(
-		Effect.map(Option.fromNullable),
+		Effect.map(Option.fromNullishOr),
 		Effect.orElseSucceed(() => Option.none<Response>()),
 	);
 

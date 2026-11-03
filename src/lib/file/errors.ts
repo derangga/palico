@@ -162,7 +162,7 @@ export class OfficeUnsupportedFormatError extends Schema.TaggedError<OfficeUnsup
 export class OfficeEngineLoadError extends Schema.TaggedError<OfficeEngineLoadError>()(
 	"OfficeEngineLoadError",
 	{
-		stage: Schema.Literal("downloading", "caching", "preparing"),
+		stage: Schema.Literals(["downloading", "caching", "preparing"]),
 		message: Schema.String,
 	},
 ) {}

@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Result } from "effect";
 
 import { classifyDevice, MB } from "#/lib/video/limits.ts";
 import {
@@ -44,7 +44,7 @@ export function deviceClass() {
 export function formatLabelFor(file: File): string {
 	const ext = inputExtension(file);
 	const parsed = parseVideoOutputFormat(ext);
-	return Either.isRight(parsed)
-		? formatMeta(parsed.right).label
+	return Result.isSuccess(parsed)
+		? formatMeta(parsed.success).label
 		: ext.toUpperCase();
 }

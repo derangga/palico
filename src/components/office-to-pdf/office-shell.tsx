@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { FileArchive, Loader2, UploadCloud } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -132,8 +132,9 @@ export function OfficeShell() {
 				);
 			} else {
 				failed += 1;
-				const failure =
-					exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+				const failure = Option.getOrUndefined(
+					Cause.findErrorOption(exit.cause),
+				);
 				if (failure) console.error(failure);
 				setItems((prev) =>
 					prev.map((it) =>

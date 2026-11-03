@@ -5,7 +5,7 @@
 
 import { Schema } from "effect";
 
-export const GifFps = Schema.Literal(8, 12, 15);
+export const GifFps = Schema.Literals([8, 12, 15]);
 export type GifFps = Schema.Schema.Type<typeof GifFps>;
 
 export const GIF_FPS_OPTIONS: readonly GifFps[] = [8, 12, 15];
@@ -13,7 +13,7 @@ export const DEFAULT_GIF_FPS: GifFps = 12;
 
 // Size is the LONGER side, not the width: most phone video is portrait, where a
 // 640px width would mean a ~1138px tall GIF.
-export const GifSize = Schema.Literal(320, 480, 640);
+export const GifSize = Schema.Literals([320, 480, 640]);
 export type GifSize = Schema.Schema.Type<typeof GifSize>;
 
 export const GIF_SIZE_OPTIONS: ReadonlyArray<{

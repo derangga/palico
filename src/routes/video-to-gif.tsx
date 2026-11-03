@@ -140,7 +140,7 @@ function GifShell() {
 				});
 				toast.success("Your GIF is ready. Hit Save to download it.");
 			} else {
-				const message = Option.match(Cause.failureOption(exit.cause), {
+				const message = Option.match(Cause.findErrorOption(exit.cause), {
 					onNone: () => "Could not make the GIF.",
 					onSome: (error) => error.message,
 				});

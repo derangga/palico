@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import {
 	CircleAlert,
 	Download,
@@ -106,7 +106,7 @@ function BackgroundRemovalPage() {
 			setGate({ kind: "ready" });
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		if (failure) console.error(failure);
 		setGate({
 			kind: "error",
@@ -192,7 +192,7 @@ function BackgroundRemovalPage() {
 			return;
 		}
 
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		if (failure) console.error(failure);
 		toast.error(userMessageFor(failure));
 		setStatus("idle");

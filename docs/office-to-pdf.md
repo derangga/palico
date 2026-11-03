@@ -259,7 +259,7 @@ sequenceDiagram
 Key points:
 
 - **Singleton via `Ref`.** The loaded handle lives in a module-level
-  `Ref.unsafeMake<Option<EngineHandle>>`. This keeps the singleton inside the
+  `Ref.makeUnsafe<Option<EngineHandle>>`. This keeps the singleton inside the
   Effect graph instead of a hidden mutable variable, mirroring the video engine.
 - **Download progress is aggregate.** We HEAD each missing asset for its
   `Content-Length`, sum them, then report a single percentage as bytes stream in.

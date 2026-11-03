@@ -11,7 +11,7 @@ export const MAX_DIMENSION = 8000; // px, longest side
 // the converter's job is format conversion, not quality tuning.
 export const DEFAULT_QUALITY = 0.92;
 
-export const OutputFormat = Schema.Literal("jpeg", "png", "webp");
+export const OutputFormat = Schema.Literals(["jpeg", "png", "webp"]);
 export type OutputFormat = Schema.Schema.Type<typeof OutputFormat>;
 
 export const OUTPUT_FORMATS: ReadonlyArray<{
@@ -72,7 +72,7 @@ export const WorkerRequest = Schema.Struct({
 });
 export type WorkerRequest = Schema.Schema.Type<typeof WorkerRequest>;
 
-export const WorkerResponse = Schema.Union(
+export const WorkerResponse = Schema.Union([
 	Schema.Struct({
 		id: Schema.String,
 		ok: Schema.Literal(true),
@@ -86,10 +86,10 @@ export const WorkerResponse = Schema.Union(
 	Schema.Struct({
 		id: Schema.String,
 		ok: Schema.Literal(false),
-		reason: Schema.Literal("decode", "dimensions", "encode"),
+		reason: Schema.Literals(["decode", "dimensions", "encode"]),
 		message: Schema.String,
 		width: Schema.optional(Schema.Number),
 		height: Schema.optional(Schema.Number),
 	}),
-);
+]);
 export type WorkerResponse = Schema.Schema.Type<typeof WorkerResponse>;

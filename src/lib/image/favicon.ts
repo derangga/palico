@@ -9,7 +9,7 @@ export const FaviconAsset = Schema.Struct({
 	size: Schema.Number,
 	mime: Schema.String,
 	blob: Schema.instanceOf(Blob),
-	bytes: Schema.Uint8ArrayFromSelf,
+	bytes: Schema.Uint8Array,
 });
 export type FaviconAsset = Schema.Schema.Type<typeof FaviconAsset>;
 

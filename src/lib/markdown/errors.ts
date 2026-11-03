@@ -7,7 +7,7 @@ import { Schema } from "effect";
 export class MarkdownStorageError extends Schema.TaggedError<MarkdownStorageError>()(
 	"MarkdownStorageError",
 	{
-		operation: Schema.Literal("load", "save"),
+		operation: Schema.Literals(["load", "save"]),
 		message: Schema.String,
 	},
 ) {}

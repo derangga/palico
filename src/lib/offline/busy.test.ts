@@ -1,4 +1,4 @@
-import { Effect, Exit, Fiber, SubscriptionRef } from "effect";
+import { Cause, Effect, Exit, Fiber, SubscriptionRef } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { withBusy } from "./busy.ts";
@@ -25,8 +25,8 @@ describe("withBusy", () => {
 
 	it("releases when the job is interrupted (video cancel)", async () => {
 		const program = Effect.gen(function* () {
-			const fiber = yield* Effect.fork(withBusy(Effect.never));
-			yield* Effect.yieldNow();
+			const fiber = yield* Effect.forkChild(withBusy(Effect.never));
+			yield* Effect.yieldNow;
 			expect(count()).toBe(1);
 			yield* Fiber.interrupt(fiber);
 		});
@@ -46,6 +46,8 @@ describe("withBusy", () => {
 		const exit = await Effect.runPromiseExit(
 			withBusy(SubscriptionRef.set(busyRef, 0)),
 		);
-		expect(Exit.isFailure(exit) && exit.cause._tag).toBe("Die");
+		expect(
+			Exit.isFailure(exit) && exit.cause.reasons.some(Cause.isDieReason),
+		).toBe(true);
 	});
 });

@@ -127,7 +127,7 @@ function ExtractShell() {
 			} else {
 				// Every failure (EngineNotLoadedError | NoAudioTrackError |
 				// AudioExtractError) carries a typed, user-facing `message`.
-				const message = Option.match(Cause.failureOption(exit.cause), {
+				const message = Option.match(Cause.findErrorOption(exit.cause), {
 					onNone: () => "Could not extract the audio.",
 					onSome: (error) => error.message,
 				});

@@ -11,7 +11,7 @@ this tool changes how the same pixels are encoded.
    75 / Best 90 preset), an output format, and optionally "Keep each file
    under N KB".
 3. "Compress N" runs `compressImages` in `src/lib/image/compressor.ts`: five
-   files at a time, each result an `Either`, so one bad file does not stop the
+   files at a time, each result a `Result`, so one bad file does not stop the
    rest. Errors are the image pipeline's tagged errors (`ConvertError`).
 4. Each row shows `before → after (format) · N% smaller`. A line above the list
    totals the bytes saved. Done files save one by one or as

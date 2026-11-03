@@ -13,7 +13,7 @@ export class SwUnsupportedError extends Schema.TaggedError<SwUnsupportedError>()
 export class SwRegistrationError extends Schema.TaggedError<SwRegistrationError>()(
 	"SwRegistrationError",
 	{
-		stage: Schema.Literal("load", "register"),
+		stage: Schema.Literals(["load", "register"]),
 		message: Schema.String,
 	},
 ) {}
@@ -54,7 +54,7 @@ export class StorageUnavailableError extends Schema.TaggedError<StorageUnavailab
 export class OfflineCacheError extends Schema.TaggedError<OfflineCacheError>()(
 	"OfflineCacheError",
 	{
-		op: Schema.Literal("keys", "delete"),
+		op: Schema.Literals(["keys", "delete"]),
 		message: Schema.String,
 	},
 ) {}

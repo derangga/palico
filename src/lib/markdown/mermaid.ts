@@ -15,13 +15,13 @@ type MermaidApi = typeof import("mermaid").default;
 // background-removal.ts) rather than a mutable `let`: the initialized API is
 // cached across renders, while a failed load never reaches Ref.set and so can
 // be retried on the next diagram.
-const mermaidRef = Ref.unsafeMake<Option.Option<MermaidApi>>(Option.none());
+const mermaidRef = Ref.makeUnsafe<Option.Option<MermaidApi>>(Option.none());
 
 // Monotonic counter so every render() call gets a unique DOM id. mermaid stages
 // each render in a temp <div id={id}> and removes it afterward; if two concurrent
 // renders shared one id, the newer one would delete the older's temp element
 // mid-flight and corrupt the surviving SVG.
-const renderSeq = Ref.unsafeMake(0);
+const renderSeq = Ref.makeUnsafe(0);
 
 // Read one Catppuccin colour from the active flavour. The package sets
 // `--catppuccin-color-*` on <html> (`.latte` / `.mocha`), so reading it live keeps

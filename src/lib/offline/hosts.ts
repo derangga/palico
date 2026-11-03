@@ -2,7 +2,7 @@
 // real ones wrap navigator.serviceWorker, CacheStorage and navigator.storage; tests
 // provide fakes, so the same graph runs in node.
 
-import { Context, Effect, Layer, Stream } from "effect";
+import { Context, Effect, Layer, Queue, Stream } from "effect";
 
 import {
 	OfflineCacheError,
@@ -37,24 +37,24 @@ export interface ServiceWorkerHostShape {
 	readonly reload: Effect.Effect<void>;
 }
 
-export class ServiceWorkerHost extends Context.Tag("palico/ServiceWorkerHost")<
+export class ServiceWorkerHost extends Context.Service<
 	ServiceWorkerHost,
 	ServiceWorkerHostShape
->() {}
+>()("palico/ServiceWorkerHost") {}
 
 const messageOf = (cause: unknown) =>
 	cause instanceof Error ? cause.message : String(cause);
 
 const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 	const sw = navigator.serviceWorker;
-	const events = Stream.async<SwEvent>((emit) => {
+	const events = Stream.callback<SwEvent>((queue) => {
 		const cleanups: Array<() => void> = [];
 		const watch = (worker: ServiceWorker) => {
 			const onState = () => {
 				if (worker.state === "installed" && sw.controller) {
-					void emit.single("update-waiting");
+					Queue.offerUnsafe(queue, "update-waiting");
 				}
-				if (worker.state === "activated") void emit.single("activated");
+				if (worker.state === "activated") Queue.offerUnsafe(queue, "activated");
 			};
 			worker.addEventListener("statechange", onState);
 			cleanups.push(() => worker.removeEventListener("statechange", onState));
@@ -62,15 +62,18 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 		const onUpdateFound = () => {
 			if (reg.installing) watch(reg.installing);
 		};
-		const onControllerChange = () => void emit.single("controller-changed");
+		const onControllerChange = () =>
+			Queue.offerUnsafe(queue, "controller-changed");
 		if (reg.installing) watch(reg.installing);
 		reg.addEventListener("updatefound", onUpdateFound);
 		sw.addEventListener("controllerchange", onControllerChange);
-		return Effect.sync(() => {
-			reg.removeEventListener("updatefound", onUpdateFound);
-			sw.removeEventListener("controllerchange", onControllerChange);
-			for (const c of cleanups) c();
-		});
+		return Effect.addFinalizer(() =>
+			Effect.sync(() => {
+				reg.removeEventListener("updatefound", onUpdateFound);
+				sw.removeEventListener("controllerchange", onControllerChange);
+				for (const c of cleanups) c();
+			}),
+		);
 	});
 	return {
 		initial: reg.active ? "active" : "installing",
@@ -91,7 +94,7 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 
 export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 	supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
-	windowLoaded: Effect.async<void>((resume) => {
+	windowLoaded: Effect.callback<void>((resume) => {
 		if (document.readyState === "complete") return resume(Effect.void);
 		const done = () => resume(Effect.void);
 		window.addEventListener("load", done, { once: true });
@@ -106,7 +109,7 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 					message: messageOf(cause),
 				}),
 		}).pipe(Effect.map(makeHandle)),
-	awaitControllerChange: Effect.async<void>((resume) => {
+	awaitControllerChange: Effect.callback<void>((resume) => {
 		const done = () => resume(Effect.void);
 		navigator.serviceWorker.addEventListener("controllerchange", done, {
 			once: true,
@@ -115,13 +118,16 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 			navigator.serviceWorker.removeEventListener("controllerchange", done),
 		);
 	}),
-	pageVisible: Stream.async<void>((emit) => {
+	pageVisible: Stream.callback<void>((queue) => {
 		const onChange = () => {
-			if (document.visibilityState === "visible") void emit.single();
+			if (document.visibilityState === "visible")
+				Queue.offerUnsafe(queue, undefined);
 		};
 		document.addEventListener("visibilitychange", onChange);
-		return Effect.sync(() =>
-			document.removeEventListener("visibilitychange", onChange),
+		return Effect.addFinalizer(() =>
+			Effect.sync(() =>
+				document.removeEventListener("visibilitychange", onChange),
+			),
 		);
 	}),
 	reload: Effect.sync(() => location.reload()),
@@ -134,10 +140,9 @@ export interface CacheHostShape {
 	readonly delete: (name: string) => Effect.Effect<void, OfflineCacheError>;
 }
 
-export class CacheHost extends Context.Tag("palico/CacheHost")<
-	CacheHost,
-	CacheHostShape
->() {}
+export class CacheHost extends Context.Service<CacheHost, CacheHostShape>()(
+	"palico/CacheHost",
+) {}
 
 export const CacheHostLive = Layer.succeed(CacheHost, {
 	keys: Effect.tryPromise({
@@ -163,10 +168,10 @@ export interface StorageHostShape {
 	readonly persisted: Effect.Effect<boolean>;
 }
 
-export class StorageHost extends Context.Tag("palico/StorageHost")<
+export class StorageHost extends Context.Service<
 	StorageHost,
 	StorageHostShape
->() {}
+>()("palico/StorageHost") {}
 
 const storageApi = () =>
 	typeof navigator === "undefined" ? undefined : navigator.storage;

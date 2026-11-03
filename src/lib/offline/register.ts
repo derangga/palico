@@ -74,7 +74,7 @@ export const startOffline = Effect.gen(function* () {
 	Effect.scoped,
 	Effect.catchTag("SwRegistrationError", (e: SwRegistrationError) =>
 		SubscriptionRef.set(shellRef, { _tag: "Failed", message: e.message }).pipe(
-			Effect.zipRight(
+			Effect.andThen(
 				Effect.logWarning(`Offline mode unavailable: ${e.message}`),
 			),
 		),

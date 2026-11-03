@@ -73,7 +73,7 @@ export class InferenceError extends Schema.TaggedError<InferenceError>()(
 export class ModelCacheError extends Schema.TaggedError<ModelCacheError>()(
 	"ModelCacheError",
 	{
-		op: Schema.Literal("open", "match", "put"),
+		op: Schema.Literals(["open", "match", "put"]),
 		message: Schema.String,
 	},
 ) {}

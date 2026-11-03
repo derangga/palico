@@ -98,6 +98,6 @@ export const makeFakeStorage = (opts: {
 // Lets forked fibers run to their next suspension point.
 export const settle = Effect.forEach(
 	Array.from({ length: 25 }),
-	() => Effect.yieldNow(),
+	() => Effect.yieldNow,
 	{ discard: true },
 );

@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Result } from "effect";
 import { AudioLines, Ban, Download, Film, Loader2 } from "lucide-react";
 import { useId } from "react";
 import type { AudioResult } from "#/components/extract-audio/state.ts";
@@ -74,7 +74,7 @@ export function AudioPanel({
 							value={format}
 							onValueChange={(value) => {
 								const parsed = parseAudioFormat(value);
-								if (Either.isRight(parsed)) onChangeFormat(parsed.right);
+								if (Result.isSuccess(parsed)) onChangeFormat(parsed.success);
 							}}
 							disabled={extracting}
 						>

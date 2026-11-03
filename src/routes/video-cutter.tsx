@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Either, Exit, Option } from "effect";
+import { Cause, Effect, Exit, Option, Result } from "effect";
 import { Scissors } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
@@ -74,7 +74,7 @@ function CutterShell() {
 			return;
 		}
 		// Output keeps the input container, so the input must be one we can mux.
-		if (Either.isLeft(parseVideoOutputFormat(inputExtension(f)))) {
+		if (Result.isFailure(parseVideoOutputFormat(inputExtension(f)))) {
 			toast.error("Supported formats: MP4, WebM, MOV, MKV, AVI.");
 			return;
 		}
@@ -141,7 +141,7 @@ function CutterShell() {
 			} else {
 				// Both failure types (EngineNotLoadedError | VideoTrimError) carry a
 				// typed `message`; defects (non-Fail causes) fall back to a generic.
-				const message = Option.match(Cause.failureOption(exit.cause), {
+				const message = Option.match(Cause.findErrorOption(exit.cause), {
 					onNone: () => "Could not trim the video.",
 					onSome: (error) => error.message,
 				});

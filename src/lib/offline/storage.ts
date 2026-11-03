@@ -16,7 +16,7 @@ export const preflightDownload = (
 		if (yield* spec.isCached) return;
 		const storage = yield* StorageHost;
 		const raw = yield* storage.estimate;
-		const report = yield* Schema.decodeUnknown(StorageReport)(raw);
+		const report = yield* Schema.decodeUnknownEffect(StorageReport)(raw);
 		if (report.quota === undefined || report.usage === undefined) return;
 		const available = report.quota - report.usage;
 		if (available < spec.sizeBytes) {
@@ -29,7 +29,7 @@ export const preflightDownload = (
 	}).pipe(
 		Effect.catchTags({
 			StorageUnavailableError: () => Effect.void,
-			ParseError: () => Effect.void,
+			SchemaError: () => Effect.void,
 		}),
 	);
 

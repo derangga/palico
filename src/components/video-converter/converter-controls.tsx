@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Result } from "effect";
 import { Ban, Loader2 } from "lucide-react";
 import { useId } from "react";
 
@@ -54,7 +54,7 @@ export function ConverterControls({
 					value={format}
 					onValueChange={(value) => {
 						const parsed = parseVideoOutputFormat(value);
-						if (Either.isRight(parsed)) onChangeFormat(parsed.right);
+						if (Result.isSuccess(parsed)) onChangeFormat(parsed.success);
 					}}
 					disabled={isRunning}
 				>

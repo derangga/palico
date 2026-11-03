@@ -63,7 +63,7 @@ export const ZETA_CDN_BASE = "https://cdn.zetaoffice.net/zetaoffice_latest/";
 // future pin) invalidates stale entries naturally.
 export const OFFICE_CACHE_NAME = `zetaoffice-wasm-${ZETA_WASM_PKG}`;
 
-export const OfficeAssetKey = Schema.Literal("js", "wasm", "data");
+export const OfficeAssetKey = Schema.Literals(["js", "wasm", "data"]);
 export type OfficeAssetKey = Schema.Schema.Type<typeof OfficeAssetKey>;
 
 export const OfficeEngineAsset = Schema.Struct({
@@ -110,7 +110,7 @@ const PhaseError = Schema.Struct({
 	message: Schema.String,
 });
 
-export const LoadPhase = Schema.Union(
+export const LoadPhase = Schema.Union([
 	PhaseChecking,
 	PhaseConsent,
 	PhaseDownloading,
@@ -118,7 +118,7 @@ export const LoadPhase = Schema.Union(
 	PhasePreparing,
 	PhaseReady,
 	PhaseError,
-);
+]);
 export type LoadPhase = Schema.Schema.Type<typeof LoadPhase>;
 
 // True iff every engine asset is already present in the Cache API. Used on

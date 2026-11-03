@@ -3,9 +3,9 @@
 // Pure module, no @ffmpeg/* imports: the /extract-audio route imports it
 // statically, and later audio tools reuse the same table.
 
-import { Either, Option, Schema } from "effect";
+import { Effect, Option, Result, Schema } from "effect";
 
-export const AudioFormat = Schema.Literal("mp3", "m4a", "opus", "wav");
+export const AudioFormat = Schema.Literals(["mp3", "m4a", "opus", "wav"]);
 export type AudioFormat = Schema.Schema.Type<typeof AudioFormat>;
 
 export interface AudioFormatMeta {
@@ -72,38 +72,41 @@ export const DEFAULT_AUDIO_FORMAT: AudioFormat = "mp3";
 export const audioFormatMeta = (value: AudioFormat): AudioFormatMeta =>
 	META[value];
 
-const decodeFormat = Schema.decodeUnknownEither(AudioFormat);
+const decodeFormat = Schema.decodeUnknownResult(AudioFormat);
 export const parseAudioFormat = (
 	value: unknown,
-): Either.Either<AudioFormat, string> =>
-	Either.mapLeft(decodeFormat(value), (e) => e.message);
+): Result.Result<AudioFormat, string> =>
+	Result.mapError(decodeFormat(value), (e) => e.message);
 
 // The first audio stream as ffprobe reports it.
 export const AudioStream = Schema.Struct({
 	codec_name: Schema.String,
 	// 0 when ffprobe leaves it out: treated as "no downmix needed".
-	channels: Schema.optionalWith(Schema.Number, { default: () => 0 }),
+	channels: Schema.Number.pipe(
+		Schema.withDecodingDefaultType(Effect.succeed(0)),
+	),
 });
 export type AudioStream = Schema.Schema.Type<typeof AudioStream>;
 
-const AudioProbe = Schema.parseJson(
+const AudioProbe = Schema.fromJsonString(
 	Schema.Struct({
-		streams: Schema.optionalWith(Schema.Array(AudioStream), {
-			default: () => [],
-		}),
+		streams: Schema.Array(AudioStream).pipe(
+			Schema.withDecodingDefaultType(Effect.succeed([])),
+		),
 	}),
 );
-const decodeProbe = Schema.decodeUnknownEither(AudioProbe);
+const decodeProbe = Schema.decodeUnknownResult(AudioProbe);
 
 // ffprobe JSON (`-select_streams a:0 -show_entries stream=codec_name,channels
-// -of json`) → the first audio stream, None when the file has no audio, Left
+// -of json`) → the first audio stream, None when the file has no audio, Failure
 // when the output is not what we asked for.
 export const parseAudioProbe = (
 	json: string,
-): Either.Either<Option.Option<AudioStream>, string> =>
-	Either.match(decodeProbe(json), {
-		onLeft: (e) => Either.left(e.message),
-		onRight: (probe) => Either.right(Option.fromNullable(probe.streams[0])),
+): Result.Result<Option.Option<AudioStream>, string> =>
+	Result.match(decodeProbe(json), {
+		onFailure: (e) => Result.fail(e.message),
+		onSuccess: (probe) =>
+			Result.succeed(Option.fromNullishOr(probe.streams[0])),
 	});
 
 // Pure argv builder, exported for unit testing. Copies the stream when the

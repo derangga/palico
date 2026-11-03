@@ -6,7 +6,7 @@
 
 import { Schema } from "effect";
 
-export const CompressQuality = Schema.Literal("high", "medium", "low");
+export const CompressQuality = Schema.Literals(["high", "medium", "low"]);
 export type CompressQuality = Schema.Schema.Type<typeof CompressQuality>;
 
 export const CRF_BY_QUALITY: Record<CompressQuality, number> = {
@@ -26,7 +26,7 @@ export const QUALITY_OPTIONS: ReadonlyArray<{
 export const DEFAULT_QUALITY: CompressQuality = "medium";
 
 // The SHORT side in pixels, so portrait video keeps its orientation.
-export const Resolution = Schema.Literal("original", "1080", "720", "480");
+export const Resolution = Schema.Literals(["original", "1080", "720", "480"]);
 export type Resolution = Schema.Schema.Type<typeof Resolution>;
 
 export const RESOLUTION_OPTIONS: ReadonlyArray<{
@@ -40,13 +40,13 @@ export const RESOLUTION_OPTIONS: ReadonlyArray<{
 ];
 export const DEFAULT_RESOLUTION: Resolution = "original";
 
-export const CompressMode = Schema.Union(
+export const CompressMode = Schema.Union([
 	Schema.TaggedStruct("size", { targetMB: Schema.Number }),
 	Schema.TaggedStruct("quality", { quality: CompressQuality }),
-);
+]);
 export type CompressMode = Schema.Schema.Type<typeof CompressMode>;
 
-export const SizeChoice = Schema.Literal("10", "25", "50", "custom");
+export const SizeChoice = Schema.Literals(["10", "25", "50", "custom"]);
 export type SizeChoice = Schema.Schema.Type<typeof SizeChoice>;
 
 export const SIZE_PRESETS: ReadonlyArray<{

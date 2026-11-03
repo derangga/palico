@@ -35,7 +35,7 @@ const openBucket = (name: string, op: "open" = "open") =>
 
 // Set when a cache write failed (quota, private mode). The offline status shows
 // "Not saved in this browser" instead of "Works offline".
-const writeDroppedRef = Ref.unsafeMake(false);
+const writeDroppedRef = Ref.makeUnsafe(false);
 export const modelCacheWriteDropped: Effect.Effect<boolean> =
 	Ref.get(writeDroppedRef);
 
@@ -52,7 +52,7 @@ const matchModel = (key: string) =>
 			}),
 		),
 		// A read failure is a miss; transformers.js then downloads the file.
-		Effect.catchAll(() => Effect.succeed(undefined)),
+		Effect.catch(() => Effect.succeed(undefined)),
 	);
 
 const putModel = (key: string, response: Response) =>
@@ -68,7 +68,7 @@ const putModel = (key: string, response: Response) =>
 			}),
 		),
 		// Swallow so this session still works; remember it for the status UI.
-		Effect.catchAll(() => Ref.set(writeDroppedRef, true)),
+		Effect.catch(() => Ref.set(writeDroppedRef, true)),
 	);
 
 // The one Promise-shaped seam: transformers.js calls these as plain async

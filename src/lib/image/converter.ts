@@ -1,4 +1,4 @@
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import {
 	DecodeError,
@@ -31,7 +31,7 @@ export const ConvertOutput = Schema.Struct({
 });
 export type ConvertOutput = Schema.Schema.Type<typeof ConvertOutput>;
 
-export const ProgressUpdate = Schema.Union(
+export const ProgressUpdate = Schema.Union([
 	Schema.Struct({
 		id: Schema.String,
 		status: Schema.Literal("processing"),
@@ -44,15 +44,15 @@ export const ProgressUpdate = Schema.Union(
 	Schema.Struct({
 		id: Schema.String,
 		status: Schema.Literal("error"),
-		error: Schema.Union(
+		error: Schema.Union([
 			FileTooLargeError,
 			DimensionsTooLargeError,
 			DecodeError,
 			EncodeError,
 			WorkerError,
-		),
+		]),
 	}),
-);
+]);
 export type ProgressUpdate = Schema.Schema.Type<typeof ProgressUpdate>;
 
 export const validateSize = (
@@ -96,7 +96,7 @@ const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 });
 
 // Convert a batch with bounded concurrency. Per-file failures are captured as
-// Either so one bad image never aborts the rest; the UI is notified per file via
+// Result so one bad image never aborts the rest; the UI is notified per file via
 // onProgress, and only successful outputs are returned (for zipping).
 export const convertImages = (
 	inputs: ReadonlyArray<ConvertInput>,
@@ -109,18 +109,18 @@ export const convertImages = (
 				yield* Effect.sync(() =>
 					onProgress({ id: input.id, status: "processing" }),
 				);
-				const result = yield* Effect.either(convertOne(input));
+				const result = yield* Effect.result(convertOne(input));
 				yield* Effect.sync(() =>
-					Either.isRight(result)
+					Result.isSuccess(result)
 						? onProgress({
 								id: input.id,
 								status: "done",
-								output: result.right,
+								output: result.success,
 							})
 						: onProgress({
 								id: input.id,
 								status: "error",
-								error: result.left,
+								error: result.failure,
 							}),
 				);
 				return result;
@@ -128,6 +128,6 @@ export const convertImages = (
 		{ concurrency: 5 },
 	).pipe(
 		Effect.map((results) =>
-			results.flatMap((r) => (Either.isRight(r) ? [r.right] : [])),
+			results.flatMap((r) => (Result.isSuccess(r) ? [r.success] : [])),
 		),
 	);

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { useTheme } from "next-themes";
 import { useEffect, useId, useState } from "react";
 
@@ -42,14 +42,14 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 		// Yield first: this effect runs before next-themes swaps the flavour class
 		// on <html> (children's effects run first), and the render reads that class.
 		Effect.runPromiseExit(
-			Effect.yieldNow().pipe(Effect.andThen(renderMermaid(domId, chart))),
+			Effect.yieldNow.pipe(Effect.andThen(renderMermaid(domId, chart))),
 		).then((exit) => {
 			if (cancelled) return;
 			if (exit._tag === "Success") {
 				setRendered({ status: "ready", chart, svg: exit.value });
 				return;
 			}
-			const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+			const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 			setRendered({
 				status: "error",
 				chart,

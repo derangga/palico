@@ -9,7 +9,7 @@
 // encodes. A video with no audio fails at the probe with NoAudioTrackError, so
 // nothing is encoded. runFfmpegJob's cleanup covers the probe path too.
 
-import { Effect, Either, Option } from "effect";
+import { Effect, Option, Result } from "effect";
 
 import {
 	type AudioFormat,
@@ -68,10 +68,10 @@ const probeAudio = (
 		});
 
 		const parsed = parseAudioProbe(json);
-		if (Either.isLeft(parsed)) {
+		if (Result.isFailure(parsed)) {
 			return yield* new AudioExtractError({ fileName, message: UNREADABLE });
 		}
-		return yield* Option.match(parsed.right, {
+		return yield* Option.match(parsed.success, {
 			onNone: () =>
 				Effect.fail(
 					new NoAudioTrackError({

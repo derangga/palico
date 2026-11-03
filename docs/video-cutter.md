@@ -390,7 +390,7 @@ All failures are tagged errors:
 - `ThumbnailError` (new): filmstrip extraction failed. Non-fatal; the route
   ignores it.
 
-The route reads the failure off the `Exit` with `Cause.failureOption` and toasts
+The route reads the failure off the `Exit` with `Cause.findErrorOption` and toasts
 `error.message`; both `EngineNotLoadedError` and `VideoTrimError` carry a typed
 `message`, so no string-munging is needed. As in the converter, an emscripten
 abort / out-of-memory in the log triggers `disposeEngine` (so the next run

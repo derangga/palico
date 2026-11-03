@@ -9,7 +9,7 @@
 // so the file is staged once and a too-small target fails before any encode.
 // Quality mode skips the probe.
 
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import {
 	AUDIO_KBPS_QUALITY,
@@ -106,28 +106,28 @@ export const buildCompressArgs = (
 };
 
 // ffprobe writes durations as strings ("12.345000"), or leaves them out.
-const DurationProbe = Schema.parseJson(
+const DurationProbe = Schema.fromJsonString(
 	Schema.Struct({
 		format: Schema.Struct({
 			duration: Schema.optional(Schema.NumberFromString),
 		}),
 	}),
 );
-const decodeDurationProbe = Schema.decodeUnknownEither(DurationProbe);
+const decodeDurationProbe = Schema.decodeUnknownResult(DurationProbe);
 
-// ffprobe JSON (`-show_entries format=duration -of json`) → seconds, Left when
+// ffprobe JSON (`-show_entries format=duration -of json`) → seconds, Failure when
 // the duration is missing, not a number, or not positive.
 export const parseDurationProbe = (
 	json: string,
-): Either.Either<number, string> =>
-	Either.flatMap(
-		Either.mapLeft(decodeDurationProbe(json), (e) => e.message),
+): Result.Result<number, string> =>
+	Result.flatMap(
+		Result.mapError(decodeDurationProbe(json), (e) => e.message),
 		({ format }) =>
 			format.duration !== undefined &&
 			Number.isFinite(format.duration) &&
 			format.duration > 0
-				? Either.right(format.duration)
-				: Either.left("No duration in probe output."),
+				? Result.succeed(format.duration)
+				: Result.fail("No duration in probe output."),
 	);
 
 const NO_LENGTH = "Could not read this video's length. Try Quality mode.";
@@ -157,10 +157,10 @@ const sizeModeArgs = (
 			unreadable: NO_LENGTH,
 			error: (message) => new VideoCompressError({ fileName, message }),
 		});
-		const duration = yield* Either.match(parseDurationProbe(json), {
-			onLeft: () =>
+		const duration = yield* Result.match(parseDurationProbe(json), {
+			onFailure: () =>
 				Effect.fail(new VideoCompressError({ fileName, message: NO_LENGTH })),
-			onRight: (seconds) => Effect.succeed(seconds),
+			onSuccess: (seconds) => Effect.succeed(seconds),
 		});
 		const plan = planVideoKbps(targetMB, duration);
 		if (plan.kind === "too-small") {

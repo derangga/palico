@@ -140,7 +140,7 @@ function CompressShell() {
 
 			// TargetTooSmallError goes next to the size field; every other failure
 			// (EngineNotLoadedError | VideoCompressError) is a toast.
-			Option.match(Cause.failureOption(exit.cause), {
+			Option.match(Cause.findErrorOption(exit.cause), {
 				onNone: () => toast.error("Could not compress the video."),
 				onSome: (error) =>
 					error._tag === "TargetTooSmallError"

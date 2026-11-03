@@ -1,4 +1,4 @@
-import { Effect, Exit } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { computeDiff } from "./diff.ts";
@@ -50,8 +50,9 @@ describe("computeDiff", () => {
 			}),
 		);
 		expect(Exit.isFailure(exit)).toBe(true);
-		if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {
-			expect(exit.cause.error._tag).toBe("DiffInputTooLargeError");
+		if (Exit.isFailure(exit)) {
+			const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+			expect(failure?._tag).toBe("DiffInputTooLargeError");
 		}
 	});
 });

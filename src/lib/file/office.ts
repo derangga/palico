@@ -134,7 +134,7 @@ export const zipPdfs = (
 			});
 			files[names[i]] = new Uint8Array(buffer);
 		}
-		return yield* Effect.async<Blob, OfficeZipError>((resume) => {
+		return yield* Effect.callback<Blob, OfficeZipError>((resume) => {
 			zip(files, { level: 0 }, (err, data) => {
 				if (err) {
 					resume(Effect.fail(new OfficeZipError({ message: err.message })));

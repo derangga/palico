@@ -87,7 +87,7 @@ const runWorkerJob = <A>(
 				}),
 		),
 		(worker) =>
-			Effect.async<A, PdfLoadError>((resume) => {
+			Effect.callback<A, PdfLoadError>((resume) => {
 				worker.onmessage = (event: MessageEvent<PdfWorkerResponse>) => {
 					const res = event.data;
 					// Ignore foreign/noise messages (dev-tooling, nested pdf.js worker)

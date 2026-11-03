@@ -1,4 +1,4 @@
-import { Either, Option } from "effect";
+import { Option, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -97,20 +97,22 @@ describe("parseAudioProbe", () => {
 			programs: [],
 			streams: [{ codec_name: "aac", channels: 2 }],
 		});
-		expect(parseAudioProbe(json)).toEqual(Either.right(Option.some(aacStereo)));
+		expect(parseAudioProbe(json)).toEqual(
+			Result.succeed(Option.some(aacStereo)),
+		);
 	});
 
 	it("returns None when the video has no audio", () => {
 		expect(parseAudioProbe('{"programs":[],"streams":[]}')).toEqual(
-			Either.right(Option.none()),
+			Result.succeed(Option.none()),
 		);
-		expect(parseAudioProbe("{}")).toEqual(Either.right(Option.none()));
+		expect(parseAudioProbe("{}")).toEqual(Result.succeed(Option.none()));
 	});
 
 	it("fails on output that is not ffprobe JSON", () => {
-		expect(Either.isLeft(parseAudioProbe("not json"))).toBe(true);
-		expect(Either.isLeft(parseAudioProbe('{"streams":[{"channels":2}]}'))).toBe(
-			true,
-		);
+		expect(Result.isFailure(parseAudioProbe("not json"))).toBe(true);
+		expect(
+			Result.isFailure(parseAudioProbe('{"streams":[{"channels":2}]}')),
+		).toBe(true);
 	});
 });
