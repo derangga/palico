@@ -1,4 +1,4 @@
-import { Download, ImageIcon, X } from "lucide-react";
+import { Columns2, Download, ImageIcon, X } from "lucide-react";
 import { StatusBadge } from "#/components/converter/status-badge.tsx";
 import type { Item } from "#/components/converter/types.ts";
 import { formatBytes, handleSaveOne } from "#/components/converter/utils.ts";
@@ -10,10 +10,12 @@ export function FileRow({
 	item,
 	isRunning,
 	onRemove,
+	onCompare,
 }: {
 	item: Item;
 	isRunning: boolean;
 	onRemove: () => void;
+	onCompare?: () => void;
 }) {
 	const justDone = useJustDone(item.status === "done");
 
@@ -32,12 +34,25 @@ export function FileRow({
 					{item.status === "done" &&
 						item.outSize != null &&
 						` → ${formatBytes(item.outSize)} (${item.outLabel})`}
+					{item.status === "done" &&
+						item.savedPct != null &&
+						item.savedPct > 0 &&
+						` · ${item.savedPct}% smaller`}
 					{item.status === "error" && item.message && (
 						<span className="text-destructive">: {item.message}</span>
 					)}
 				</p>
+				{item.status === "done" && item.note && (
+					<p className="text-xs text-muted-foreground">{item.note}</p>
+				)}
 			</div>
 			<StatusBadge status={item.status} celebrate={justDone} />
+			{item.status === "done" && onCompare && (
+				<Button variant="ghost" size="sm" onClick={onCompare}>
+					<Columns2 />
+					Compare
+				</Button>
+			)}
 			{item.status === "done" && item.outBlob && (
 				<Button variant="ghost" size="sm" onClick={() => handleSaveOne(item)}>
 					<Download />

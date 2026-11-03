@@ -9,4 +9,7 @@ export interface Item {
 	outLabel?: string;
 	outSize?: number;
 	message?: string;
+	// Compressor only: percent smaller than the input, and an extra line of copy.
+	savedPct?: number;
+	note?: string;
 }

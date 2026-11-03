@@ -4,6 +4,7 @@
 // main-thread Effect pipeline (src/lib/image/converter.ts); this worker is a thin,
 // stateless request/response codec.
 
+import { searchQuality } from "#/lib/image/quality-search.ts";
 import type { WorkerRequest, WorkerResponse } from "#/lib/image/types.ts";
 
 async function handle(req: WorkerRequest): Promise<{
@@ -54,13 +55,33 @@ async function handle(req: WorkerRequest): Promise<{
 		if (!ctx) throw new Error("Could not get a 2D canvas context.");
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = "high";
+		if (req.fillWhite) {
+			ctx.fillStyle = "#fff";
+			ctx.fillRect(0, 0, outW, outH);
+		}
 		ctx.drawImage(bitmap, 0, 0, outW, outH);
 		bitmap.close();
 
-		const blob = await canvas.convertToBlob({
-			type: req.mime,
-			quality: req.quality,
-		});
+		const encode = (quality: number) =>
+			canvas.convertToBlob({ type: req.mime, quality });
+		const { blob, quality, targetMet } =
+			req.targetBytes == null
+				? {
+						blob: await encode(req.quality),
+						quality: req.quality,
+						targetMet: true,
+					}
+				: await searchQuality(encode, {
+						targetBytes: req.targetBytes,
+						max: req.quality,
+					});
+
+		// convertToBlob silently falls back to PNG for types it can't encode
+		// (Safari and WebP). Fail instead of saving a PNG under a .webp name.
+		if (blob.type !== req.mime) {
+			const name = req.mime.replace("image/", "").toUpperCase();
+			throw new Error(`This browser can't save ${name} images. Choose JPG.`);
+		}
 		const buffer = await blob.arrayBuffer();
 
 		return {
@@ -71,6 +92,8 @@ async function handle(req: WorkerRequest): Promise<{
 				width: outW,
 				height: outH,
 				size: buffer.byteLength,
+				quality,
+				targetMet,
 			},
 			transfer: [buffer],
 		};
