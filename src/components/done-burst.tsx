@@ -1,18 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "#/lib/utils.ts";
 
 /**
- * True for the render after `isDone` flips from false to true. Rows that are
- * already done on first render never celebrate, and re-renders do not replay it.
+ * True once `isDone` has flipped from false to true. Rows that are already done
+ * on first render never celebrate, and re-renders do not replay it. The flip is
+ * detected during render, so the celebration starts on the same commit as the
+ * state change instead of one render later.
  */
 export function useJustDone(isDone: boolean): boolean {
-	const wasDone = useRef(isDone);
+	const [prevDone, setPrevDone] = useState(isDone);
 	const [just, setJust] = useState(false);
-	useEffect(() => {
-		if (isDone && !wasDone.current) setJust(true);
-		wasDone.current = isDone;
-	}, [isDone]);
+	if (isDone !== prevDone) {
+		setPrevDone(isDone);
+		if (isDone) setJust(true);
+	}
 	return just;
 }
 
