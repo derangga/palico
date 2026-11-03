@@ -6,7 +6,7 @@
 export const SAMPLE_MARKDOWN = `# Markdown Preview
 
 Type **Markdown** on the left and watch it render live on the right.
-Everything runs on your device — nothing is uploaded.
+Everything runs on your device. Nothing is uploaded.
 
 ## Features
 

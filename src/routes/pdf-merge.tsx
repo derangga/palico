@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
-import { Download, Loader2, RotateCcw, UploadCloud } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { Download, Loader2, RotateCcw } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { FileCard } from "#/components/pdf-merge/file-card.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
@@ -35,8 +37,6 @@ function downloadBlob(blob: Blob, name: string) {
 }
 
 function PdfMergePage() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const dragIndex = useRef<number | null>(null);
 	const [items, setItems] = useState<ReadonlyArray<MergeItem>>([]);
 	const [merging, setMerging] = useState(false);
@@ -136,58 +136,32 @@ function PdfMergePage() {
 	const canMerge = items.length >= 2 && allReady && !merging;
 
 	return (
-		<div className="mx-auto w-full max-w-5xl px-6 py-10">
-			<div className="mb-6 flex items-start justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-bold">Merge PDFs</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Combine several PDFs into one — entirely in your browser. Drag the
-						cards to set the order. Each file up to{" "}
-						{Math.round(MAX_PDF_BYTES / MB)} MB and {MAX_PDF_PAGES} pages.
-					</p>
-				</div>
-				{hasItems && (
-					<Button variant="outline" size="sm" onClick={reset}>
-						<RotateCcw />
-						Start over
-					</Button>
-				)}
-			</div>
-
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: dropzone wraps a real file input. */}
-			<div
-				onDragOver={(e) => e.preventDefault()}
-				onDrop={(e) => {
-					e.preventDefault();
-					addFiles(e.dataTransfer.files);
-				}}
-				className="rounded-xl border border-dashed bg-card p-8 text-center"
+		<PageShell width="wide">
+			<PageHeader
+				title="Merge PDFs"
+				actions={
+					hasItems && (
+						<Button variant="outline" size="sm" onClick={reset}>
+							<RotateCcw />
+							Start over
+						</Button>
+					)
+				}
 			>
-				<UploadCloud className="mx-auto size-8 text-muted-foreground" />
-				<p className="mt-3 text-sm font-medium">
-					Drag &amp; drop PDFs here, or
-				</p>
-				<Button
-					variant="outline"
-					size="sm"
-					className="mt-3"
-					onClick={() => fileInputRef.current?.click()}
-				>
-					Choose files
-				</Button>
-				<input
-					id={inputId}
-					ref={fileInputRef}
-					type="file"
-					accept="application/pdf"
-					multiple
-					className="hidden"
-					onChange={(e) => {
-						addFiles(e.target.files);
-						e.target.value = "";
-					}}
-				/>
-			</div>
+				Combine several PDFs into one, entirely in your browser. Drag the cards
+				to set the order. Each file up to {Math.round(MAX_PDF_BYTES / MB)} MB
+				and {MAX_PDF_PAGES} pages.
+			</PageHeader>
+
+			<Dropzone
+				label="Drag & drop PDFs here, or"
+				actionLabel="Choose files"
+				hint={`PDFs up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages each, ${MAX_MERGE_FILES} files at a time`}
+				accept="application/pdf"
+				multiple
+				ariaLabel="Choose PDFs to merge"
+				onFiles={addFiles}
+			/>
 
 			{hasItems && (
 				<div className="mt-6">
@@ -228,6 +202,6 @@ function PdfMergePage() {
 					</ul>
 				</div>
 			)}
-		</div>
+		</PageShell>
 	);
 }

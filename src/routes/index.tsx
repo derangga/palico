@@ -1,58 +1,123 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Lock, ShieldCheck, Zap } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { type CSSProperties, useEffect } from "react";
 
-export const Route = createFileRoute("/")({ component: Home });
+import "#/components/home/home.css";
+import { ToolTile } from "#/components/home/tool-tile.tsx";
+import { buttonVariants } from "#/components/ui/button.tsx";
+import { CATEGORY_STYLES, toolGroups } from "#/lib/tool-categories.ts";
+import { cn } from "#/lib/utils.ts";
 
-const pills = [
-  { icon: ShieldCheck, label: "Offline First" },
-  { icon: Lock, label: "Private & Secure" },
-  { icon: Zap, label: "Fast & Lightweight" },
-] as const;
+const SEEN_KEY = "palico-home-seen";
+
+// Runs before first paint so a reload in the same session skips the stagger.
+// Storage can be blocked, in which case the stagger simply plays again.
+const SEEN_SCRIPT = `try{if(sessionStorage.getItem("${SEEN_KEY}"))document.documentElement.dataset.homeSeen="1"}catch(e){}`;
+
+export const Route = createFileRoute("/")({
+	head: () => ({ scripts: [{ children: SEEN_SCRIPT }] }),
+	component: Home,
+});
+
+// Marks the stagger as played once it has run, so going back to Home in the
+// same session shows the grid at once.
+function useMarkHomeSeen() {
+	useEffect(() => {
+		const markSeen = () => {
+			document.documentElement.dataset.homeSeen = "1";
+			try {
+				sessionStorage.setItem(SEEN_KEY, "1");
+			} catch {
+				// Storage blocked: the attribute above still covers this tab.
+			}
+		};
+		const start = Date.now();
+		const timer = window.setTimeout(markSeen, 1000);
+		return () => {
+			window.clearTimeout(timer);
+			// Leaving after the stagger had a real look counts as seen. The quick
+			// cleanup React Strict Mode runs in dev does not.
+			if (Date.now() - start > 300) markSeen();
+		};
+	}, []);
+}
 
 function Home() {
-  return (
-    <section className="flex min-h-[calc(100svh-3.5rem)] w-full items-center px-6 py-16 sm:px-12 lg:px-16">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
-        {/* Left: text stack */}
-        <div className="flex flex-col items-start">
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-xs">
-            <ShieldCheck className="size-3.5 text-primary" />
-            Privacy Guaranteed
-          </span>
+	useMarkHomeSeen();
 
-          <h1 className="mt-6 text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Your Daily <span className="text-primary">Offline</span>
-            <br />
-            Toolkit
-          </h1>
+	let tileIndex = 0;
 
-          <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
-            100% on-device. No uploads, no tracking, pure privacy. Transform
-            your files without them ever leaving your browser.
-          </p>
+	return (
+		<div className="mx-auto w-full max-w-6xl px-6 py-8 sm:px-12 lg:px-16 lg:py-14">
+			<section className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-16">
+				<div className="flex flex-col items-start">
+					<h1 className="text-[clamp(1.875rem,5vw,3rem)] font-black leading-[1.05] tracking-[-0.01em] text-foreground">
+						Your Daily
+						<br className="hidden lg:inline" />{" "}
+						<span className="text-primary">Offline</span>
+						<br className="hidden sm:inline" /> Toolkit
+					</h1>
+					<p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
+						Your files never leave your browser. No uploads, no tracking.
+					</p>
+					<Link
+						to="/converter"
+						className={cn(
+							buttonVariants({ size: "lg" }),
+							"mt-6 px-4 text-base",
+						)}
+					>
+						Convert an image
+					</Link>
+				</div>
 
-          <ul className="mt-8 flex flex-wrap gap-3">
-            {pills.map((pill) => (
-              <li
-                key={pill.label}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-xs"
-              >
-                <pill.icon className="size-4 text-primary" />
-                {pill.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+				<div className="relative isolate order-first overflow-hidden rounded-xl bg-ctp-crust px-6 py-4 lg:order-last lg:py-6">
+					<div
+						aria-hidden
+						className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_65%,color-mix(in_oklab,var(--cat-image)_22%,transparent),transparent_70%)]"
+					/>
+					<img
+						src="/palico-hero.webp"
+						srcSet="/palico-hero.webp 1x, /palico-hero@2x.webp 2x"
+						width={560}
+						height={492}
+						fetchPriority="high"
+						alt="Palico, a chibi cat adventurer with a hammer, your offline toolkit companion"
+						className="mx-auto h-auto w-full max-w-36 lg:max-w-80"
+					/>
+				</div>
+			</section>
 
-        {/* Right: illustration card */}
-        <div className="aspect-4/5 w-full overflow-hidden rounded-2xl border border-border bg-secondary shadow-lg lg:aspect-square">
-          <img
-            src="/palico.png"
-            alt="Palico, your offline toolkit companion"
-            className="h-full w-full scale-125 object-cover object-top-right"
-          />
-        </div>
-      </div>
-    </section>
-  );
+			<div className="mt-10 grid gap-8 lg:mt-12 lg:gap-10">
+				{toolGroups.map((group) => (
+					<section key={group.id} aria-labelledby={`tools-${group.id}`}>
+						<h2
+							id={`tools-${group.id}`}
+							className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"
+						>
+							<span
+								aria-hidden
+								className={cn(
+									"size-2.5 rounded-full",
+									CATEGORY_STYLES[group.id].fill,
+								)}
+							/>
+							{group.label}
+						</h2>
+						{/* Two columns from sm; an odd last tile spans the row. */}
+						<ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
+							{group.tools.map((tool) => (
+								<li
+									key={tool.to}
+									className="tool-in grid"
+									style={{ "--i": tileIndex++ } as CSSProperties}
+								>
+									<ToolTile tool={tool} />
+								</li>
+							))}
+						</ul>
+					</section>
+				))}
+			</div>
+		</div>
+	);
 }

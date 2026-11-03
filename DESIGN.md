@@ -1,52 +1,77 @@
 ---
 name: palico
-description: Warm, offline-first image toolkit that feels like a friendly desk toy
+description: Friendly, offline-first file toolkit in Catppuccin Latte and Mocha, with playful motion and a mascot
 colors:
-  primary: "oklch(0.618 0.0778 65.5444)"
-  primary-dark: "oklch(0.7264 0.0581 66.6967)"
-  caramel-deep: "oklch(0.4851 0.057 72.6827)"
-  cream-bg: "oklch(0.9582 0.0152 90.2357)"
-  card-cream: "oklch(0.9914 0.0098 87.4695)"
-  espresso-ink: "oklch(0.376 0.0225 64.3434)"
-  muted-surface: "oklch(0.9239 0.019 83.0636)"
-  muted-ink: "oklch(0.5391 0.0387 71.1655)"
-  sand-secondary: "oklch(0.8846 0.0302 85.5655)"
-  accent-tan: "oklch(0.8348 0.0426 88.8064)"
-  warm-border: "oklch(0.8606 0.0321 84.5881)"
-  brick-destructive: "oklch(0.5471 0.1438 32.9149)"
-  espresso-night: "oklch(0.2747 0.0139 57.6523)"
+  base: "#eff1f5"
+  mantle: "#e6e9ef"
+  crust: "#dce0e8"
+  surface0: "#ccd0da"
+  surface1: "#bcc0cc"
+  overlay2: "#7c7f93"
+  text: "#4c4f69"
+  subtext1: "#5c5f77"
+  base-dark: "#1e1e2e"
+  mantle-dark: "#181825"
+  crust-dark: "#11111b"
+  surface0-dark: "#313244"
+  surface1-dark: "#45475a"
+  overlay0-dark: "#6c7086"
+  text-dark: "#cdd6f4"
+  subtext0-dark: "#a6adc8"
+  mauve: "#8839ef"
+  mauve-dark: "#cba6f7"
+  pink: "#ea76cb"
+  pink-dark: "#f5c2e7"
+  peach: "#fe640b"
+  peach-dark: "#fab387"
+  yellow: "#df8e1d"
+  yellow-dark: "#f9e2af"
+  teal: "#179299"
+  teal-dark: "#94e2d5"
+  green: "#40a02b"
+  green-dark: "#a6e3a1"
+  red: "#d20f39"
+  red-dark: "#f38ba8"
+  sapphire: "#209fb5"
+  sapphire-dark: "#74c7ec"
+  sky: "#04a5e5"
+  sky-dark: "#89dceb"
+  blue: "#1e66f5"
+  blue-dark: "#89b4fa"
+  lavender: "#7287fd"
+  lavender-dark: "#b4befe"
 typography:
   display:
-    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(1.875rem, 5vw, 3rem)"
     fontWeight: 900
     lineHeight: 1.05
     letterSpacing: "-0.01em"
   headline:
-    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.5rem"
     fontWeight: 700
     lineHeight: 1.2
   title:
-    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 600
     lineHeight: 1.3
   body:
-    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "Nunito, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 600
     lineHeight: 1.4
 rounded:
-  sm: "0px"
-  md: "0.125rem"
-  lg: "0.25rem"
-  xl: "0.5rem"
+  sm: "6px"
+  md: "8px"
+  lg: "12px"
+  xl: "14px"
 spacing:
   xs: "0.25rem"
   sm: "0.5rem"
@@ -55,29 +80,26 @@ spacing:
   xl: "2.5rem"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.card-cream}"
+    backgroundColor: "{colors.mauve}"
+    textColor: "{colors.base}"
     rounded: "{rounded.md}"
     height: "2.25rem"
-    padding: "0 0.625rem"
-  button-primary-hover:
-    backgroundColor: "{colors.caramel-deep}"
-    textColor: "{colors.card-cream}"
+    padding: "0 0.75rem"
   button-outline:
-    backgroundColor: "{colors.cream-bg}"
-    textColor: "{colors.espresso-ink}"
+    backgroundColor: "{colors.base}"
+    textColor: "{colors.text}"
     rounded: "{rounded.md}"
   button-ghost-hover:
-    backgroundColor: "{colors.muted-surface}"
-    textColor: "{colors.espresso-ink}"
+    backgroundColor: "{colors.surface0}"
+    textColor: "{colors.text}"
   card:
-    backgroundColor: "{colors.card-cream}"
-    textColor: "{colors.espresso-ink}"
+    backgroundColor: "{colors.mantle}"
+    textColor: "{colors.text}"
     rounded: "{rounded.lg}"
     padding: "1.5rem"
   input:
-    backgroundColor: "{colors.cream-bg}"
-    textColor: "{colors.espresso-ink}"
+    backgroundColor: "{colors.base}"
+    textColor: "{colors.text}"
     rounded: "{rounded.md}"
     height: "2.25rem"
 ---
@@ -88,145 +110,343 @@ components:
 
 **Creative North Star: "The Friendly Desk Toy"**
 
-palico is a delightful little utility that lives on your desk — a warm,
-personable image toolkit you reach for without thinking. It is the opposite of
-the ad-laden converter sites it competes with: no banner ads, no fake download
-buttons, no cold enterprise chrome. The whole surface is bathed in warm cream
-(`oklch(0.9582 0.0152 90.2357)`), text is a soft espresso brown rather than
-hard black, corners are barely rounded, and shadows are gentle and warm-tinted.
-Typography is a single voice — Nunito throughout — leaning on weight and scale
-to carry character rather than a second display face. The result is friendly
-and highly legible without tipping into childishness.
+palico is a small, playful utility that lives on your desk: an offline file
+toolkit you reach for without thinking. It is the opposite of the ad-laden
+converter sites it competes with: no banner ads, no fake download buttons, no
+cold enterprise chrome. The product keeps that brief, and now expresses it with
+colour and a mascot instead of cream and caramel.
 
-The system explicitly rejects three things. **Sketchy converter sites**: there
-are no dark patterns, ambiguous buttons, or upload-to-server anxieties — the
-interface should *feel* private and on-device. **Cold enterprise SaaS**: no
-navy-and-gray, no soulless density; warmth is the differentiator. **Flashy
-over-animation**: motion conveys state (a file processing, a control
-toggling), never spectacle.
+The theme is **Catppuccin**. Light mode is **Latte**, dark mode is **Mocha**,
+switched with a toggle in the header. Surfaces are calm and slightly cool
+(Latte Base `#eff1f5`, Mocha Base `#1e1e2e`). Colour lives in small, repeated
+spots: tool chips and tiles, status pills, progress bars, underlines and hover
+edges. Mauve is the single primary action colour. Each tool category has its
+own accent pair so people can tell Image, Video and File tools apart at a
+glance. Typography stays one voice, Nunito Variable, with weight and scale
+carrying hierarchy.
 
-Warmth is carried by the cream surfaces, the caramel-brown accent, and the
-display typography — not by gratuitous decoration. The tool disappears into the
-task; personality is reserved for moments (the home hero, empty states), not
-sprayed across every control.
+The mascot, **Palico** (a chibi cat adventurer with a hammer), carries the
+personality at rare moments: the home hero, the sidebar logo, the favicon.
+Tools themselves stay quiet and fast.
+
+The system explicitly rejects three things. **Sketchy converter sites**: no
+dark patterns, ambiguous buttons or upload-to-server anxiety; the interface
+should feel private and on-device. **Cold enterprise SaaS**: no navy-and-gray
+density; friendliness is the differentiator. **Motion that gets in the way of
+the task**: playfulness is earned by rarity (see Motion).
 
 **Key Characteristics:**
-- Warm cream surfaces with espresso-brown ink, never pure white or pure black.
-- A single muted caramel accent — used for actions and state, not decoration.
-- A single typeface — Nunito across the whole product, with weight and scale doing the heavy lifting.
-- Tight, near-square radii (0–4px) and soft, warm-tinted shadows.
-- Privacy and trust are felt through restraint and clarity, not claimed in fine print.
+- Catppuccin Latte and Mocha, one token set, switched by theme toggle.
+- Mauve is the one primary action colour. Category accents are for identity, not actions.
+- Large surfaces stay quiet; colour sits in small, repeated spots.
+- Real status colours (green done, red error, yellow or peach warning, sapphire or sky info).
+- Friendly radii, neutral low-opacity shadows, chunky pressable primary buttons.
+- One typeface, Nunito Variable.
+- Playful motion on rare moments, minimal motion on frequent ones, and a reduced-motion version of everything.
 
 ## 2. Colors
 
-A warm, low-chroma palette anchored in the 64–90° hue band (caramel/sand/cream), with a single brick red reserved for destruction.
+Official Catppuccin values. Light is Latte, dark is Mocha. Never invent
+off-palette colours or hardcode Tailwind colours such as `orange-300` or
+`emerald-300`; use the tokens.
 
-### Primary
-- **Muted Caramel** (`oklch(0.618 0.0778 65.5444)`): The one accent. Primary buttons, active/selected states, focus rings, links. In dark mode it lifts to a lighter caramel (`oklch(0.7264 0.0581 66.6967)`) for contrast.
-- **Deep Caramel** (`oklch(0.4851 0.057 72.6827)`): The hover/pressed shade of the accent and the darkest chart step.
+### Neutrals (surfaces and text)
 
-### Secondary
-- **Warm Sand** (`oklch(0.8846 0.0302 85.5655)`): Secondary buttons and quieter fills that still need to read as interactive.
-- **Soft Tan** (`oklch(0.8348 0.0426 88.8064)`): Accent surface for hovered rows, highlighted panels, sidebar accents.
+| Role | Latte | Mocha |
+| --- | --- | --- |
+| Base (page) | `#eff1f5` | `#1e1e2e` |
+| Mantle | `#e6e9ef` | `#181825` |
+| Crust | `#dce0e8` | `#11111b` |
+| Surface0 | `#ccd0da` | `#313244` |
+| Surface1 | `#bcc0cc` | `#45475a` |
+| Surface2 | `#acb0be` | `#585b70` |
+| Overlay0 | `#9ca0b0` | `#6c7086` |
+| Overlay1 | `#8c8fa1` | `#7f849c` |
+| Overlay2 | `#7c7f93` | `#9399b2` |
+| Subtext0 | `#6c6f85` | `#a6adc8` |
+| Subtext1 | `#5c5f77` | `#bac2de` |
+| Text | `#4c4f69` | `#cdd6f4` |
 
-### Neutral
-- **Warm Cream** (`oklch(0.9582 0.0152 90.2357)`): The body background. The signature surface — the page IS cream.
-- **Card Cream** (`oklch(0.9914 0.0098 87.4695)`): A near-white lift for cards, popovers, and inputs, one step brighter than the body.
-- **Espresso Ink** (`oklch(0.376 0.0225 64.3434)`): Primary text. A deep warm brown, never `#000`.
-- **Muted Ink** (`oklch(0.5391 0.0387 71.1655)`): Secondary text, captions, placeholders. **Verify ≥4.5:1 against cream before using on body copy** — this is the palette's contrast risk.
-- **Muted Surface** (`oklch(0.9239 0.019 83.0636)`): Ghost-button hover, sidebar background, subtle panel fills.
-- **Warm Border** (`oklch(0.8606 0.0321 84.5881)`): All borders, inputs, and dividers.
+### Accents
 
-### Tertiary
-- **Brick Red** (`oklch(0.5471 0.1438 32.9149)`): Destructive actions and errors only. The only high-chroma color in the system; its rarity is the warning.
+| Accent | Latte | Mocha |
+| --- | --- | --- |
+| Rosewater | `#dc8a78` | `#f5e0dc` |
+| Flamingo | `#dd7878` | `#f2cdcd` |
+| Pink | `#ea76cb` | `#f5c2e7` |
+| Mauve | `#8839ef` | `#cba6f7` |
+| Red | `#d20f39` | `#f38ba8` |
+| Maroon | `#e64553` | `#eba0ac` |
+| Peach | `#fe640b` | `#fab387` |
+| Yellow | `#df8e1d` | `#f9e2af` |
+| Green | `#40a02b` | `#a6e3a1` |
+| Teal | `#179299` | `#94e2d5` |
+| Sky | `#04a5e5` | `#89dceb` |
+| Sapphire | `#209fb5` | `#74c7ec` |
+| Blue | `#1e66f5` | `#89b4fa` |
+| Lavender | `#7287fd` | `#b4befe` |
 
-### Named Rules
-**The One Warm Accent Rule.** There is exactly one accent — Muted Caramel. It marks actions, selection, and focus. It is never used for decoration, and never appears on inactive states. If a screen has caramel in more than a few places, something non-actionable is wearing the action color.
+### Contrast (WCAG AA: 4.5:1 text, 3:1 UI boundary)
 
-**The No-Pure-Black, No-Pure-White Rule.** Text is Espresso Ink, never `#000`. Surfaces are Cream or Card Cream, never `#fff`. Pure neutrals read as cold and break the warmth that is the whole point.
+**Latte: accent as text on Base, or Base text on the accent fill.**
 
-**The Stoplight Rule.** Brick Red is reserved for destruction and error. Seeing it anywhere else is a bug.
+| Accent | Ratio | Use as text or button fill? |
+| --- | --- | --- |
+| Red `#d20f39` | 4.80 | Yes |
+| Mauve `#8839ef` | 4.79 | Yes (primary) |
+| Blue `#1e66f5` | 4.34 | Large text only; borderline at 14px |
+| Teal | 3.31 | Fills, tints and icons only |
+| Green | 2.96 | Fills, tints and icons only |
+| Lavender | 2.81 | Fills, tints and icons only |
+| Sapphire | 2.78 | Fills, tints and icons only |
+| Peach | 2.64 | Fills, tints and icons only |
+| Sky | 2.47 | Fills, tints and icons only |
+| Pink | 2.34 | Fills, tints and icons only |
+| Yellow | 2.31 | Fills, tints and icons only |
+
+Other Latte pairs: Text on Base 7.06. Subtext0 on Base 4.37 and on Mantle 4.06,
+so use Subtext1 (`#5c5f77`) for small secondary text. Surface1 on Base is only
+1.61 and Overlay2 is 3.49, so any border that identifies a control (inputs,
+selects, checkboxes, the dropzone) uses Overlay2. Surface1 is for decorative
+dividers.
+
+**Mocha:** every accent passes as text on Base (7.1 to 12.9). Text on Base is
+11.3 and Subtext0 on Base is 7.4.
+
+**Rule for Latte:** only Mauve, Red and large Blue may carry text or
+Base-coloured text on a button fill. Every other accent is a fill, a tint
+(`color-mix` of the accent into the card colour) or an icon, with a
+`text`-coloured label on top. Status pills are tinted fill, coloured dot and a
+`text` label. Re-check any new pair against the table before shipping.
+
+### Colour roles
+
+**Primary action.** Mauve (`#8839ef` Latte, `#cba6f7` Mocha), with Base as the
+foreground. Buttons, selection, links, focus ring.
+
+**Tool categories.** One accent pair per category. The first colour is the chip,
+tile and icon fill; the second is the tint or secondary detail.
+
+| Category | Accent pair | Tools |
+| --- | --- | --- |
+| Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
+| Video | Peach + Yellow | Video converter, video cutter |
+| File | Teal + Green | PDF merge, PDF split, Office to PDF, diff viewer, Markdown preview |
+
+Category colour appears on the home tile, the sidebar icon, the page-header
+chip, the progress fill and the dropzone drag-over state. It never appears on
+buttons; buttons are Mauve.
+
+**Status.** Status keeps its real meaning everywhere.
+
+| Status | Colour |
+| --- | --- |
+| Success, done | Green |
+| Error, destructive | Red |
+| Warning | Yellow or Peach |
+| Info | Sapphire or Sky |
+
+### Named rules
+
+**The Quiet Surfaces Rule.** Large areas (page, sidebar, cards, panels) use Base, Mantle, Crust and Surface0 only. Accent colour on a large surface is a bug.
+
+**The One Saturated Colour Rule.** A component carries at most one saturated colour. A tile with a Peach chip does not also get a Yellow border and a green badge; the second colour of a pair appears only as a tint or small detail.
+
+**The Status Keeps Its Meaning Rule.** Green means done, Red means error or destruction, Yellow or Peach means warning, Sapphire or Sky means info. Do not use these colours for decoration, and do not reuse a category accent to signal status.
+
+**The Latte Text Rule.** In Latte only Mauve, Red and large Blue carry text or Base-coloured text on a fill. Everything else is fill, tint or icon with a `text` label.
+
+**The Real Border Rule.** A boundary that identifies a control uses Overlay2 (Latte) or Overlay0 (Mocha), 3:1 or better. Surface1 is decoration only.
+
+### Token mapping (shadcn variable to Catppuccin colour)
+
+| Token | Latte | Mocha |
+| --- | --- | --- |
+| `--background` | base | base |
+| `--card`, `--popover` | mantle | surface0 |
+| `--sidebar` | crust | mantle |
+| `--foreground` | text | text |
+| `--muted-foreground` | subtext1 | subtext0 |
+| `--border` | surface1 | surface1 |
+| `--input` | overlay2 (3:1) | overlay0 |
+| `--primary` / foreground | mauve / base | mauve / base |
+| `--secondary` | surface0 | surface1 |
+| `--accent` | surface1 | surface1 |
+| `--destructive` | red | red |
+| `--success` | green (fill) | green |
+| `--ring` | mauve | mauve |
+
+The theme toggle puts `.dark` and `.mocha` on `<html>` together, so the
+existing `@custom-variant dark (&:is(.dark *))` keeps working. Theme state
+comes from `next-themes`. Syntax highlighting (`hljs-*`), Mermaid and Sonner
+toasts take Catppuccin colours and follow the same class.
 
 ## 3. Typography
 
-**Type Family:** Nunito Variable (with `ui-sans-serif, system-ui, sans-serif`)
-**Mono Font:** IBM Plex Mono (for any numeric/dimension readouts)
+**Type Family:** Nunito Variable (with `ui-sans-serif, system-ui, sans-serif`). This does not change.
+**Mono Font:** IBM Plex Mono (for numeric and dimension readouts)
 
-**Character:** Nunito is rounded, warm, and exceptionally legible at small sizes, which makes it right for a dense tool UI. The whole product runs on one variable face — personality is carried by weight (200 → 900) and scale, not by a second display font. Heroes lean on heavy weight at a large clamp size; body copy stays at a calm 400; labels and titles step up to 600/700 for emphasis.
+**Character:** Nunito is rounded, friendly and legible at small sizes, which suits a dense tool UI and the playful direction. The whole product runs on one variable face. Personality comes from weight (200 to 900) and scale, not a second display font. Heroes use heavy weight at a large clamp size; body copy stays at a calm 400; labels and titles step up to 600 and 700.
 
 ### Hierarchy
-- **Display** (Nunito, 900, `clamp(1.875rem, 5vw, 3rem)`, lh 1.05, tracking `-0.01em`): Hero taglines and signature brand moments. Heavy weight + large scale is what makes this tier feel "loud" — keep it sparse.
-- **Headline** (Nunito, 700, 1.5rem, lh 1.2): Page/section titles.
+- **Display** (Nunito, 900, `clamp(1.875rem, 5vw, 3rem)`, lh 1.05, tracking `-0.01em`): Hero taglines and signature brand moments. Keep it sparse.
+- **Headline** (Nunito, 700, 1.5rem, lh 1.2): Page and section titles.
 - **Title** (Nunito, 600, 1.125rem, lh 1.3): Card and panel headers.
-- **Body** (Nunito, 400, 0.875rem, lh 1.5): Default UI and prose text. Cap prose at 65–75ch.
+- **Body** (Nunito, 400, 0.875rem, lh 1.5): Default UI and prose. Cap prose at 65 to 75ch.
 - **Label** (Nunito, 600, 0.875rem, lh 1.4): Buttons, form labels, nav items, badges.
 
-### Named Rules
-**The One-Family Rule.** Every piece of text is Nunito. There is no second display face — if a hero feels flat, raise the weight to 900 and the scale, don't reach for another typeface.
+### Named rules
+**The One-Family Rule.** Every piece of text is Nunito. If a hero feels flat, raise the weight to 900 and the scale; do not add another typeface.
 
-**The Weight-Earns-Emphasis Rule.** Hierarchy is established by weight and scale, not by color, italics, or decoration. Body is 400, titles 600, headlines 700, display 900 — the steps are deliberate and shouldn't be filled in.
+**The Weight-Earns-Emphasis Rule.** Hierarchy comes from weight and scale, not colour, italics or decoration. Body 400, titles 600, headlines 700, display 900.
 
-**The Fixed-Scale Rule.** Outside the hero, type sizes are fixed rem values, not fluid clamps. Users view this tool at a consistent DPI; a heading that shrinks inside a panel looks broken, not responsive.
+**The Fixed-Scale Rule.** Outside the hero, type sizes are fixed rem values, not fluid clamps.
 
-## 4. Elevation
+## 4. Elevation and radii
 
-palico is mostly flat with soft, warm-tinted shadows for genuine lift (cards, popovers, dropdowns, the home tool tiles). Shadows are not decorative — they signal that a surface floats above the page or has been raised by interaction. Every shadow uses a warm brown shadow color (`hsl(28 13% 20%)`) at low opacity, never a neutral gray, so even depth stays warm. If a shadow reads as cool or hard-edged, the color or blur is wrong.
+### Shadows
+Shadows are neutral and tinted with the text colour at low opacity, never a
+brown or coloured cast. In Latte the shadow colour is Text (`#4c4f69`); in Mocha
+it is Crust (`#11111b`) at a higher opacity so it still reads on dark surfaces.
+Shadows signal that a surface floats or has been raised by interaction; they are
+not decoration.
 
-### Shadow Vocabulary
-- **xs / sm** (`2px 3px 5px hsl(28 13% 20% / 0.06–0.12)`): Resting lift for outline buttons, inputs, small chips.
-- **md / lg** (`2px 3px 5px + 2px 4px 6px hsl(28 13% 20% / 0.12)`): Cards, the home tool tiles, raised panels.
-- **xl** (`2px 8px 10px hsl(28 13% 20% / 0.12)`): Popovers, dropdowns, sheets, dialogs.
+- **xs / sm** (`0 1px 2px` to `0 2px 4px`, Text at 6 to 10%): Resting lift for outline buttons, inputs, small chips.
+- **md / lg** (`0 2px 6px` to `0 4px 12px`, Text at 8 to 12%): Cards, home tool tiles, raised panels.
+- **xl** (`0 8px 24px`, Text at 12 to 16%): Popovers, dropdowns, sheets, dialogs.
+- **Accent edge** (`0 4px 0` in the tile's accent): The hard bottom edge on tool tiles on hover, and on primary buttons. See Components.
 
-### Named Rules
-**The Warm-Shadow Rule.** Every shadow is tinted warm brown (`hsl(28 13% 20%)`), never neutral gray or black. A gray shadow on a cream surface is a tell that depth was added by reflex.
+### Radii
+Radii are friendlier than before. **This is a change:** the old system used
+near-square radii (0 to 4px). The new scale is:
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `rounded.sm` | 6px | Small controls, chips, checkboxes |
+| `rounded.md` | 8px | Buttons, inputs, selects |
+| `rounded.lg` | 12px | Cards, panels, dialogs |
+| `rounded.xl` | 14px | Home tool tiles, large containers |
+
+Controls sit at 6 to 8px, cards and tiles at 8 to 14px. Pills and status chips
+are fully round.
 
 ## 5. Components
 
-Built on Base UI primitives with a shadcn-derived structure. The feel across all of them: **soft and approachable** — gentle near-square corners, warm fills, light shadows, never sterile.
+Built on Base UI primitives with a shadcn-derived structure. The feel across all of them: **friendly and tactile**, with soft corners, quiet surfaces and a little colour where it helps.
 
 ### Buttons
-- **Shape:** Near-square, `rounded-md` (0.125rem / ~2px); small/icon sizes go slightly rounder (up to 10px). Default height 2.25rem (`h-9`), compact horizontal padding (`px-2.5`).
-- **Primary:** Muted Caramel fill, Card Cream text. Hover deepens toward Deep Caramel (the build uses `bg-primary/80`).
-- **Outline:** Cream background, Warm Border, subtle `xs` shadow; hover fills Muted Surface.
-- **Secondary:** Warm Sand fill, Espresso text.
-- **Ghost:** Transparent; hover fills Muted Surface.
-- **Destructive:** Tinted Brick Red (`destructive/10`) with Brick Red text — soft, not a solid red slab.
-- **Focus / Active:** Focus-visible shows a 3px caramel ring (`ring-ring/50`) plus border shift; active nudges down 1px for tactile press.
+- **Shape:** `rounded-md` (8px). Default height 2.25rem (`h-9`). Small and icon sizes use 6px.
+- **Primary (chunky, pressable):** Mauve fill, Base text. A coloured bottom edge (`0 3px 0` in a darker mix of Mauve and Text) makes it look like a toy key. On `:active` the edge collapses and the button gets `scale(0.97)`. Hover shifts the fill slightly toward Text; contrast must stay at 4.5:1 or better.
+- **Outline:** Base background, Overlay2 border, `xs` shadow; hover fills Surface0.
+- **Secondary:** Surface0 (Latte) or Surface1 (Mocha) fill, Text label.
+- **Ghost:** Transparent; hover fills Surface0.
+- **Destructive:** Red tint (`destructive/10`) with Red text. Soft, not a solid red slab.
+- **Focus / Active:** Focus-visible shows a 3px Mauve ring (`ring-ring/50`) plus border shift. Active scales to `0.97` (150ms, `--ease-out`). Transitions list their properties (no `transition-all`).
 
-### Cards / Containers
-- **Corner Style:** `rounded-lg` (0.25rem).
-- **Background:** Card Cream, one step brighter than the body.
-- **Shadow Strategy:** `md`/`lg` warm shadow (see Elevation). No nested cards — ever.
-- **Border:** Warm Border, 1px.
-- **Internal Padding:** 1.5rem (`lg`).
+### Cards and containers
+- **Radius:** `rounded-lg` (12px).
+- **Background:** Mantle in Latte, Surface0 in Mocha.
+- **Shadow:** `md` or `lg` neutral shadow. No nested cards, ever.
+- **Border:** Surface1, 1px, decorative.
+- **Padding:** 1.5rem.
 
-### Inputs / Fields
-- **Style:** Cream background, 1px Warm Border, `rounded-md`, height 2.25rem.
-- **Focus:** 3px caramel ring + border shift to the ring color.
-- **Error / Disabled:** `aria-invalid` shows a Brick Red border + red ring; disabled drops to 50% opacity with pointer-events off.
+### Inputs and fields
+- **Style:** Base background, 1px Overlay2 border (Overlay0 in Mocha), `rounded-md`, height 2.25rem.
+- **Focus:** 3px Mauve ring and border shift to the ring colour.
+- **Error / Disabled:** `aria-invalid` shows a Red border and ring; disabled drops to 50% opacity with pointer-events off.
 
 ### Navigation
-- **Style:** Collapsible left sidebar (Base UI sidebar) on Muted Surface, plus a sticky top header with a backdrop-blur cream bar (`bg-background/70 backdrop-blur-md`). Active item carries the caramel accent; hover fills Soft Tan / Muted Surface. On mobile the sidebar collapses behind a `SidebarTrigger`.
+- **Style:** Collapsible left sidebar (Base UI sidebar) on Crust (Latte) or Mantle (Mocha), plus a sticky top header with a blurred bar (`bg-background/70 backdrop-blur-md`) holding the breadcrumb and the theme toggle. The active item sits on a Surface0 pill that slides between items (transform only, 200ms). Each item's icon carries its tool category accent. On mobile the sidebar collapses behind a `SidebarTrigger`, and menu items grow from 32px to 40px on mobile and coarse-pointer devices. The top bar shows a `Group / Tool` breadcrumb; the page `h1` carries the full tool name.
+- **Logo:** The mascot face crop (see Mascot).
 - **Typography:** Nunito Label (600, 0.875rem).
 
-### Home Tool Tiles (signature component)
-- Rounded-2xl icon tiles linking to each tool, with a soft `lg` shadow and a gentle `-translate-y-0.5` lift on hover. **Known drift:** the current tiles hardcode `orange-*`/`emerald-*` colors and rely on `drop-shadow` text over a background image — both should be re-grounded in the warm token palette and checked for AA contrast.
+### Home tool tiles (signature component)
+- 14px radius tiles linking to each tool. A tile has a Mantle or Surface0 background, an icon chip filled with the category's first accent and a tinted detail from the second, and a `text`-coloured label.
+- Hover lifts the tile 2px and shows the accent edge (`0 4px 0` in the category accent); press squishes the edge to 1px. The icon chip does one small tilt. 160 to 200ms, `--ease-out`.
+- Tiles use token colours only. Do not hardcode `orange-*` or `emerald-*`, and do not put text over a background image.
 
-## 6. Do's and Don'ts
+### Status pills and chips
+Tinted fill (`color-mix` of the status colour into the card colour), a coloured dot, and a `text` label. Never coloured text in Latte except Red.
+
+### Dropzone and progress
+- **Dropzone:** Overlay2 dashed border at rest. On drag-over the border goes solid in the category accent, with a faint accent glow, and the upload icon hops once.
+- **Progress:** Candy-stripe fill in the category accent, moving at constant speed (linear is correct here).
+- **Done:** The check draws itself (stroke-dashoffset, 250ms) and the row gets a Green tint that fades. A small burst of Catppuccin-coloured dots plays once, only on completion of a user job.
+
+## 6. Motion
+
+Principle: animate in proportion to how rarely something is seen. Nothing used
+hundreds of times a day moves much.
+
+### Frequency table
+
+| Frequency | Where | Treatment |
+| --- | --- | --- |
+| Rare, first look | Home hero, empty states, "all done" | Can delight |
+| Occasional | Dialogs, toasts, file added, job finished, theme toggle | Standard, under 300ms |
+| Constant | Sidebar nav, buttons, inputs, keyboard actions | Minimal: press scale and colour only |
+
+### Playful moments
+All are CSS transitions or keyframes. No motion library is installed and none is needed.
+
+1. Mascot idle on the home hero: slow bob (about 6px, 5 to 6s) with a very small tilt, whole image only.
+2. Tile hover: lift, accent edge, one icon tilt.
+3. Home grid first load: 40ms stagger, opacity plus 8px rise, once per session, never blocks clicks.
+4. Chunky primary buttons: edge drops on `:active` plus `scale(0.97)`.
+5. Dropzone drag-over: solid accent border, icon hop, faint glow. Dropped file rows arrive with a short pop (scale 0.96 to 1 plus fade), not a long list animation.
+6. Progress: candy-stripe fill.
+7. Done moment: self-drawing check, green tint, dot burst, friendlier toast voice. Completion of a user job only.
+8. Theme toggle: sun and moon swap with a circular clip-path reveal from the button via the View Transitions API where supported, instant elsewhere.
+9. Sidebar active pill: slides between items, transform only, 200ms.
+10. Route change: 120ms crossfade of page content only. No slides.
+11. Sidebar logo: the face crop tilts or winks on hover, on hover-capable devices only.
+
+### Rules
+- **Curves:** `--ease-out` `cubic-bezier(0.23, 1, 0.32, 1)` for enter and press feedback; `--ease-drawer` `cubic-bezier(0.32, 0.72, 0, 1)` for the sidebar and sheets. Never `ease-linear` for UI movement; linear is only for constant-speed progress.
+- **Duration:** UI animations stay under 300ms; press feedback 100 to 160ms. The only things over 300ms are the home idle loop and the one-time celebration moments.
+- **Properties:** Animate only `transform` and `opacity` (colour and shadow transitions are fine for state). Keep `backdrop-filter` blur on small areas such as the sticky header. No layout properties.
+- **Loops:** Looping animation runs only on the home page, and pauses when `document.hidden`.
+- **Keyboard:** Do not animate keyboard-driven actions.
+- **Reduced motion:** Every animation has a `prefers-reduced-motion: reduce` version. It keeps opacity, colour and shadow transitions and drops movement (translate, scale, tilt, bob, hop, burst, clip-path reveal, width and slide or zoom enters). The mascot is static, the theme swap is instant, the done check appears without drawing, and spinners become a slow opacity pulse. Handled globally in `src/styles.css`.
+
+## 7. Mascot
+
+Palico is a single illustration (`Chibi Cat Adventurer with Whimsical Hammer`),
+a clean cutout with its own Catppuccin-family colours (blue hat, lavender scarf,
+pink-mauve hammer, green plants, yellow coat). It sits on Base, Mantle or Crust
+in both themes without a halo.
+
+- **Hero:** Home only, as the cropped art (content box 1131x992, nearly square) in WebP with 1x and 2x variants, optionally AVIF. Never serve the uncropped 2 MB PNG. The idle bob applies here.
+- **Sidebar:** A separate face-only crop. Not the full body at small sizes. Tilt or wink on hover.
+- **Favicons and app icons:** The same face crop: 16, 32, 64, ico, apple-touch, android 192 and 512, `logo192` and `logo512`. `site.webmanifest` `theme_color` and `background_color` use the Base colour, not pure white.
+- **No extra poses.** There is one image. Empty and error states reuse it; loading states use whole-image motion (bob, tilt), not a hammer swing or new art.
+- **Do not recolour, outline or crop it differently** per theme. If it needs more contrast, change the surface behind it.
+- **Not on tool pages** except empty and error states, where it appears once, small.
+
+## 8. Do's and Don'ts
 
 ### Do:
-- **Do** surface the offline/on-device guarantee as a first-class part of the interface (the home trust badges) — privacy is visible, not buried.
-- **Do** keep one job, few clicks per tool; sensible defaults, advanced options tucked away until wanted.
-- **Do** use Espresso Ink on Cream/Card Cream for text, and verify Muted Ink hits ≥4.5:1 before using it for body copy.
-- **Do** tint every shadow warm brown (`hsl(28 13% 20%)`).
-- **Do** keep typography single-family — Nunito everywhere — and use weight (400/600/700/900) to step the hierarchy.
-- **Do** give every control a real focus-visible state (3px caramel ring) and a `prefers-reduced-motion` alternative.
+- **Do** surface the offline, on-device guarantee as a first-class part of the interface (the home trust badges). Privacy is visible, not buried.
+- **Do** keep one job and few clicks per tool, with sensible defaults and advanced options tucked away.
+- **Do** keep large surfaces to Base, Mantle, Crust and Surface0, and put colour in small repeated spots.
+- **Do** use Mauve for primary actions and the category pair for category identity.
+- **Do** use Text on Base surfaces, Subtext1 (Latte) or Subtext0 (Mocha) for secondary text, and check any other pair against the contrast table.
+- **Do** use status colours for their real meaning: Green done, Red error, Yellow or Peach warning, Sapphire or Sky info.
+- **Do** use neutral, text-tinted, low-opacity shadows and the chunky pressable primary button.
+- **Do** keep typography single-family and use weight to step the hierarchy.
+- **Do** give every control a real focus-visible state (3px Mauve ring) and every animation a `prefers-reduced-motion` alternative.
+- **Do** reserve delight for rare moments and keep frequent actions fast and calm.
 
 ### Don't:
-- **Don't** evoke ad-heavy converter sites: no fake/disguised download buttons, no upload-to-server ambiguity, no popups or dark patterns.
-- **Don't** drift into cold enterprise SaaS: no navy-and-gray, no pure-white/pure-black, no soulless density.
-- **Don't** over-animate — motion conveys state (processing, toggling, reveal), never spectacle. No orchestrated page-load sequences.
-- **Don't** use Brick Red for anything but destruction and error.
-- **Don't** hardcode off-palette colors like `orange-300`/`emerald-300` (as the current home tiles do) — ground everything in the warm tokens.
-- **Don't** nest cards, or use a `border-left`/`border-right` colored stripe as a card or alert accent.
-- **Don't** introduce a second typeface for brand moments — if a hero needs more weight, push the Nunito Display tier (900 + larger scale), don't reach for a display face.
+- **Don't** evoke ad-heavy converter sites: no fake or disguised download buttons, no upload-to-server ambiguity, no popups or dark patterns.
+- **Don't** drift into cold enterprise SaaS: no navy-and-gray, no soulless density.
+- **Don't** put motion in the way of the task: no animation on sidebar nav, buttons beyond the press, inputs or keyboard actions, and no looping animation outside the home page.
+- **Don't** animate anything other than `transform` and `opacity`, or run an animation over 300ms in the UI.
+- **Don't** use Latte accents other than Mauve, Red and large Blue for text, or for fills that carry Base-coloured text.
+- **Don't** put a saturated colour on a large surface, or more than one saturated colour in a component.
+- **Don't** use Red for anything but errors and destruction, or Green for anything but success.
+- **Don't** hardcode off-palette colours (`orange-300`, `emerald-300`, raw hex); use tokens.
+- **Don't** use pure black or pure white for text or surfaces; use Text and Base.
+- **Don't** nest cards, or use a coloured `border-left` or `border-right` stripe as a card or alert accent.
+- **Don't** introduce a second typeface for brand moments.
+- **Don't** add new mascot poses or recolour the mascot; reuse the one image.

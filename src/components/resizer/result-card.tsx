@@ -1,8 +1,10 @@
-import { CheckCircle2, Download } from "lucide-react";
+import { Download } from "lucide-react";
 
+import { DoneBurst, DrawCheck } from "#/components/done-burst.tsx";
 import { formatBytes } from "#/components/resizer/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
 import type { ResizeOutput } from "#/lib/image/resizer.ts";
+import { cn } from "#/lib/utils.ts";
 
 export function ResultCard({
 	result,
@@ -16,16 +18,28 @@ export function ResultCard({
 	onSave: () => void;
 }) {
 	return (
-		<div className="mt-4 flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
-			{previewUrl ? (
-				<img
-					src={previewUrl}
-					alt=""
-					className="size-12 shrink-0 rounded object-cover"
-				/>
-			) : (
-				<CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-			)}
+		<div className="animate-done-tint mt-4 flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+			{/* The card only mounts when a resize finishes, so mounting is the done moment. */}
+			<span className="relative shrink-0">
+				{previewUrl && (
+					<img
+						src={previewUrl}
+						alt=""
+						className="size-12 rounded object-cover"
+					/>
+				)}
+				<span
+					className={cn(
+						"flex items-center justify-center rounded-full bg-success text-success-foreground",
+						previewUrl
+							? "absolute -right-1.5 -bottom-1.5 size-5 ring-2 ring-card"
+							: "size-6",
+					)}
+				>
+					<DrawCheck play className="size-3" />
+					<DoneBurst />
+				</span>
+			</span>
 			<p className="min-w-0 flex-1 text-sm">
 				Resized to{" "}
 				<span className="font-medium">

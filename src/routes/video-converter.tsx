@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { Film } from "lucide-react";
-import { useId, useReducer, useRef } from "react";
+import { useReducer, useRef } from "react";
 import { toast } from "sonner";
-
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CancelDialog } from "#/components/video-converter/cancel-dialog.tsx";
 import { ConverterControls } from "#/components/video-converter/converter-controls.tsx";
-import { Dropzone } from "#/components/video-converter/dropzone.tsx";
 import { FileRow } from "#/components/video-converter/file-row.tsx";
 import { ProcessTimeDialog } from "#/components/video-converter/process-time-dialog.tsx";
 import {
@@ -54,32 +54,24 @@ function VideoConverterPage() {
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Video Converter</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your
-					browser.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Video Converter">
+				Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your browser.
+			</PageHeader>
 
 			<VideoEnginePanel
 				phase={gate.phase}
-				declined={gate.declined}
 				onStart={gate.startLoad}
-				onDecline={gate.decline}
 				icon={Film}
 				consentDescription={CONVERTER_CONSENT_DESCRIPTION}
 				disabledTitle="Video conversion is disabled"
 				enableLabel="Enable video conversion"
 			/>
-		</div>
+		</PageShell>
 	);
 }
 
 function ConverterShell() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 	const [state, dispatch] = useReducer(converterReducer, initialConverterState);
 	const {
@@ -111,7 +103,7 @@ function ConverterShell() {
 				// Rejected files never enter the queue, so conversion never runs
 				// on them — no engine work is triggered.
 				toast.error(
-					`"${file.name}" is ${formatBytes(file.size)} — over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB; for larger files, please use a desktop video editor.`,
+					`"${file.name}" is ${formatBytes(file.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB; for larger files, please use a desktop video editor.`,
 				);
 				continue;
 			}
@@ -273,20 +265,21 @@ function ConverterShell() {
 			: `Convert ${convertable.length} files`;
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Video Converter</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your
-					browser. Files convert one at a time to keep memory in check, up to{" "}
-					{MAX_FILES} per batch.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Video Converter">
+				Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your browser.
+				Files convert one at a time to keep memory in check, up to {MAX_FILES}{" "}
+				per batch.
+			</PageHeader>
 
 			<Dropzone
-				inputId={inputId}
-				fileInputRef={fileInputRef}
-				isRunning={isRunning}
+				label="Drag & drop videos here, or"
+				actionLabel="Choose files"
+				hint={`Video files, up to ${MAX_FILES} per batch`}
+				accept="video/*"
+				multiple
+				ariaLabel="Choose videos to convert"
+				disabled={isRunning}
 				onFiles={addFiles}
 			/>
 
@@ -339,6 +332,6 @@ function ConverterShell() {
 				}}
 				onConfirm={cancelConversion}
 			/>
-		</div>
+		</PageShell>
 	);
 }

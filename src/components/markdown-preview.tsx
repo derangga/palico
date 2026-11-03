@@ -68,7 +68,7 @@ export function MarkdownPreview({ source }: { readonly source: string }) {
 	}
 
 	return (
-		<article className="prose prose-neutral dark:prose-invert max-w-none">
+		<article className="prose max-w-none">
 			<Markdown
 				remarkPlugins={REMARK_PLUGINS}
 				rehypePlugins={REHYPE_PLUGINS}

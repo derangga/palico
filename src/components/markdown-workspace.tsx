@@ -1,16 +1,17 @@
 import { Effect, Option } from "effect";
 import { useDeferredValue, useEffect, useState } from "react";
-
 import { MarkdownPreviewPanel } from "#/components/markdown-preview-panel.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
+import { MARKDOWN_DESCRIPTION } from "#/components/page-skeletons.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { SAMPLE_MARKDOWN } from "#/lib/markdown/sample.ts";
 import { loadMarkdown, saveMarkdown } from "#/lib/markdown/storage.ts";
 
 // Both panels are a fixed height in the normal split view; in fullscreen the
 // preview grows to fill the viewport below the app's top bar (h-14 / 3.5rem)
-// minus this page's vertical padding.
+// minus this page's vertical padding (PageShell py-10).
 const PANEL_HEIGHT = "h-[1000px]";
-const FULLSCREEN_HEIGHT = "h-[calc(100svh-3.5rem-4rem)]";
+const FULLSCREEN_HEIGHT = "h-[calc(100svh-3.5rem-5rem)]";
 
 export function MarkdownWorkspace() {
 	// Restore synchronously on first render (client only — the workspace is
@@ -43,15 +44,9 @@ export function MarkdownWorkspace() {
 	}, [deferredSource]);
 
 	return (
-		<div className="mx-auto w-full max-w-7xl px-6 py-8">
+		<PageShell width="full">
 			{!isFullscreen && (
-				<div className="mb-6">
-					<h1 className="text-2xl font-bold">Markdown Preview</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Type Markdown on the left and see it rendered live on the right.
-						Everything runs on your device — nothing is uploaded.
-					</p>
-				</div>
+				<PageHeader title="Markdown Preview">{MARKDOWN_DESCRIPTION}</PageHeader>
 			)}
 
 			<div
@@ -80,6 +75,6 @@ export function MarkdownWorkspace() {
 					heightClass={isFullscreen ? FULLSCREEN_HEIGHT : PANEL_HEIGHT}
 				/>
 			</div>
-		</div>
+		</PageShell>
 	);
 }

@@ -1,10 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { FileArchive, Loader2 } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-
-import { Dropzone } from "#/components/converter/dropzone.tsx";
 import { FileRow } from "#/components/converter/file-row.tsx";
 import type { Item } from "#/components/converter/types.ts";
 import {
@@ -12,6 +10,8 @@ import {
 	formatBytes,
 	uniqueNames,
 } from "#/components/converter/utils.ts";
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Select,
@@ -39,8 +39,6 @@ export const Route = createFileRoute("/converter")({
 const MB = 1024 * 1024;
 
 function ConverterPage() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [items, setItems] = useState<Item[]>([]);
 	const [format, setFormat] = useState<OutputFormat>("webp");
 	const [isRunning, setIsRunning] = useState(false);
@@ -89,7 +87,6 @@ function ConverterPage() {
 
 	function reset() {
 		setItems([]);
-		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
 	function changeFormat(value: OutputFormat) {
@@ -201,19 +198,20 @@ function ConverterPage() {
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Image Converter</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Convert images to JPG, PNG, or WebP — entirely in your browser. Up to{" "}
-					{MAX_FILES} files, {Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
-					{MAX_DIMENSION.toLocaleString()}px max each.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Image Converter">
+				Convert images to JPG, PNG, or WebP, entirely in your browser. Up to{" "}
+				{MAX_FILES} files, {Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
+				{MAX_DIMENSION.toLocaleString()}px max each.
+			</PageHeader>
 
 			<Dropzone
-				inputId={inputId}
-				fileInputRef={fileInputRef}
+				label="Drag & drop images here, or"
+				actionLabel="Choose files"
+				hint={`Images up to ${Math.round(MAX_FILE_BYTES / MB)} MB each, ${MAX_FILES} files at a time`}
+				accept="image/*"
+				multiple
+				ariaLabel="Choose images to convert"
 				onFiles={addFiles}
 			/>
 
@@ -281,6 +279,6 @@ function ConverterPage() {
 					</ul>
 				</>
 			)}
-		</div>
+		</PageShell>
 	);
 }

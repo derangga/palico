@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
 import { lazy, Suspense } from "react";
+
+import { MarkdownPreviewSkeleton } from "#/components/page-skeletons.tsx";
 
 // react-markdown + its remark/rehype plugins (and, later, mermaid) are a chunk
 // of their own; keep the workspace lazy so the rest of the app isn't weighed
@@ -17,13 +18,7 @@ export const Route = createFileRoute("/markdown-preview")({
 
 function MarkdownPreviewPage() {
 	return (
-		<Suspense
-			fallback={
-				<div className="flex min-h-[calc(100svh-3.5rem)] items-center justify-center">
-					<Loader2 className="size-6 animate-spin text-muted-foreground" />
-				</div>
-			}
-		>
+		<Suspense fallback={<MarkdownPreviewSkeleton />}>
 			<MarkdownWorkspace />
 		</Suspense>
 	);

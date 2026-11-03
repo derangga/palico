@@ -12,6 +12,7 @@ import {
 	pdfName,
 	saveOne,
 } from "#/components/office-to-pdf/utils.ts";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { checkOfficeFile } from "#/lib/file/office-limits.ts";
@@ -179,16 +180,13 @@ export function OfficeShell() {
 	const hasItems = items.length > 0;
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Word to PDF</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Convert Word (.docx, .doc), OpenDocument (.odt), and RTF files to PDF
-					— entirely in your browser. Each file up to{" "}
-					{Math.round(MAX_OFFICE_BYTES / MB)} MB; up to {MAX_BATCH_FILES} at a
-					time.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Word to PDF">
+				Convert Word (.docx, .doc), OpenDocument (.odt), and RTF files to PDF,
+				entirely in your browser. Each file up to{" "}
+				{Math.round(MAX_OFFICE_BYTES / MB)} MB; up to {MAX_BATCH_FILES} at a
+				time.
+			</PageHeader>
 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: dropzone wraps a real file input. */}
 			<div
@@ -273,6 +271,6 @@ export function OfficeShell() {
 					</ul>
 				</>
 			)}
-		</div>
+		</PageShell>
 	);
 }

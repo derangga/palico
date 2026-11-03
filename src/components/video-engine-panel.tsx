@@ -1,21 +1,23 @@
 // Engine gate UI shared by /video-converter and /video-cutter: renders the
-// error, consent (placeholder + dialog), declined, and loading states for the
+// error, checking (skeleton), consent (inline Enable card that opens the
+// dialog on click), and loading states for the
 // ffmpeg.wasm download negotiated by useEngineGate. Tool-specific copy (icon,
 // consent body, declined panel strings) comes in as props.
 
 import type { LucideIcon } from "lucide-react";
-import { CircleAlert, Download, Loader2 } from "lucide-react";
+import { CircleAlert, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { DownloadConsentDialog } from "#/components/download-consent-dialog.tsx";
+import {
+	EngineCheckingSkeleton,
+	EngineConsentCard,
+} from "#/components/engine-consent-gate.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { ENGINE_SIZE_LABEL, type LoadPhase } from "#/lib/video/cache.ts";
 
 interface VideoEnginePanelProps {
 	phase: LoadPhase;
-	declined: boolean;
 	onStart: () => void;
-	onDecline: () => void;
 	icon: LucideIcon;
 	consentDescription: ReactNode;
 	disabledTitle: string;
@@ -24,16 +26,12 @@ interface VideoEnginePanelProps {
 
 export function VideoEnginePanel({
 	phase,
-	declined,
 	onStart,
-	onDecline,
 	icon: Icon,
 	consentDescription,
 	disabledTitle,
 	enableLabel,
 }: VideoEnginePanelProps) {
-	const dialogOpen = phase.kind === "consent" && !declined;
-
 	if (phase.kind === "error") {
 		return (
 			<div className="rounded-xl border border-destructive/30 bg-card p-6">
@@ -53,40 +51,19 @@ export function VideoEnginePanel({
 		);
 	}
 
-	if (phase.kind === "checking" || (phase.kind === "consent" && !declined)) {
-		return (
-			<>
-				<EnginePlaceholder
-					title="Preparing video tools"
-					body="Checking for a cached engine…"
-				/>
-				<DownloadConsentDialog
-					open={dialogOpen}
-					onOpenChange={(open) => {
-						if (!open) onDecline();
-					}}
-					onConfirm={onStart}
-					icon={<Icon />}
-					title={`Download the video engine (${ENGINE_SIZE_LABEL})`}
-					description={consentDescription}
-				/>
-			</>
-		);
-	}
+	if (phase.kind === "checking") return <EngineCheckingSkeleton />;
 
-	if (phase.kind === "consent" && declined) {
+	if (phase.kind === "consent") {
 		return (
-			<div className="rounded-xl border border-dashed bg-card p-8 text-center">
-				<Icon className="mx-auto size-8 text-muted-foreground" />
-				<p className="mt-3 text-sm font-medium">{disabledTitle}</p>
-				<p className="mt-1 text-sm text-muted-foreground">
-					The {ENGINE_SIZE_LABEL} engine download is required to use this tool.
-				</p>
-				<Button className="mt-4" onClick={onStart}>
-					<Download />
-					{enableLabel}
-				</Button>
-			</div>
+			<EngineConsentCard
+				icon={Icon}
+				title={disabledTitle}
+				body={`The ${ENGINE_SIZE_LABEL} engine download is required to use this tool.`}
+				enableLabel={enableLabel}
+				dialogTitle={`Download the video engine (${ENGINE_SIZE_LABEL})`}
+				dialogDescription={consentDescription}
+				onConfirm={onStart}
+			/>
 		);
 	}
 
@@ -108,7 +85,7 @@ export function VideoEnginePanel({
 			</div>
 			<div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
 				<div
-					className="h-full bg-primary transition-[width] duration-150 ease-out"
+					className="progress-stripes h-full bg-cat-video transition-[width] duration-150 ease-out"
 					style={{ width: `${percent}%` }}
 				/>
 			</div>
@@ -119,20 +96,6 @@ export function VideoEnginePanel({
 						? "Saving the engine to your browser cache."
 						: "Initializing the engine in a worker thread (1–2s)."}
 			</p>
-		</div>
-	);
-}
-
-function EnginePlaceholder({ title, body }: { title: string; body: string }) {
-	return (
-		<div className="rounded-xl border bg-card p-6">
-			<div className="flex items-center gap-3">
-				<Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground" />
-				<div>
-					<p className="text-sm font-medium">{title}</p>
-					<p className="mt-1 text-xs text-muted-foreground">{body}</p>
-				</div>
-			</div>
 		</div>
 	);
 }

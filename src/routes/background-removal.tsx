@@ -9,8 +9,11 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-
-import { DownloadConsentDialog } from "#/components/download-consent-dialog.tsx";
+import {
+	EngineCheckingSkeleton,
+	EngineConsentCard,
+} from "#/components/engine-consent-gate.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Empty,
@@ -54,7 +57,7 @@ export const Route = createFileRoute("/background-removal")({
 type Status = "idle" | "processing" | "done";
 
 // Readiness of the one-time model download, gated on mount like the video
-// engine. "ready" reveals the image tool.
+// engine. "consent" shows the inline Enable card; the dialog opens on click. "ready" reveals the image tool.
 type GatePhase =
 	| { kind: "checking" }
 	| { kind: "consent" }
@@ -74,13 +77,11 @@ function downloadBlob(blob: Blob, name: string) {
 function BackgroundRemovalPage() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [gate, setGate] = useState<GatePhase>({ kind: "checking" });
-	const [declined, setDeclined] = useState(false);
 	const [source, setSource] = useState<File | null>(null);
 	const [result, setResult] = useState<Blob | null>(null);
 	const [status, setStatus] = useState<Status>("idle");
 
 	const startDownload = useCallback(async () => {
-		setDeclined(false);
 		setGate({ kind: "downloading", percent: 0 });
 		const exit = await Effect.runPromiseExit(
 			loadBackgroundModel((p) => {
@@ -184,22 +185,14 @@ function BackgroundRemovalPage() {
 	const processing = status === "processing";
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Remove Background</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Cut out the subject of any image — entirely in your browser. On first
-					use, a {MODEL_SIZE_LABEL} model downloads and is cached.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Remove Background">
+				Cut out the subject of any image, entirely in your browser. On first
+				use, a {MODEL_SIZE_LABEL} model downloads and is cached.
+			</PageHeader>
 
 			{gate.kind !== "ready" ? (
-				<ModelGate
-					gate={gate}
-					declined={declined}
-					onStart={startDownload}
-					onDecline={() => setDeclined(true)}
-				/>
+				<ModelGate gate={gate} onStart={startDownload} />
 			) : (
 				<>
 					<input
@@ -222,7 +215,7 @@ function BackgroundRemovalPage() {
 								<EmptyTitle>Pick an image to start</EmptyTitle>
 								<EmptyDescription>
 									Choose any image and we'll erase its background. Everything
-									runs on your device — nothing is uploaded.
+									runs on your device. Nothing is uploaded.
 								</EmptyDescription>
 							</EmptyHeader>
 							<EmptyContent>
@@ -323,20 +316,18 @@ function BackgroundRemovalPage() {
 					)}
 				</>
 			)}
-		</div>
+		</PageShell>
 	);
 }
 
 interface ModelGateProps {
 	gate: GatePhase;
-	declined: boolean;
 	onStart: () => void;
-	onDecline: () => void;
 }
 
 // The pre-tool gate: shown on mount until the model download is consented to
 // and completes. Mirrors the video converter's EnginePanel.
-function ModelGate({ gate, declined, onStart, onDecline }: ModelGateProps) {
+function ModelGate({ gate, onStart }: ModelGateProps) {
 	if (gate.kind === "error") {
 		return (
 			<div className="rounded-xl border border-destructive/30 bg-card p-6">
@@ -356,54 +347,26 @@ function ModelGate({ gate, declined, onStart, onDecline }: ModelGateProps) {
 		);
 	}
 
-	if (gate.kind === "checking" || (gate.kind === "consent" && !declined)) {
-		return (
-			<>
-				<div className="rounded-xl border bg-card p-6">
-					<div className="flex items-center gap-3">
-						<Loader2 className="size-5 shrink-0 animate-spin text-muted-foreground" />
-						<p className="text-sm font-medium">Preparing the background tool</p>
-					</div>
-					<p className="mt-3 text-xs text-muted-foreground">
-						Setting things up…
-					</p>
-				</div>
-				<DownloadConsentDialog
-					open={gate.kind === "consent" && !declined}
-					onOpenChange={(open) => {
-						if (!open) onDecline();
-					}}
-					onConfirm={onStart}
-					icon={<ImageIcon />}
-					title={`Download the background tool (${MODEL_SIZE_LABEL})`}
-					description={
-						<>
-							Background removal runs entirely on your device, but it needs a
-							one-time {MODEL_SIZE_LABEL} AI model. Your browser caches it after
-							the first download, so future use is faster. Nothing leaves your
-							browser.
-						</>
-					}
-				/>
-			</>
-		);
-	}
+	if (gate.kind === "checking") return <EngineCheckingSkeleton />;
 
-	if (gate.kind === "consent" && declined) {
+	if (gate.kind === "consent") {
 		return (
-			<div className="rounded-xl border border-dashed bg-card p-8 text-center">
-				<ImageIcon className="mx-auto size-8 text-muted-foreground" />
-				<p className="mt-3 text-sm font-medium">
-					Background removal is disabled
-				</p>
-				<p className="mt-1 text-sm text-muted-foreground">
-					The {MODEL_SIZE_LABEL} model download is required to use this tool.
-				</p>
-				<Button className="mt-4" onClick={onStart}>
-					<Download />
-					Enable background removal
-				</Button>
-			</div>
+			<EngineConsentCard
+				icon={ImageIcon}
+				title="Background removal is disabled"
+				body={`The ${MODEL_SIZE_LABEL} model download is required to use this tool.`}
+				enableLabel="Enable background removal"
+				dialogTitle={`Download the background tool (${MODEL_SIZE_LABEL})`}
+				dialogDescription={
+					<>
+						Background removal runs entirely on your device, but it needs a
+						one-time {MODEL_SIZE_LABEL} AI model. Your browser caches it after
+						the first download, so future use is faster. Nothing leaves your
+						browser.
+					</>
+				}
+				onConfirm={onStart}
+			/>
 		);
 	}
 

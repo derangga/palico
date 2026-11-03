@@ -96,7 +96,7 @@ const trimOne = (
 			outputMime: mime,
 			label: "Trim",
 			oomMessage:
-				"Your device ran out of memory — this video is too large to trim in the browser. Try a smaller file.",
+				"Your device ran out of memory. This video is too large to trim in the browser. Try a smaller file.",
 			readError: (message) =>
 				new VideoTrimError({ fileName: input.file.name, message }),
 			jobError: (message) =>

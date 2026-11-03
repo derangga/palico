@@ -4,6 +4,7 @@ import { Download, ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Empty,
@@ -137,15 +138,12 @@ function FaviconGeneratorPage() {
 	}
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-6 py-10">
-			<div className="mb-6">
-				<h1 className="text-2xl font-bold">Favicon Generator</h1>
-				<p className="mt-1 text-sm text-muted-foreground">
-					Drop in a logo or icon and get every favicon size modern browsers,
-					iOS, and Android need — plus a ready-to-paste <code>{"<link>"}</code>{" "}
-					snippet. Everything runs on your device.
-				</p>
-			</div>
+		<PageShell>
+			<PageHeader title="Favicon Generator">
+				Drop in a logo or icon and get every favicon size modern browsers, iOS,
+				and Android need, plus a ready-to-paste <code>{"<link>"}</code> snippet.
+				Everything runs on your device.
+			</PageHeader>
 
 			<input
 				ref={fileInputRef}
@@ -289,6 +287,6 @@ function FaviconGeneratorPage() {
 					)}
 				</div>
 			)}
-		</div>
+		</PageShell>
 	);
 }

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { useTheme } from "next-themes";
 import { useEffect, useId, useState } from "react";
 
 import { renderMermaid } from "#/lib/markdown/mermaid.ts";
@@ -20,8 +21,11 @@ type RenderState =
 // Renders a single ```mermaid block. A failed render (invalid syntax, which is
 // common while the diagram is still being typed) is shown as a small inline
 // error box in place of just this diagram — the rest of the preview keeps
-// rendering. The effect is re-run whenever the source changes.
+// rendering. The effect is re-run whenever the source or the theme changes.
 export function MermaidDiagram({ chart }: { readonly chart: string }) {
+	// The theme is read from the DOM at render time (see lib/markdown/mermaid.ts),
+	// so it is only a dependency here: a flavour switch re-renders the diagram.
+	const { resolvedTheme } = useTheme();
 	const [rendered, setRendered] = useState<RenderState>({
 		status: "pending",
 		chart,
@@ -31,10 +35,15 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 	const rawId = useId();
 	const domId = `mermaid-${rawId.replace(/:/g, "")}`;
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: resolvedTheme is read from the DOM by renderMermaid, it only triggers the re-render
 	useEffect(() => {
 		let cancelled = false;
 
-		Effect.runPromiseExit(renderMermaid(domId, chart)).then((exit) => {
+		// Yield first: this effect runs before next-themes swaps the flavour class
+		// on <html> (children's effects run first), and the render reads that class.
+		Effect.runPromiseExit(
+			Effect.yieldNow().pipe(Effect.andThen(renderMermaid(domId, chart))),
+		).then((exit) => {
 			if (cancelled) return;
 			if (exit._tag === "Success") {
 				setRendered({ status: "ready", chart, svg: exit.value });
@@ -51,7 +60,7 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [chart, domId]);
+	}, [chart, domId, resolvedTheme]);
 
 	// Derive the displayed state during render: if the stored result was computed
 	// for a different `chart`, the effect for the current source hasn't landed

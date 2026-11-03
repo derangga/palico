@@ -3,141 +3,159 @@
 
 @import "tw-animate-css";
 
-@import "tw-animate-css";
-
 @import "shadcn/tailwind.css";
 
-@import "@fontsource-variable/inter";
 @import "@fontsource-variable/nunito";
 
-@custom-variant dark (&:is(.dark *));
+@import "@catppuccin/tailwindcss/mocha.css";
 
+/* `.mocha` is set before first paint by next-themes; `.dark` is synced after hydration. */
+@custom-variant dark (&:is(.dark *, .mocha *));
+
+/*
+ * Catppuccin: Latte is the light theme, Mocha the dark one. The package defines
+ * `--catppuccin-color-*` per flavour (`.latte` / `.mocha` on <html>, set by
+ * next-themes) and `--color-ctp-*` Tailwind colours (bg-ctp-mauve, text-ctp-text).
+ * Every shadcn token below points at those variables, so switching the flavour
+ * class re-themes the whole app. Only the tokens whose role differs between
+ * flavours are repeated under `.mocha`.
+ */
 :root {
-  --background: oklch(0.9582 0.0152 90.2357);
-  --foreground: oklch(0.376 0.0225 64.3434);
-  --card: oklch(0.9914 0.0098 87.4695);
-  --card-foreground: oklch(0.376 0.0225 64.3434);
-  --popover: oklch(0.9914 0.0098 87.4695);
-  --popover-foreground: oklch(0.376 0.0225 64.3434);
-  --primary: oklch(0.618 0.0778 65.5444);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.8846 0.0302 85.5655);
-  --secondary-foreground: oklch(0.4313 0.03 64.9288);
-  --muted: oklch(0.9239 0.019 83.0636);
-  --muted-foreground: oklch(0.5391 0.0387 71.1655);
-  --accent: oklch(0.8348 0.0426 88.8064);
-  --accent-foreground: oklch(0.376 0.0225 64.3434);
-  --destructive: oklch(0.5471 0.1438 32.9149);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.8606 0.0321 84.5881);
-  --input: oklch(0.8606 0.0321 84.5881);
-  --ring: oklch(0.618 0.0778 65.5444);
-  --chart-1: oklch(0.618 0.0778 65.5444);
-  --chart-2: oklch(0.5604 0.0624 68.5805);
-  --chart-3: oklch(0.4851 0.057 72.6827);
-  --chart-4: oklch(0.6777 0.0624 64.7755);
-  --chart-5: oklch(0.7264 0.0581 66.6967);
-  --sidebar: oklch(0.9239 0.019 83.0636);
-  --sidebar-foreground: oklch(0.376 0.0225 64.3434);
-  --sidebar-primary: oklch(0.618 0.0778 65.5444);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.8348 0.0426 88.8064);
-  --sidebar-accent-foreground: oklch(0.376 0.0225 64.3434);
-  --sidebar-border: oklch(0.8606 0.0321 84.5881);
-  --sidebar-ring: oklch(0.618 0.0778 65.5444);
-  --font-sans: Nunito, ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Lora, serif;
-  --font-mono: IBM Plex Mono, monospace;
-  --radius: 0.25rem;
-  --shadow-x: 2px;
-  --shadow-y: 3px;
-  --shadow-blur: 5px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0.12;
-  --shadow-color: hsl(28 13% 20%);
-  --shadow-2xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
-  --shadow-xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+  --background: var(--catppuccin-color-base);
+  --foreground: var(--catppuccin-color-text);
+  --card: var(--catppuccin-color-mantle);
+  --card-foreground: var(--catppuccin-color-text);
+  --popover: var(--catppuccin-color-mantle);
+  --popover-foreground: var(--catppuccin-color-text);
+  --primary: var(--catppuccin-color-mauve);
+  --primary-foreground: var(--catppuccin-color-base);
+  --secondary: var(--catppuccin-color-surface0);
+  --secondary-foreground: var(--catppuccin-color-text);
+  --muted: var(--catppuccin-color-crust);
+  --muted-foreground: var(--catppuccin-color-subtext1);
+  --accent: var(--catppuccin-color-surface0);
+  --accent-foreground: var(--catppuccin-color-text);
+  --destructive: var(--catppuccin-color-red-600);
+  --destructive-foreground: var(--catppuccin-color-base);
+  /* Latte green, yellow and sapphire are mid-luminance: base text on them fails
+     AA, so their foreground is Mocha crust (#11111b), the darkest Catppuccin shade. */
+  --success: var(--catppuccin-color-green);
+  --success-foreground: #11111b;
+  --warning: var(--catppuccin-color-yellow);
+  --warning-foreground: #11111b;
+  --info: var(--catppuccin-color-sapphire);
+  --info-foreground: #11111b;
+  --border: var(--catppuccin-color-surface1);
+  --input: var(--catppuccin-color-overlay2);
+  --ring: var(--catppuccin-color-mauve);
+  --chart-1: var(--catppuccin-color-mauve);
+  --chart-2: var(--catppuccin-color-sapphire);
+  --chart-3: var(--catppuccin-color-green);
+  --chart-4: var(--catppuccin-color-peach);
+  --chart-5: var(--catppuccin-color-pink);
+  --sidebar: var(--catppuccin-color-crust);
+  --sidebar-foreground: var(--catppuccin-color-text);
+  --sidebar-primary: var(--catppuccin-color-mauve);
+  --sidebar-primary-foreground: var(--catppuccin-color-base);
+  --sidebar-accent: var(--catppuccin-color-surface0);
+  --sidebar-accent-foreground: var(--catppuccin-color-text);
+  --sidebar-border: var(--catppuccin-color-surface1);
+  --sidebar-ring: var(--catppuccin-color-mauve);
+
+  /* Tool-category accents. Fills, tints and icons only: in Latte just Mauve
+     reaches 4.5:1 as text, so put labels in --foreground on top. */
+  --cat-image: var(--catppuccin-color-mauve);
+  --cat-image-2: var(--catppuccin-color-pink);
+  --cat-video: var(--catppuccin-color-peach);
+  --cat-video-2: var(--catppuccin-color-yellow);
+  --cat-file: var(--catppuccin-color-teal);
+  --cat-file-2: var(--catppuccin-color-green);
+
+  /* Syntax highlighting. Latte uses the 900 shades of each hue so tokens reach
+     4.5:1 on the code background; Mocha accents pass as they are. */
+  --hl-comment: var(--catppuccin-color-subtext1);
+  --hl-keyword: var(--catppuccin-color-mauve-700);
+  --hl-string: var(--catppuccin-color-green-900);
+  --hl-number: var(--catppuccin-color-peach-950);
+  --hl-title: var(--catppuccin-color-blue-700);
+  --hl-type: var(--catppuccin-color-yellow-950);
+  --hl-meta: var(--catppuccin-color-pink-950);
+
+  --radius: 0.625rem;
+  --shadow-rgb: 76 79 105; /* Latte text */
+  --shadow-2xs: 0 1px 1px 0 rgb(var(--shadow-rgb) / 0.06);
+  --shadow-xs: 0 1px 2px 0 rgb(var(--shadow-rgb) / 0.08);
   --shadow-sm:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+    0 1px 3px 0 rgb(var(--shadow-rgb) / 0.1),
+    0 1px 2px -1px rgb(var(--shadow-rgb) / 0.1);
   --shadow:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+    0 1px 3px 0 rgb(var(--shadow-rgb) / 0.1),
+    0 1px 2px -1px rgb(var(--shadow-rgb) / 0.1);
   --shadow-md:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 2px 4px -1px hsl(28 13% 20% / 0.12);
+    0 4px 6px -1px rgb(var(--shadow-rgb) / 0.1),
+    0 2px 4px -2px rgb(var(--shadow-rgb) / 0.1);
   --shadow-lg:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 4px 6px -1px hsl(28 13% 20% / 0.12);
+    0 10px 15px -3px rgb(var(--shadow-rgb) / 0.12),
+    0 4px 6px -4px rgb(var(--shadow-rgb) / 0.12);
   --shadow-xl:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 8px 10px -1px hsl(28 13% 20% / 0.12);
-  --shadow-2xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.3);
+    0 20px 25px -5px rgb(var(--shadow-rgb) / 0.12),
+    0 8px 10px -6px rgb(var(--shadow-rgb) / 0.12);
+  --shadow-2xl: 0 25px 50px -12px rgb(var(--shadow-rgb) / 0.25);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 
-.dark {
-  --background: oklch(0.2747 0.0139 57.6523);
-  --foreground: oklch(0.9239 0.019 83.0636);
-  --card: oklch(0.3237 0.0155 59.0603);
-  --card-foreground: oklch(0.9239 0.019 83.0636);
-  --popover: oklch(0.3237 0.0155 59.0603);
-  --popover-foreground: oklch(0.9239 0.019 83.0636);
-  --primary: oklch(0.7264 0.0581 66.6967);
-  --primary-foreground: oklch(0.2747 0.0139 57.6523);
-  --secondary: oklch(0.3795 0.0181 57.128);
-  --secondary-foreground: oklch(0.9239 0.019 83.0636);
-  --muted: oklch(0.2939 0.0125 62.1298);
-  --muted-foreground: oklch(0.7982 0.0243 82.1078);
-  --accent: oklch(0.4186 0.0281 56.3404);
-  --accent-foreground: oklch(0.9239 0.019 83.0636);
-  --destructive: oklch(0.5471 0.1438 32.9149);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.3795 0.0181 57.128);
-  --input: oklch(0.3795 0.0181 57.128);
-  --ring: oklch(0.7264 0.0581 66.6967);
-  --chart-1: oklch(0.7264 0.0581 66.6967);
-  --chart-2: oklch(0.6777 0.0624 64.7755);
-  --chart-3: oklch(0.618 0.0778 65.5444);
-  --chart-4: oklch(0.5604 0.0624 68.5805);
-  --chart-5: oklch(0.4851 0.057 72.6827);
-  --sidebar: oklch(0.2747 0.0139 57.6523);
-  --sidebar-foreground: oklch(0.9239 0.019 83.0636);
-  --sidebar-primary: oklch(0.7264 0.0581 66.6967);
-  --sidebar-primary-foreground: oklch(0.2747 0.0139 57.6523);
-  --sidebar-accent: oklch(0.4186 0.0281 56.3404);
-  --sidebar-accent-foreground: oklch(0.9239 0.019 83.0636);
-  --sidebar-border: oklch(0.3795 0.0181 57.128);
-  --sidebar-ring: oklch(0.7264 0.0581 66.6967);
-  --font-sans: Nunito, ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Lora, serif;
-  --font-mono: IBM Plex Mono, monospace;
-  --radius: 0.25rem;
-  --shadow-x: 2px;
-  --shadow-y: 3px;
-  --shadow-blur: 5px;
-  --shadow-spread: 0px;
-  --shadow-opacity: 0.12;
-  --shadow-color: hsl(28 13% 20%);
-  --shadow-2xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
-  --shadow-xs: 2px 3px 5px 0px hsl(28 13% 20% / 0.06);
+.mocha {
+  --card: var(--catppuccin-color-surface0);
+  --muted: var(--catppuccin-color-mantle);
+  --muted-foreground: var(--catppuccin-color-subtext0);
+  --popover: var(--catppuccin-color-surface0);
+  --secondary: var(--catppuccin-color-surface1);
+  --success-foreground: var(--catppuccin-color-base);
+  --warning-foreground: var(--catppuccin-color-base);
+  --info-foreground: var(--catppuccin-color-base);
+  --accent: var(--catppuccin-color-surface1);
+  --destructive: var(--catppuccin-color-red);
+  --input: var(--catppuccin-color-overlay1);
+  --sidebar: var(--catppuccin-color-mantle);
+
+  --hl-comment: var(--catppuccin-color-subtext0);
+  --hl-keyword: var(--catppuccin-color-mauve);
+  --hl-title: var(--catppuccin-color-blue);
+  --hl-string: var(--catppuccin-color-green);
+  --hl-number: var(--catppuccin-color-peach);
+  --hl-type: var(--catppuccin-color-yellow);
+  --hl-meta: var(--catppuccin-color-pink);
+
+  --shadow-rgb: 17 17 27; /* Mocha crust */
+  --shadow-2xs: 0 1px 1px 0 rgb(var(--shadow-rgb) / 0.2);
+  --shadow-xs: 0 1px 2px 0 rgb(var(--shadow-rgb) / 0.25);
   --shadow-sm:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+    0 1px 3px 0 rgb(var(--shadow-rgb) / 0.35),
+    0 1px 2px -1px rgb(var(--shadow-rgb) / 0.35);
   --shadow:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 1px 2px -1px hsl(28 13% 20% / 0.12);
+    0 1px 3px 0 rgb(var(--shadow-rgb) / 0.35),
+    0 1px 2px -1px rgb(var(--shadow-rgb) / 0.35);
   --shadow-md:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 2px 4px -1px hsl(28 13% 20% / 0.12);
+    0 4px 6px -1px rgb(var(--shadow-rgb) / 0.4),
+    0 2px 4px -2px rgb(var(--shadow-rgb) / 0.4);
   --shadow-lg:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 4px 6px -1px hsl(28 13% 20% / 0.12);
+    0 10px 15px -3px rgb(var(--shadow-rgb) / 0.45),
+    0 4px 6px -4px rgb(var(--shadow-rgb) / 0.45);
   --shadow-xl:
-    2px 3px 5px 0px hsl(28 13% 20% / 0.12),
-    2px 8px 10px -1px hsl(28 13% 20% / 0.12);
-  --shadow-2xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.3);
+    0 20px 25px -5px rgb(var(--shadow-rgb) / 0.5),
+    0 8px 10px -6px rgb(var(--shadow-rgb) / 0.5);
+  --shadow-2xl: 0 25px 50px -12px rgb(var(--shadow-rgb) / 0.6);
+}
+
+@theme {
+  /* Nunito Variable is the family name @fontsource-variable/nunito registers. */
+  --font-sans: "Nunito Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Strong ease-out for enter/press feedback; drawer curve for sheets and the sidebar. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @theme inline {
@@ -157,6 +175,18 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-cat-image: var(--cat-image);
+  --color-cat-image-2: var(--cat-image-2);
+  --color-cat-video: var(--cat-video);
+  --color-cat-video-2: var(--cat-video-2);
+  --color-cat-file: var(--cat-file);
+  --color-cat-file-2: var(--cat-file-2);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -173,10 +203,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -204,27 +230,26 @@
 
 /*
  * Syntax highlighting for fenced code in the Markdown Preview. rehype-highlight
- * (highlight.js) emits `hljs-*` token classes; we colour them here instead of
- * pulling a stock highlight.js theme so the palette tracks our warm light theme
- * and its dark variant. Values are GitHub-ish token hues tuned to sit on the
- * muted code background the typography plugin already applies.
+ * (highlight.js) emits `hljs-*` token classes; we colour them with the --hl-*
+ * variables above (Catppuccin per flavour) instead of a stock highlight.js
+ * theme, so they follow the theme with no `.dark` overrides.
  */
 @layer base {
   .hljs-comment,
   .hljs-quote {
-    color: oklch(0.55 0.03 70);
+    color: var(--hl-comment);
     font-style: italic;
   }
   .hljs-keyword,
   .hljs-selector-tag,
   .hljs-literal,
   .hljs-doctag {
-    color: oklch(0.5 0.19 25);
+    color: var(--hl-keyword);
   }
   .hljs-string,
   .hljs-regexp,
   .hljs-addition {
-    color: oklch(0.52 0.13 150);
+    color: var(--hl-string);
   }
   .hljs-number,
   .hljs-built_in,
@@ -232,22 +257,22 @@
   .hljs-attr,
   .hljs-variable,
   .hljs-template-variable {
-    color: oklch(0.55 0.13 45);
+    color: var(--hl-number);
   }
   .hljs-title,
   .hljs-section,
   .hljs-function .hljs-title,
   .hljs-name {
-    color: oklch(0.52 0.13 275);
+    color: var(--hl-title);
   }
   .hljs-type,
   .hljs-class .hljs-title,
   .hljs-attribute {
-    color: oklch(0.55 0.12 90);
+    color: var(--hl-type);
   }
   .hljs-meta,
   .hljs-deletion {
-    color: oklch(0.5 0.15 350);
+    color: var(--hl-meta);
   }
   .hljs-emphasis {
     font-style: italic;
@@ -255,43 +280,250 @@
   .hljs-strong {
     font-weight: 700;
   }
+}
 
-  .dark .hljs-comment,
-  .dark .hljs-quote {
-    color: oklch(0.62 0.03 70);
+/*
+ * Markdown Preview prose. @tailwindcss/typography ships cool slate/gray values;
+ * point every --tw-prose-* variable at the theme tokens instead. The tokens
+ * already flip under `.mocha`, so no `prose-invert` is needed. Unlayered on
+ * purpose: it must beat the plugin's utility-layer defaults.
+ */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  /* Links sit on 14px body text, so they need 4.5:1; plain --primary only reaches ~4.0. */
+  --tw-prose-links: color-mix(in oklch, var(--primary), var(--foreground) 30%);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-kbd: var(--foreground);
+  --tw-prose-kbd-shadows: 76 79 105;
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+.mocha .prose {
+  --tw-prose-kbd-shadows: 205 214 244;
+}
+
+/*
+ * Reduced motion means fewer and gentler animations, not none. Opacity, colour
+ * and shadow transitions stay; movement (translate, scale, width, position) and
+ * the enter/exit slide and zoom from tw-animate-css are removed. The spinner
+ * becomes a slow pulse so "working" is still visible. Unlayered so it wins over
+ * Tailwind's utility layer without !important.
+ */
+@keyframes palico-pulse {
+  50% {
+    opacity: 0.4;
   }
-  .dark .hljs-keyword,
-  .dark .hljs-selector-tag,
-  .dark .hljs-literal,
-  .dark .hljs-doctag {
-    color: oklch(0.72 0.16 20);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
-  .dark .hljs-string,
-  .dark .hljs-regexp,
-  .dark .hljs-addition {
-    color: oklch(0.75 0.14 150);
+
+  *,
+  ::before,
+  ::after {
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill,
+      stroke, opacity, box-shadow, outline-color;
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-enter-scale: 1;
+    --tw-enter-rotate: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    --tw-exit-scale: 1;
+    --tw-exit-rotate: 0;
   }
-  .dark .hljs-number,
-  .dark .hljs-built_in,
-  .dark .hljs-symbol,
-  .dark .hljs-attr,
-  .dark .hljs-variable,
-  .dark .hljs-template-variable {
-    color: oklch(0.77 0.12 55);
+
+  .animate-spin {
+    animation: palico-pulse 1.6s ease-in-out infinite;
   }
-  .dark .hljs-title,
-  .dark .hljs-section,
-  .dark .hljs-function .hljs-title,
-  .dark .hljs-name {
-    color: oklch(0.72 0.13 265);
+}
+
+/*
+ * Interaction motion. Frequency decides: file rows and the dropzone are occasional,
+ * so they get short ease-out pops; nothing here runs on keyboard-only actions.
+ * Reduced-motion versions are in the block at the end of this section.
+ */
+@keyframes palico-hop {
+  0% {
+    transform: translateY(0);
   }
-  .dark .hljs-type,
-  .dark .hljs-class .hljs-title,
-  .dark .hljs-attribute {
-    color: oklch(0.8 0.12 90);
+  35% {
+    transform: translateY(-4px);
   }
-  .dark .hljs-meta,
-  .dark .hljs-deletion {
-    color: oklch(0.72 0.14 350);
+  70% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes palico-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes palico-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes palico-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes palico-stripes {
+  to {
+    transform: translateX(20px);
+  }
+}
+
+@keyframes palico-draw-check {
+  from {
+    stroke-dashoffset: 1.05;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes palico-done-tint {
+  from {
+    background-color: color-mix(in oklab, var(--success) 22%, var(--card));
+  }
+}
+
+@keyframes palico-burst {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+}
+
+/* The variant-prefixed class never matches a plain `.animate-hop` override, so the
+   reduced-motion guard lives inside the utility. */
+@utility animate-hop {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: palico-hop 220ms var(--ease-out);
+  }
+}
+
+/* Rows that arrive together fan in 30ms apart, for the first five only. */
+@utility animate-pop-in {
+  animation: palico-pop-in 180ms var(--ease-out) backwards;
+  &:nth-child(2) {
+    animation-delay: 30ms;
+  }
+  &:nth-child(3) {
+    animation-delay: 60ms;
+  }
+  &:nth-child(4) {
+    animation-delay: 90ms;
+  }
+  &:nth-child(5) {
+    animation-delay: 120ms;
+  }
+}
+
+@utility animate-route-in {
+  animation: palico-route-in 120ms var(--ease-out) backwards;
+}
+
+@utility animate-done-tint {
+  animation: palico-done-tint 600ms ease-out backwards;
+}
+
+/*
+ * Candy-stripe progress fill. Put it on the fill element together with a
+ * bg-cat-* colour. The stripes are a tiled gradient on a pseudo-element that
+ * slides one tile (20px) per loop on transform only, at constant speed.
+ */
+@utility progress-stripes {
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 -20px;
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--background) 30%, transparent) 25%,
+      transparent 25%,
+      transparent 50%,
+      color-mix(in oklab, var(--background) 30%, transparent) 50%,
+      color-mix(in oklab, var(--background) 30%, transparent) 75%,
+      transparent 75%
+    );
+    background-size: 20px 20px;
+    animation: palico-stripes 600ms linear infinite;
+  }
+}
+
+/* Self-drawing check: pathLength is 1, so the dash maths is unit-free. */
+.draw-check path {
+  stroke-dasharray: 1;
+}
+.draw-check[data-play] path {
+  animation: palico-draw-check 250ms var(--ease-out) 80ms backwards;
+}
+
+.done-burst-dot {
+  animation: palico-burst 400ms var(--ease-out) forwards;
+}
+
+/* Theme reveal: the circular clip-path is driven from theme-toggle.tsx. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Colour transitions would otherwise lag behind the reveal circle. */
+.theme-switching *:not([data-theme-icon]) {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-stripes::after,
+  .draw-check[data-play] path {
+    animation: none;
+  }
+
+  /* Colour and opacity stay; scale and rise go. */
+  .animate-pop-in {
+    animation-name: palico-fade-in;
+  }
+
+  .animate-route-in {
+    animation-name: palico-fade-in;
+  }
+
+  .done-burst {
+    display: none;
   }
 }

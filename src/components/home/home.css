@@ -1,0 +1,95 @@
+/*
+ * Home page motion. Only transform and opacity move; colour and shadow may
+ * transition. Every animation has a reduced-motion version that keeps opacity
+ * and colour and drops movement.
+ */
+
+/* Tool tile: a chunky edge in the category accent. */
+.tool-tile {
+	box-shadow:
+		0 2px 0 0 color-mix(in oklab, var(--tile-edge) 55%, transparent),
+		var(--shadow-md);
+	transition:
+		transform 180ms var(--ease-out),
+		box-shadow 180ms var(--ease-out),
+		background-color 180ms var(--ease-out);
+}
+
+.tool-tile:active {
+	transform: translateY(0) scale(0.97);
+	box-shadow:
+		0 1px 0 0 var(--tile-edge),
+		var(--shadow-sm);
+	transition-duration: 100ms;
+}
+
+.tool-chip {
+	transition: transform 200ms var(--ease-out);
+}
+
+@media (hover: hover) {
+	.tool-tile:hover {
+		transform: translateY(-2px);
+		background-color: color-mix(in oklab, var(--tile-tint) 12%, var(--card));
+		box-shadow:
+			0 4px 0 0 var(--tile-edge),
+			var(--shadow-lg);
+	}
+
+	.tool-tile:hover .tool-chip {
+		transform: rotate(-6deg);
+	}
+
+	.tool-tile:active:hover {
+		transform: translateY(0) scale(0.97);
+		box-shadow:
+			0 1px 0 0 var(--tile-edge),
+			var(--shadow-sm);
+	}
+}
+
+/* The ring is drawn here because the tile's own box-shadow would replace a utility ring. */
+.tool-tile:focus-visible {
+	box-shadow:
+		0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent),
+		0 2px 0 0 color-mix(in oklab, var(--tile-edge) 55%, transparent),
+		var(--shadow-md);
+	transition-duration: 0s;
+}
+
+/*
+ * First-load stagger: 40ms steps, opacity plus an 8px rise. The marker on
+ * <html> is set by a tiny inline script (reloads) and by the grid after the
+ * first run (client navigation), so it plays once per session.
+ */
+@keyframes tool-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+}
+
+@keyframes tool-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+html:not([data-home-seen]) .tool-in {
+	animation: tool-in 360ms var(--ease-out) backwards;
+	animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tool-tile:active,
+	.tool-tile:hover,
+	.tool-tile:active:hover,
+	.tool-tile:hover .tool-chip {
+		transform: none;
+	}
+
+	html:not([data-home-seen]) .tool-in {
+		animation: tool-fade 200ms ease-out backwards;
+		animation-delay: calc(var(--i, 0) * 40ms);
+	}
+}

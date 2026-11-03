@@ -39,7 +39,7 @@ export function PercentControls({
 				</div>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Scales to a fraction of the original. Capped at 100% — the resizer never
+				Scales to a fraction of the original. Capped at 100%. The resizer never
 				upscales.
 			</p>
 		</div>

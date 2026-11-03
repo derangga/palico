@@ -5,8 +5,9 @@ import { Effect } from "effect";
 import { FileDiff, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
 import { DIFF_THEME, DiffView } from "#/components/diff-view.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
+import { DIFF_DESCRIPTION } from "#/components/page-skeletons.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { computeDiff, type DiffResult } from "#/lib/file/diff.ts";
@@ -78,14 +79,8 @@ export function DiffWorkspace() {
 					onBack={() => setResult(null)}
 				/>
 			) : (
-				<div className="mx-auto w-full max-w-6xl px-6 py-10">
-					<div className="mb-6">
-						<h1 className="text-2xl font-bold">File Diff Viewer</h1>
-						<p className="mt-1 text-sm text-muted-foreground">
-							Paste your original and changed text side by side, then find the
-							differences. Everything runs on your device — nothing is uploaded.
-						</p>
-					</div>
+				<PageShell width="full">
+					<PageHeader title="File Diff Viewer">{DIFF_DESCRIPTION}</PageHeader>
 
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
@@ -120,7 +115,7 @@ export function DiffWorkspace() {
 							Find Difference
 						</Button>
 					</div>
-				</div>
+				</PageShell>
 			)}
 		</WorkerPoolContextProvider>
 	);

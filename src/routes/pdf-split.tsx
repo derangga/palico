@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { Loader2, RotateCcw } from "lucide-react";
-import { useId, useReducer, useRef } from "react";
-import { Dropzone } from "#/components/pdf-split/dropzone.tsx";
+import { useReducer } from "react";
+import { Dropzone } from "#/components/dropzone.tsx";
+import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { PageThumbnail } from "#/components/pdf-split/page-thumbnail.tsx";
 import { SplitControls } from "#/components/pdf-split/split-controls.tsx";
 import {
@@ -44,8 +45,6 @@ function baseName(name: string) {
 }
 
 function PdfSplitPage() {
-	const inputId = useId();
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [state, dispatch] = useReducer(splitReducer, initialSplitState);
 
 	async function loadFile(picked: File) {
@@ -102,32 +101,33 @@ function PdfSplitPage() {
 	const selectable = state.mode === "extract" && ready;
 
 	return (
-		<div className="mx-auto w-full max-w-5xl px-6 py-10">
-			<div className="mb-6 flex items-start justify-between gap-4">
-				<div>
-					<h1 className="text-2xl font-bold">Split PDF</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
-						Open a PDF to see every page, then split it — entirely in your
-						browser. Up to {Math.round(MAX_PDF_BYTES / MB)} MB and{" "}
-						{MAX_PDF_PAGES} pages.
-					</p>
-				</div>
-				{hasDocument && (
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => dispatch({ type: "reset" })}
-					>
-						<RotateCcw />
-						Choose another
-					</Button>
-				)}
-			</div>
+		<PageShell width="wide">
+			<PageHeader
+				title="Split PDF"
+				actions={
+					hasDocument && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => dispatch({ type: "reset" })}
+						>
+							<RotateCcw />
+							Choose another
+						</Button>
+					)
+				}
+			>
+				Open a PDF to see every page, then split it, entirely in your browser.
+				Up to {Math.round(MAX_PDF_BYTES / MB)} MB and {MAX_PDF_PAGES} pages.
+			</PageHeader>
 
 			{!hasDocument && (
 				<Dropzone
-					inputId={inputId}
-					fileInputRef={fileInputRef}
+					label="Drag & drop a PDF here, or"
+					actionLabel="Choose file"
+					hint={`PDF up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages`}
+					accept="application/pdf"
+					ariaLabel="Choose a PDF to split"
 					onFiles={handleFiles}
 				/>
 			)}
@@ -189,6 +189,6 @@ function PdfSplitPage() {
 					</div>
 				</div>
 			)}
-		</div>
+		</PageShell>
 	);
 }

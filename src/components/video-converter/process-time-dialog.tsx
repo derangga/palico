@@ -62,8 +62,7 @@ export function ProcessTimeDialog({
 						This file is ~{Math.round(largest / MB)} MB. Converting to{" "}
 						{formatLabel} typically takes{" "}
 						{minutes === 1 ? "about a minute" : `~${minutes} minutes`} on this
-						hardware. Everything runs on your device — please keep this tab
-						open.
+						hardware. Everything runs on your device. Please keep this tab open.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				{suppressible && (
