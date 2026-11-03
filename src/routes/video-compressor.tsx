@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Exit, Option } from "effect";
+import { Cause, Effect, Exit, Option, Predicate } from "effect";
 import { Minimize2 } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CompressPanel } from "#/components/video-compressor/compress-panel.tsx";
@@ -16,6 +17,7 @@ import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
+import { CompressMode, CompressOutput } from "#/lib/video/compress-options.ts";
 import { checkFileSize } from "#/lib/video/limits.ts";
 
 export const Route = createFileRoute("/video-compressor")({
@@ -60,21 +62,26 @@ function CompressShell() {
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
+
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
 			toast.error(`"${f.name}" is not a video.`);
+
 			return;
 		}
 
 		// Same decode + libx264 encode as the converter, so the same caps.
 		const verdict = checkFileSize(f.size, deviceClass());
+
 		if (verdict.kind === "rejected") {
 			toast.error(
 				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
 			);
+
 			return;
 		}
+
 		if (verdict.kind === "warn") {
 			toast(
 				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while compressing.`,
@@ -87,6 +94,7 @@ function CompressShell() {
 	async function handleCompress() {
 		if (!file) return;
 		const modeVerdict = resolveMode(state, file);
+
 		if (modeVerdict.kind === "invalid") return;
 		const { mode } = modeVerdict;
 		const token = { cancelled: false };
@@ -99,10 +107,12 @@ function CompressShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
+
 			if (token.cancelled) return;
 
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { compressVideo } = await import("#/lib/video/compress.ts");
+
 			const exit = await Effect.runPromiseExit(
 				withBusy(
 					compressVideo(
@@ -114,15 +124,19 @@ function CompressShell() {
 					),
 				),
 			);
+
 			if (token.cancelled) return;
 
 			if (Exit.isSuccess(exit)) {
 				const out = exit.value;
-				if (out._tag === "kept") {
+
+				if (CompressOutput.$is("kept")(out)) {
 					dispatch({ type: "compressSuccess", output: { kind: "kept" } });
 					toast("Already small, kept the original.");
+
 					return;
 				}
+
 				dispatch({
 					type: "compressSuccess",
 					output: {
@@ -131,19 +145,22 @@ function CompressShell() {
 						name: out.name,
 						size: out.size,
 						overTargetMB:
-							out.overTarget && mode._tag === "size" ? mode.targetMB : null,
+							out.overTarget && CompressMode.guards.size(mode)
+								? mode.targetMB
+								: null,
 					},
 				});
 				toast.success("Your video is ready. Hit Save to download it.");
+
 				return;
 			}
 
 			// TargetTooSmallError goes next to the size field; every other failure
 			// (EngineNotLoadedError | VideoCompressError) is a toast.
-			Option.match(Cause.failureOption(exit.cause), {
+			Option.match(Cause.findErrorOption(exit.cause), {
 				onNone: () => toast.error("Could not compress the video."),
 				onSome: (error) =>
-					error._tag === "TargetTooSmallError"
+					Predicate.isTagged(error, "TargetTooSmallError")
 						? dispatch({ type: "sizeError", message: error.message })
 						: toast.error(error.message),
 			});
@@ -162,6 +179,7 @@ function CompressShell() {
 	async function handleCancel() {
 		cancelTokenRef.current.cancelled = true;
 		dispatch({ type: "cancelStart" });
+
 		try {
 			const { disposeEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(disposeEngine);

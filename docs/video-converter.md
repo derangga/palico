@@ -160,7 +160,7 @@ sequenceDiagram
 Key points:
 
 - **Singleton via `Ref`.** The loaded handle lives in a module level
-  `Ref.unsafeMake<Option<EngineHandle>>`. Every read goes through `getEngine`,
+  `Ref.makeUnsafe<Option<EngineHandle>>`. Every read goes through `getEngine`,
   which fails with `EngineNotLoadedError` when the option is `none`. This keeps
   the singleton inside the Effect graph instead of a hidden mutable variable.
 - **Download progress is aggregate.** We HEAD each missing asset for its
@@ -231,7 +231,7 @@ Per file work happens in `convertOne`:
 6. On a non zero exit, classify the failure (see [Error model](#error-model)).
 
 The batch is driven by `Effect.forEach(..., { concurrency: 1 })`. Each file is
-wrapped in `Effect.either` so one bad input never aborts the whole batch. The
+wrapped in `Effect.result` so one bad input never aborts the whole batch. The
 final result is the list of successful outputs only.
 
 ## Cancellation and worker lifecycle
@@ -431,7 +431,7 @@ All failures are tagged errors defined in `errors.ts`:
 
 `convertVideos` returns `Effect<readonly ConvertVideoOutput[], EngineNotLoadedError>`.
 The engine missing case is the only error that aborts the batch; per file decode
-and encode failures are captured with `Effect.either` and reported per row.
+and encode failures are captured with `Effect.result` and reported per row.
 
 When `exec` returns a non zero code, the pipeline inspects the captured log:
 

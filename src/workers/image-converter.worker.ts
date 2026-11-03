@@ -7,11 +7,15 @@
 import { searchQuality } from "#/lib/image/quality-search.ts";
 import type { WorkerRequest, WorkerResponse } from "#/lib/image/types.ts";
 
+// This file runs as a dedicated worker; the DOM lib types `self` as Window.
+declare const self: DedicatedWorkerGlobalScope;
+
 async function handle(req: WorkerRequest): Promise<{
 	response: WorkerResponse;
 	transfer: Transferable[];
 }> {
 	let bitmap: ImageBitmap;
+
 	try {
 		bitmap = await createImageBitmap(
 			new Blob([req.buffer], { type: req.sourceType }),
@@ -30,8 +34,10 @@ async function handle(req: WorkerRequest): Promise<{
 	}
 
 	const { width, height } = bitmap;
+
 	if (width > req.maxDimension || height > req.maxDimension) {
 		bitmap.close();
+
 		return {
 			response: {
 				id: req.id,
@@ -52,18 +58,22 @@ async function handle(req: WorkerRequest): Promise<{
 	try {
 		const canvas = new OffscreenCanvas(outW, outH);
 		const ctx = canvas.getContext("2d");
+
 		if (!ctx) throw new Error("Could not get a 2D canvas context.");
 		ctx.imageSmoothingEnabled = true;
 		ctx.imageSmoothingQuality = "high";
+
 		if (req.fillWhite) {
 			ctx.fillStyle = "#fff";
 			ctx.fillRect(0, 0, outW, outH);
 		}
+
 		ctx.drawImage(bitmap, 0, 0, outW, outH);
 		bitmap.close();
 
 		const encode = (quality: number) =>
 			canvas.convertToBlob({ type: req.mime, quality });
+
 		const { blob, quality, targetMet } =
 			req.targetBytes == null
 				? {
@@ -82,6 +92,7 @@ async function handle(req: WorkerRequest): Promise<{
 			const name = req.mime.replace("image/", "").toUpperCase();
 			throw new Error(`This browser can't save ${name} images. Choose JPG.`);
 		}
+
 		const buffer = await blob.arrayBuffer();
 
 		return {
@@ -99,6 +110,7 @@ async function handle(req: WorkerRequest): Promise<{
 		};
 	} catch (err) {
 		bitmap.close();
+
 		return {
 			response: {
 				id: req.id,
@@ -114,6 +126,6 @@ async function handle(req: WorkerRequest): Promise<{
 
 self.addEventListener("message", (event: MessageEvent<WorkerRequest>) => {
 	handle(event.data).then(({ response, transfer }) => {
-		(self as DedicatedWorkerGlobalScope).postMessage(response, transfer);
+		self.postMessage(response, transfer);
 	});
 });

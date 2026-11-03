@@ -12,7 +12,7 @@ export const loadMarkdown: Effect.Effect<
 	Option.Option<string>,
 	MarkdownStorageError
 > = Effect.try({
-	try: () => Option.fromNullable(localStorage.getItem(STORAGE_KEY)),
+	try: () => Option.fromNullishOr(localStorage.getItem(STORAGE_KEY)),
 	catch: (cause) =>
 		new MarkdownStorageError({
 			operation: "load",

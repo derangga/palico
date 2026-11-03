@@ -2,6 +2,7 @@ import { Effect, Option, Ref, Schedule, Stream, SubscriptionRef } from "effect";
 
 import type { SwRegistrationError } from "./errors.ts";
 import { ServiceWorkerHost, type SwEvent, type SwHandle } from "./hosts.ts";
+import { ShellState } from "./shapes.ts";
 import { handleRef, reloadNeededRef, shellRef, updateRef } from "./state.ts";
 import { cleanupStaleCaches } from "./storage.ts";
 
@@ -16,7 +17,7 @@ const onEvent =
 					s === "applying" ? s : "waiting",
 				);
 			case "activated":
-				return SubscriptionRef.set(shellRef, { _tag: "Active" });
+				return SubscriptionRef.set(shellRef, ShellState.cases.Active.make({}));
 			case "controller-changed":
 				// A first install claiming the page is not an update. After an update
 				// the old build's lazy chunks are gone, so this tab must reload. Our
@@ -50,31 +51,43 @@ const pollUpdates = (handle: SwHandle) =>
 // failed install on the next load, and the app keeps working online either way.
 export const startOffline = Effect.gen(function* () {
 	const host = yield* ServiceWorkerHost;
+
 	if (!host.supported) {
-		yield* SubscriptionRef.set(shellRef, { _tag: "Unsupported" });
+		yield* SubscriptionRef.set(shellRef, ShellState.cases.Unsupported.make({}));
+
 		return;
 	}
-	yield* SubscriptionRef.set(shellRef, { _tag: "Registering" });
+
+	yield* SubscriptionRef.set(shellRef, ShellState.cases.Registering.make({}));
 	yield* host.windowLoaded;
 	const handle = yield* host.register(SW_URL);
 	yield* Ref.set(handleRef, Option.some(handle));
-	yield* SubscriptionRef.set(shellRef, {
-		_tag: handle.initial === "active" ? "Active" : "Installing",
-	});
+	yield* SubscriptionRef.set(
+		shellRef,
+		handle.initial === "active"
+			? ShellState.cases.Active.make({})
+			: ShellState.cases.Installing.make({}),
+	);
+
 	if (handle.hasWaiting && handle.hadController) {
 		yield* SubscriptionRef.set(updateRef, "waiting");
 	}
+
 	yield* Effect.forkScoped(
 		handle.events.pipe(Stream.runForEach(onEvent(handle))),
 	);
 	yield* Effect.forkScoped(pollUpdates(handle));
 	yield* Effect.forkScoped(Effect.ignore(cleanupStaleCaches));
+
 	return yield* Effect.never;
 }).pipe(
 	Effect.scoped,
 	Effect.catchTag("SwRegistrationError", (e: SwRegistrationError) =>
-		SubscriptionRef.set(shellRef, { _tag: "Failed", message: e.message }).pipe(
-			Effect.zipRight(
+		SubscriptionRef.set(
+			shellRef,
+			ShellState.cases.Failed.make({ message: e.message }),
+		).pipe(
+			Effect.andThen(
 				Effect.logWarning(`Offline mode unavailable: ${e.message}`),
 			),
 		),

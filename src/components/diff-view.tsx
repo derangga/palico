@@ -36,6 +36,12 @@ export const DIFF_THEME = {
 const DIFF_COLOR_VARS =
 	"[--diffs-addition-color-override:var(--success)] [--diffs-deletion-color-override:var(--destructive)] [--diffs-fg-number-addition-override:var(--foreground)] [--diffs-fg-number-deletion-override:var(--foreground)]";
 
+const SQUARE_FILL: Record<"add" | "del" | "none", string> = {
+	add: "bg-success",
+	del: "bg-destructive",
+	none: "bg-muted",
+};
+
 // A git-style proportional bar: up to 5 squares, additions first then
 // deletions, the remainder muted. Each side that has any lines shows at least
 // one square so a 1-line change never disappears.
@@ -47,31 +53,29 @@ function DiffStatBar({
 	deletions: number;
 }) {
 	const total = additions + deletions;
+
 	// total is always > 0 here (the bar only renders when there are changes).
 	const greens =
 		additions === 0
 			? 0
 			: Math.min(5, Math.max(1, Math.round((additions / total) * 5)));
+
 	const reds = deletions === 0 ? 0 : 5 - greens;
 	const muted = 5 - greens - reds;
+
 	const squares = [
 		...Array<"add">(greens).fill("add"),
 		...Array<"del">(reds).fill("del"),
 		...Array<"none">(muted).fill("none"),
 	];
+
 	return (
 		<span className="flex items-center gap-0.5" aria-hidden>
 			{squares.map((kind, i) => (
 				<span
-					// biome-ignore lint/suspicious/noArrayIndexKey: fixed-length static bar
+					// oxlint-disable-next-line react/no-array-index-key -- fixed-length static bar
 					key={i}
-					className={
-						kind === "add"
-							? "size-2.5 rounded-xs bg-success"
-							: kind === "del"
-								? "size-2.5 rounded-xs bg-destructive"
-								: "size-2.5 rounded-xs bg-muted"
-					}
+					className={`size-2.5 rounded-xs ${SQUARE_FILL[kind]}`}
 				/>
 			))}
 		</span>
@@ -87,6 +91,7 @@ export function DiffView({
 	onBack,
 }: DiffViewProps) {
 	const { resolvedTheme } = useTheme();
+
 	// Rebuild the file contents from the raw text with the live language so the
 	// toolbar's language switch re-highlights without recomputing the diff.
 	const oldFile = useMemo<FileContents>(
@@ -97,6 +102,7 @@ export function DiffView({
 		}),
 		[result.oldFile.contents, language],
 	);
+
 	const newFile = useMemo<FileContents>(
 		() => ({
 			name: "input",

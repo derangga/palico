@@ -17,7 +17,7 @@ it on the device, and reads the new file again to confirm nothing is left.
 4. Clean files download one by one or as a zip (`createZip`).
 
 Batches run three files at a time (`forEachFile`), and each file's result is
-an `Either`, so one bad file does not stop the rest.
+a `Result`, so one bad file does not stop the rest.
 
 ## Images: JPEG, PNG, WebP
 

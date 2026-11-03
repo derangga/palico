@@ -17,23 +17,17 @@ export const RASTER_JPEG_QUALITY = 0.92;
 // PDF user space is 72 units per inch, so `dpi / 72` is the render scale.
 // `width` and `height` are the page size at scale 1 (pdf.js viewport, already
 // rotated by the page's /Rotate).
-export const rasterSize = (
-	width: number,
-	height: number,
-	dpi: number,
-): {
-	readonly width: number;
-	readonly height: number;
-	readonly scale: number;
-} => {
+export const rasterSize = (width: number, height: number, dpi: number) => {
 	let scale = dpi / 72;
 	let w = Math.max(1, Math.round(width * scale));
 	let h = Math.max(1, Math.round(height * scale));
+
 	if (w * h > MAX_RASTER_PAGE_PIXELS) {
 		scale *= Math.sqrt(MAX_RASTER_PAGE_PIXELS / (w * h));
 		w = Math.max(1, Math.floor(width * scale));
 		h = Math.max(1, Math.floor(height * scale));
 	}
+
 	return { width: w, height: h, scale };
 };
 

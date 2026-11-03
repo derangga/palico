@@ -79,7 +79,9 @@ function Findings({ report }: { report: MetadataReport }) {
 			)}
 			{GROUP_ORDER.map((group) => {
 				const fields = report.fields.filter((f) => f.group === group);
+
 				if (fields.length === 0) return null;
+
 				return (
 					<div key={group}>
 						<p className="text-xs font-semibold text-muted-foreground">

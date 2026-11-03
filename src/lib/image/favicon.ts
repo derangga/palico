@@ -9,8 +9,9 @@ export const FaviconAsset = Schema.Struct({
 	size: Schema.Number,
 	mime: Schema.String,
 	blob: Schema.instanceOf(Blob),
-	bytes: Schema.Uint8ArrayFromSelf,
+	bytes: Schema.Uint8Array,
 });
+
 export type FaviconAsset = Schema.Schema.Type<typeof FaviconAsset>;
 
 // File-local — not migrated to Schema (internal config, never crosses a boundary).
@@ -69,12 +70,9 @@ const withDecodedBitmap = <A, E>(
 	);
 
 // Largest centered square inside the source. Cover-style crop, no stretching.
-function centerCrop(bitmap: ImageBitmap): {
-	sx: number;
-	sy: number;
-	side: number;
-} {
+function centerCrop(bitmap: ImageBitmap) {
 	const side = Math.min(bitmap.width, bitmap.height);
+
 	return {
 		sx: Math.floor((bitmap.width - side) / 2),
 		sy: Math.floor((bitmap.height - side) / 2),
@@ -90,14 +88,18 @@ function drawFavicon(
 	const { sx, sy, side } = centerCrop(bitmap);
 	const canvas = new OffscreenCanvas(size, size);
 	const ctx = canvas.getContext("2d");
+
 	if (!ctx) throw new Error("Could not get a 2D canvas context.");
+
 	if (flattenWhite) {
 		ctx.fillStyle = "#ffffff";
 		ctx.fillRect(0, 0, size, size);
 	}
+
 	ctx.imageSmoothingEnabled = true;
 	ctx.imageSmoothingQuality = "high";
 	ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, size, size);
+
 	return canvas;
 }
 
@@ -117,6 +119,7 @@ const encodePng = (
 						err instanceof Error ? err.message : "Could not draw favicon.",
 				}),
 		});
+
 		const blob = yield* Effect.tryPromise({
 			try: () => canvas.convertToBlob({ type: "image/png" }),
 			catch: (err) =>
@@ -126,6 +129,7 @@ const encodePng = (
 					message: err instanceof Error ? err.message : "Could not encode PNG.",
 				}),
 		});
+
 		const buffer = yield* Effect.tryPromise({
 			try: () => blob.arrayBuffer(),
 			catch: (err) =>
@@ -136,7 +140,9 @@ const encodePng = (
 						err instanceof Error ? err.message : "Could not read PNG bytes.",
 				}),
 		});
+
 		const bytes = new Uint8Array(buffer);
+
 		return {
 			name: spec.name,
 			size: spec.size,
@@ -151,7 +157,7 @@ const encodePng = (
 // so we skip the BMP DIB path entirely.
 function encodeIco(
 	entries: ReadonlyArray<{ size: number; bytes: Uint8Array }>,
-): Uint8Array {
+): Uint8Array<ArrayBuffer> {
 	const HEADER_BYTES = 6;
 	const ENTRY_BYTES = 16;
 	const directoryBytes = HEADER_BYTES + ENTRY_BYTES * entries.length;
@@ -182,6 +188,7 @@ function encodeIco(
 		out.set(entry.bytes, payloadOffset);
 		payloadOffset += entry.bytes.byteLength;
 	});
+
 	return out;
 }
 
@@ -200,10 +207,13 @@ const buildIcoAsset = (
 			),
 			{ concurrency: "unbounded" },
 		);
+
 		const bytes = encodeIco(
 			pngs.map((p) => ({ size: p.size, bytes: p.bytes })),
 		);
-		const blob = new Blob([bytes as BlobPart], { type: "image/x-icon" });
+
+		const blob = new Blob([bytes], { type: "image/x-icon" });
+
 		return {
 			name: "favicon.ico",
 			size: 32,
@@ -217,14 +227,17 @@ export const generateFavicons = Effect.fn("favicon.generate")(function* (
 	file: File,
 ) {
 	yield* validateSize(file);
+
 	return yield* withDecodedBitmap(file, (bitmap) =>
 		Effect.gen(function* () {
 			const pngs = yield* Effect.all(
 				PNG_SPECS.map((spec) => encodePng(bitmap, file.name, spec)),
 				{ concurrency: "unbounded" },
 			);
+
 			const ico = yield* buildIcoAsset(bitmap, file.name);
-			return [...pngs, ico] as ReadonlyArray<FaviconAsset>;
+
+			return [...pngs, ico];
 		}),
 	);
 });
@@ -265,10 +278,9 @@ const HEAD_SNIPPET = `<link rel="icon" href="/favicon.ico" sizes="any" />
 const textBytes = (s: string) => new TextEncoder().encode(s);
 
 export const bundleFaviconZip = (assets: ReadonlyArray<FaviconAsset>) => {
-	const files: Record<string, Uint8Array> = {
+	return createZip({
 		"site.webmanifest": textBytes(WEBMANIFEST),
 		"head-snippet.html": textBytes(HEAD_SNIPPET),
-	};
-	for (const asset of assets) files[asset.name] = asset.bytes;
-	return createZip(files);
+		...Object.fromEntries(assets.map((asset) => [asset.name, asset.bytes])),
+	});
 };

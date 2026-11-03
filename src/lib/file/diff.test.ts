@@ -1,4 +1,4 @@
-import { Effect, Exit } from "effect";
+import { Cause, Effect, Exit, Option } from "effect";
 import { describe, expect, it } from "vitest";
 
 import { computeDiff } from "./diff.ts";
@@ -13,6 +13,7 @@ describe("computeDiff", () => {
 				language: "text",
 			}),
 		);
+
 		expect(result.hasChanges).toBe(true);
 		expect(result.metadata.hunks.length).toBeGreaterThan(0);
 		// One line changed: one addition, one deletion.
@@ -22,9 +23,11 @@ describe("computeDiff", () => {
 
 	it("reports no changes when the two sides are identical", async () => {
 		const same = "same content\non both sides\n";
+
 		const result = await Effect.runPromise(
 			computeDiff({ original: same, changed: same, language: "text" }),
 		);
+
 		expect(result.hasChanges).toBe(false);
 		expect(result.metadata.hunks.length).toBe(0);
 	});
@@ -37,6 +40,7 @@ describe("computeDiff", () => {
 				language: "typescript",
 			}),
 		);
+
 		expect(result.oldFile.lang).toBe("typescript");
 		expect(result.newFile.lang).toBe("typescript");
 	});
@@ -49,9 +53,12 @@ describe("computeDiff", () => {
 				language: "text",
 			}),
 		);
+
 		expect(Exit.isFailure(exit)).toBe(true);
-		if (Exit.isFailure(exit) && exit.cause._tag === "Fail") {
-			expect(exit.cause.error._tag).toBe("DiffInputTooLargeError");
+
+		if (Exit.isFailure(exit)) {
+			const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+			expect(failure?._tag).toBe("DiffInputTooLargeError");
 		}
 	});
 });

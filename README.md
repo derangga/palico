@@ -24,7 +24,7 @@ Current tools:
 - **UI:** [shadcn](https://ui.shadcn.com/) components on [Base UI](https://base-ui.com/) primitives, [Tailwind CSS v4](https://tailwindcss.com/)
 - **Logic:** [Effect](https://effect.website/) for typed effects/errors; all business logic outside the UI layer is written in Effect
 - **In-browser processing:** Web Workers, `@ffmpeg/ffmpeg` (ffmpeg.wasm) for video, LibreOffice WASM for Office-to-PDF, `@huggingface/transformers` for background removal, `pdf-lib`/`pdfjs-dist` for PDF ops, `mermaid` + `react-markdown` for Markdown
-- **Lint/format:** [Biome](https://biomejs.dev/)
+- **Lint/format:** [oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter)
 - **Testing:** [Vitest](https://vitest.dev/)
 - **Deploy:** [Cloudflare Workers](https://developers.cloudflare.com/workers/) via `wrangler`
 
@@ -56,7 +56,7 @@ Current tools:
 4. Before finishing any change, both of these must pass:
 
    ```bash
-   bun run check        # Biome lint + format
+   bun run check        # oxlint + oxfmt --check
    bun run tsc --noEmit # TypeScript type check
    ```
 

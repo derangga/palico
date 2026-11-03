@@ -4,7 +4,7 @@
 // module only through the dynamic-import pipelines (extract-audio.ts,
 // compress.ts) so the engine stays out of the route bundle.
 
-import { Effect } from "effect";
+import { Effect, Predicate, Result } from "effect";
 
 import { disposeEngine, type EngineHandle } from "./engine.ts";
 
@@ -21,28 +21,24 @@ export const readProbeJson = <E>(opts: {
 	readonly error: (message: string) => E;
 }): Effect.Effect<string, E> => {
 	const { ffmpeg } = opts;
+
 	return Effect.gen(function* () {
-		const result = yield* Effect.promise(
-			(): Promise<
-				| { readonly _tag: "done" }
-				| { readonly _tag: "threw"; readonly message: string }
-			> =>
-				ffmpeg
-					.ffprobe([...opts.args, "-o", PROBE_FILE])
-					.then(() => ({ _tag: "done" as const }))
-					.catch((cause) => ({
-						_tag: "threw" as const,
-						message:
-							cause instanceof Error && cause.message
-								? cause.message
-								: opts.unreadable,
-					})),
+		const result = yield* Effect.result(
+			Effect.tryPromise({
+				try: () => ffmpeg.ffprobe([...opts.args, "-o", PROBE_FILE]),
+				catch: (cause) =>
+					cause instanceof Error && cause.message
+						? cause.message
+						: opts.unreadable,
+			}),
 		);
 
-		if (result._tag === "threw") {
+		if (Result.isFailure(result)) {
 			yield* disposeEngine;
-			return yield* Effect.fail(opts.error(result.message));
+
+			return yield* Effect.fail(opts.error(result.failure));
 		}
+
 		// The exit code is not checked: core-mt 0.12.10's ffprobe returns -1 even
 		// on success (checked in the browser). probe.json is the signal: a failed
 		// probe leaves none or leaves invalid JSON, which the caller's parse
@@ -51,7 +47,8 @@ export const readProbeJson = <E>(opts: {
 			try: () => ffmpeg.readFile(PROBE_FILE),
 			catch: () => opts.error(opts.unreadable),
 		});
-		return typeof data === "string" ? data : new TextDecoder().decode(data);
+
+		return Predicate.isString(data) ? data : new TextDecoder().decode(data);
 	}).pipe(
 		Effect.ensuring(
 			Effect.tryPromise(() => ffmpeg.deleteFile(PROBE_FILE)).pipe(

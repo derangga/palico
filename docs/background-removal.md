@@ -299,11 +299,11 @@ that classifies failures into `DecodeError` (message mentions "decode") or
 ## Device selection and fallback
 
 `loadPipeline` tries WebGPU first and falls back to WASM with a plain
-`Effect.orElse`:
+`Effect.catch`:
 
 ```typescript
 buildPipeline("webgpu", onEvent).pipe(
-  Effect.orElse(() => buildPipeline("wasm", onEvent)),
+  Effect.catch(() => buildPipeline("wasm", onEvent)),
 )
 ```
 
@@ -398,7 +398,7 @@ unverified on a device; see [offline-pwa.md](./offline-pwa.md#testing).
 WebGPU gives a big inference speedup but isn't universally available, and
 constructing a WebGPU pipeline can throw on unsupported browsers. Rather than
 feature-detect, `loadPipeline` simply tries `buildPipeline("webgpu")` and
-`Effect.orElse`s to `buildPipeline("wasm")` — the typed error channel makes the
+`Effect.catch`s to `buildPipeline("wasm")` — the typed error channel makes the
 fallback a one-liner, and the rest of the code is identical for both devices.
 
 ### 4. A failed download must not block retry

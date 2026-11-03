@@ -32,6 +32,9 @@ import type {
 	StripMetadataRequest,
 } from "#/lib/file/pdf-types.ts";
 
+// This file runs as a dedicated worker; the DOM lib types `self` as Window.
+declare const self: DedicatedWorkerGlobalScope;
+
 GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 interface CanvasAndContext {
@@ -48,6 +51,7 @@ interface CanvasAndContext {
 class OffscreenCanvasFactory {
 	create(width: number, height: number): CanvasAndContext {
 		const canvas = new OffscreenCanvas(Math.max(1, width), Math.max(1, height));
+
 		return { canvas, context: canvas.getContext("2d") };
 	}
 
@@ -62,6 +66,7 @@ class OffscreenCanvasFactory {
 			canvasAndContext.canvas.width = 0;
 			canvasAndContext.canvas.height = 0;
 		}
+
 		canvasAndContext.canvas = null;
 		canvasAndContext.context = null;
 	}
@@ -105,7 +110,7 @@ class NoopFilterFactory {
 }
 
 const post = (msg: PdfWorkerResponse, transfer: Transferable[] = []) => {
-	(self as DedicatedWorkerGlobalScope).postMessage(msg, transfer);
+	self.postMessage(msg, transfer);
 };
 
 // pdf-lib work is CPU-bound and single-threaded, so this cap is about memory,
@@ -121,8 +126,9 @@ async function mapWithConcurrency<T, R>(
 	limit: number,
 	fn: (item: T, index: number) => Promise<R>,
 ): Promise<R[]> {
-	const results = new Array<R>(items.length);
+	const results = Array.from<R>({ length: items.length });
 	let cursor = 0;
+
 	const workers = Array.from(
 		{ length: Math.min(Math.max(1, limit), items.length) },
 		async () => {
@@ -132,7 +138,9 @@ async function mapWithConcurrency<T, R>(
 			}
 		},
 	);
+
 	await Promise.all(workers);
+
 	return results;
 }
 
@@ -140,18 +148,22 @@ async function mapWithConcurrency<T, R>(
 // PasswordException and pdf-lib an EncryptedPDFError for password-protected
 // documents; everything else is treated as an unparseable/invalid PDF. Genuine
 // internal failures (copy/save) are left to the top-level "worker" catch.
-function classifyLoadError(err: unknown): {
-	reason: "encrypted" | "invalid";
-	message: string;
-} {
-	const name = (err as { name?: string } | null)?.name;
+interface LoadFailure {
+	readonly reason: "encrypted" | "invalid";
+	readonly message: string;
+}
+
+function classifyLoadError(cause: unknown): LoadFailure {
+	const name = cause instanceof Error ? cause.name : undefined;
+
 	if (name === "PasswordException" || name === "EncryptedPDFError") {
 		return { reason: "encrypted", message: "This PDF is password-protected." };
 	}
+
 	return {
 		reason: "invalid",
 		message:
-			err instanceof Error ? err.message : "This file isn't a valid PDF.",
+			cause instanceof Error ? cause.message : "This file isn't a valid PDF.",
 	};
 }
 
@@ -161,13 +173,16 @@ async function render(req: RenderRequest): Promise<void> {
 		CanvasFactory: OffscreenCanvasFactory,
 		FilterFactory: NoopFilterFactory,
 	});
+
 	let doc: PDFDocumentProxy;
+
 	try {
 		doc = await loadingTask.promise;
 	} catch (err) {
 		// pdf.js raises a PasswordException when a document needs a password and a
 		// (Missing|Invalid)PDFException / generic error when it can't be parsed.
-		const name = (err as { name?: string } | null)?.name;
+		const name = err instanceof Error ? err.name : undefined;
+
 		if (name === "PasswordException") {
 			post({
 				type: "error",
@@ -184,11 +199,13 @@ async function render(req: RenderRequest): Promise<void> {
 					err instanceof Error ? err.message : "This file isn't a valid PDF.",
 			});
 		}
+
 		return;
 	}
 
 	try {
 		const pageCount = doc.numPages;
+
 		if (pageCount > req.maxPages) {
 			post({
 				type: "error",
@@ -197,6 +214,7 @@ async function render(req: RenderRequest): Promise<void> {
 				message: `This PDF has ${pageCount} pages, over the ${req.maxPages}-page limit.`,
 				pageCount,
 			});
+
 			return;
 		}
 
@@ -208,6 +226,7 @@ async function render(req: RenderRequest): Promise<void> {
 			req.thumbnailLimit != null
 				? Math.min(pageCount, req.thumbnailLimit)
 				: pageCount;
+
 		for (let n = 1; n <= renderCount; n++) {
 			const page = await doc.getPage(n);
 			const base = page.getViewport({ scale: 1 });
@@ -218,6 +237,7 @@ async function render(req: RenderRequest): Promise<void> {
 
 			const canvas = new OffscreenCanvas(width, height);
 			const ctx = canvas.getContext("2d");
+
 			if (!ctx) {
 				post({
 					type: "error",
@@ -225,6 +245,7 @@ async function render(req: RenderRequest): Promise<void> {
 					reason: "worker",
 					message: "Could not get a 2D canvas context.",
 				});
+
 				return;
 			}
 
@@ -233,6 +254,10 @@ async function render(req: RenderRequest): Promise<void> {
 			// so pdf.js rasterizes straight into it.
 			await page.render({
 				canvas: null,
+				// SAFETY: pdf.js types only accept CanvasRenderingContext2D, but it renders
+				// into an OffscreenCanvas context at runtime. The two missing methods,
+				// getContextAttributes and drawFocusIfNeeded, are never called by pdf.js.
+				// oxlint-disable-next-line anti-slop/no-chained-type-assertions -- the types do not overlap, so TypeScript needs the hop through unknown.
 				canvasContext: ctx as unknown as CanvasRenderingContext2D,
 				viewport,
 			}).promise;
@@ -259,6 +284,7 @@ async function extract(req: ExtractRequest): Promise<void> {
 	// them together instead of one-after-the-other.
 	let src: import("pdf-lib").PDFDocument;
 	let out: import("pdf-lib").PDFDocument;
+
 	try {
 		[src, out] = await Promise.all([
 			PDFDocument.load(req.buffer),
@@ -266,20 +292,23 @@ async function extract(req: ExtractRequest): Promise<void> {
 		]);
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
+
 	const pages = await out.copyPages(src, [...req.pageIndices]);
+
 	if (req.rotations) {
 		const { applyRotations } = await import("#/lib/file/pdf-organize.ts");
 		applyRotations(pages, req.rotations);
 	}
+
 	for (const page of pages) out.addPage(page);
 	const bytes = await out.save();
+
 	// Hand back a standalone, exactly-sized ArrayBuffer we can transfer.
-	const buffer = bytes.buffer.slice(
-		bytes.byteOffset,
-		bytes.byteOffset + bytes.byteLength,
-	) as ArrayBuffer;
+	const buffer = bytes.slice().buffer;
+
 	post({ type: "extracted", id: req.id, bytes: buffer }, [buffer]);
 }
 
@@ -291,13 +320,17 @@ async function split(req: SplitRequest): Promise<void> {
 		import("pdf-lib"),
 		import("fflate"),
 	]);
+
 	let src: import("pdf-lib").PDFDocument;
+
 	try {
 		src = await PDFDocument.load(req.buffer);
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
+
 	// Each part is an independent output PDF (read-only shares of `src`), so build
 	// them with bounded concurrency instead of strictly one at a time. Order is
 	// preserved so the zip's member order matches the requested parts.
@@ -307,16 +340,18 @@ async function split(req: SplitRequest): Promise<void> {
 		async (part) => {
 			const out = await PDFDocument.create();
 			const pages = await out.copyPages(src, [...part.pageIndices]);
+
 			for (const page of pages) out.addPage(page);
+
 			return [part.name, await out.save()] as const;
 		},
 	);
+
 	const files: Record<string, Uint8Array> = Object.fromEntries(entries);
 	const zipped = zipSync(files, { level: 0 });
-	const buffer = zipped.buffer.slice(
-		zipped.byteOffset,
-		zipped.byteOffset + zipped.byteLength,
-	) as ArrayBuffer;
+
+	const buffer = zipped.slice().buffer;
+
 	post({ type: "zipped", id: req.id, bytes: buffer }, [buffer]);
 }
 
@@ -331,6 +366,7 @@ async function merge(req: MergeRequest): Promise<void> {
 	// into `out` stays sequential to preserve the requested page order.
 	let out: import("pdf-lib").PDFDocument;
 	let srcs: import("pdf-lib").PDFDocument[];
+
 	try {
 		[out, srcs] = await Promise.all([
 			PDFDocument.create(),
@@ -340,52 +376,60 @@ async function merge(req: MergeRequest): Promise<void> {
 		]);
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
+
 	for (const src of srcs) {
 		const pages = await out.copyPages(src, src.getPageIndices());
+
 		for (const page of pages) out.addPage(page);
 	}
+
 	const bytes = await out.save();
-	const buffer = bytes.buffer.slice(
-		bytes.byteOffset,
-		bytes.byteOffset + bytes.byteLength,
-	) as ArrayBuffer;
+
+	const buffer = bytes.slice().buffer;
+
 	post({ type: "merged", id: req.id, bytes: buffer }, [buffer]);
 }
 
 // Remove Metadata tool. The pdf-lib logic lives in src/lib/file/pdf-metadata.ts
 // (unit tested); it is imported lazily like pdf-lib elsewhere in this worker.
 async function readMetadata(req: ReadMetadataRequest): Promise<void> {
-	const { loadForMetadata, readPdfMetadata } = await import(
-		"#/lib/file/pdf-metadata.ts"
-	);
+	const { loadForMetadata, readPdfMetadata } =
+		await import("#/lib/file/pdf-metadata.ts");
+
 	let doc: import("pdf-lib").PDFDocument;
+
 	try {
 		doc = await loadForMetadata(req.buffer);
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
+
 	post({ type: "metadata", id: req.id, report: readPdfMetadata(doc) });
 }
 
 async function stripMetadata(req: StripMetadataRequest): Promise<void> {
-	const { loadForMetadata, stripPdfMetadata } = await import(
-		"#/lib/file/pdf-metadata.ts"
-	);
+	const { loadForMetadata, stripPdfMetadata } =
+		await import("#/lib/file/pdf-metadata.ts");
+
 	let doc: import("pdf-lib").PDFDocument;
+
 	try {
 		doc = await loadForMetadata(req.buffer);
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
+
 	const { bytes, after } = await stripPdfMetadata(doc);
-	const buffer = bytes.buffer.slice(
-		bytes.byteOffset,
-		bytes.byteOffset + bytes.byteLength,
-	) as ArrayBuffer;
+
+	const buffer = bytes.slice().buffer;
+
 	post({ type: "stripped", id: req.id, bytes: buffer, after }, [buffer]);
 }
 
@@ -394,21 +438,26 @@ async function stripMetadata(req: StripMetadataRequest): Promise<void> {
 // is transferred to the main thread as soon as fflate emits it.
 async function rasterize(req: RasterizeRequest): Promise<void> {
 	const { Zip, ZipPassThrough } = await import("fflate");
+
 	const loadingTask = getDocument({
 		data: new Uint8Array(req.buffer),
 		CanvasFactory: OffscreenCanvasFactory,
 		FilterFactory: NoopFilterFactory,
 	});
+
 	let doc: PDFDocumentProxy;
+
 	try {
 		doc = await loadingTask.promise;
 	} catch (err) {
 		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
 		return;
 	}
 
 	try {
 		const pageCount = doc.numPages;
+
 		if (pageCount > req.maxPages) {
 			post({
 				type: "error",
@@ -417,6 +466,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 				message: `This PDF has ${pageCount} pages, over the ${req.maxPages}-page limit.`,
 				pageCount,
 			});
+
 			return;
 		}
 
@@ -424,6 +474,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 		// before any work, not halfway through.
 		const sizes: ReturnType<typeof rasterSize>[] = [];
 		let totalPixels = 0;
+
 		for (let n = 1; n <= pageCount; n++) {
 			const page = await doc.getPage(n);
 			const base = page.getViewport({ scale: 1 });
@@ -431,6 +482,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 			sizes.push(size);
 			totalPixels += size.width * size.height;
 		}
+
 		if (totalPixels > MAX_RASTER_TOTAL_PIXELS) {
 			post({
 				type: "error",
@@ -441,6 +493,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 						? `This PDF is too big to turn into images at ${req.dpi} DPI in your browser. Try a lower DPI.`
 						: "This PDF is too big to turn into images in your browser.",
 			});
+
 			return;
 		}
 
@@ -449,21 +502,26 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 		let pagesDone = 0;
 		let finish!: () => void;
 		let fail!: (err: Error) => void;
+
 		const finished = new Promise<void>((resolve, reject) => {
 			finish = resolve;
 			fail = reject;
 		});
+
 		const zip = new Zip((err, chunk, final) => {
 			if (err) {
 				fail(err);
+
 				return;
 			}
+
 			// Copy: a pass-through chunk can be a view of a larger buffer, and
 			// transferring that would detach bytes fflate still needs.
-			const bytes = chunk.slice().buffer as ArrayBuffer;
+			const bytes = chunk.slice().buffer;
 			post({ type: "zip-chunk", id: req.id, bytes, pagesDone, pageCount }, [
 				bytes,
 			]);
+
 			if (final) finish();
 		});
 
@@ -473,6 +531,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 			const viewport = page.getViewport({ scale });
 			const canvas = new OffscreenCanvas(width, height);
 			const ctx = canvas.getContext("2d");
+
 			if (!ctx) throw new Error("Could not get a 2D canvas context.");
 			// JPEG has no alpha, and a transparent PNG page looks broken in most
 			// viewers, so every page starts white.
@@ -480,27 +539,36 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 			ctx.fillRect(0, 0, width, height);
 			await page.render({
 				canvas: null,
+				// SAFETY: pdf.js types only accept CanvasRenderingContext2D, but it renders
+				// into an OffscreenCanvas context at runtime. The two missing methods,
+				// getContextAttributes and drawFocusIfNeeded, are never called by pdf.js.
+				// oxlint-disable-next-line anti-slop/no-chained-type-assertions -- the types do not overlap, so TypeScript needs the hop through unknown.
 				canvasContext: ctx as unknown as CanvasRenderingContext2D,
 				viewport,
 			}).promise;
 			page.cleanup();
+
 			const blob = await canvas.convertToBlob({
 				type: mime,
 				quality: RASTER_JPEG_QUALITY,
 			});
+
 			// Free the backing store before the next page allocates its own.
 			canvas.width = 0;
 			canvas.height = 0;
 			const data = new Uint8Array(await blob.arrayBuffer());
 
 			pagesDone = n;
+
 			// Stored, not deflated: PNG and JPEG are already compressed.
 			const entry = new ZipPassThrough(
 				memberName(req.baseName, n - 1, pageCount, ext),
 			);
+
 			zip.add(entry);
 			entry.push(data, true);
 		}
+
 		zip.end();
 		await finished;
 		post({ type: "done", id: req.id });
@@ -511,12 +579,13 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
-	const fail = (err: unknown) =>
+
+	const fail = (cause: unknown) =>
 		post({
 			type: "error",
 			id: req.id,
 			reason: "worker",
-			message: err instanceof Error ? err.message : "PDF worker failed.",
+			message: cause instanceof Error ? cause.message : "PDF worker failed.",
 		});
 
 	if (req.type === "render") {

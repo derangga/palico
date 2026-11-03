@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { useCallback, useEffect, useState } from "react";
+
 import { EnginePanel } from "#/components/office-to-pdf/engine-panel.tsx";
 import { OfficeShell } from "#/components/office-to-pdf/office-shell.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
@@ -19,6 +20,7 @@ function OfficeToPdfPage() {
 
 	const startLoad = useCallback(async () => {
 		setPhase({ kind: "downloading", percent: 0 });
+
 		try {
 			// Dynamic import keeps the office runtime out of the route bundle until
 			// the user opts into the one-time engine download.
@@ -46,10 +48,13 @@ function OfficeToPdfPage() {
 		let cancelled = false;
 		(async () => {
 			const cached = await Effect.runPromise(isEngineCached);
+
 			if (cancelled) return;
+
 			if (cached) void startLoad();
 			else setPhase({ kind: "consent" });
 		})();
+
 		return () => {
 			cancelled = true;
 		};

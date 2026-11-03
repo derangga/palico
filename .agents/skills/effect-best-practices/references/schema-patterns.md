@@ -1,5 +1,7 @@
 # Schema Patterns
 
+> **Effect v4 (4.0.0).** Schema defines codecs with Type and Encoded forms. Refinements are checks applied with `.check(...)`. Transformations are defined with `decodeTo` and `SchemaTransformation` or `SchemaGetter`. Failures are expressed with `SchemaIssue` and reported as `Schema.SchemaError`. `Schema.brand`, `Schema.Struct`, `Schema.Class`, and `Schema.TaggedError` define nominal types, structs, classes, and errors.
+
 ## Branded Types for IDs
 
 **Always brand entity IDs** to prevent accidentally passing the wrong ID type:
@@ -7,23 +9,35 @@
 ```typescript
 import { Schema } from "effect"
 
-// Entity IDs - always branded with namespace
-export const UserId = Schema.UUID.pipe(Schema.brand("@App/UserId"))
+// Entity IDs, always branded with namespace
+export const UserId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand("@App/UserId"))
 export type UserId = Schema.Schema.Type<typeof UserId>
 
-export const OrganizationId = Schema.UUID.pipe(Schema.brand("@App/OrganizationId"))
+export const OrganizationId = Schema.String.check(Schema.isUUID()).pipe(
+    Schema.brand("@App/OrganizationId"),
+)
 export type OrganizationId = Schema.Schema.Type<typeof OrganizationId>
 
-export const OrderId = Schema.UUID.pipe(Schema.brand("@App/OrderId"))
+export const OrderId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand("@App/OrderId"))
 export type OrderId = Schema.Schema.Type<typeof OrderId>
 
-export const ProductId = Schema.UUID.pipe(Schema.brand("@App/ProductId"))
+export const ProductId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand("@App/ProductId"))
 export type ProductId = Schema.Schema.Type<typeof ProductId>
 ```
+
+`Schema.String.check(Schema.isUUID())` validates UUID strings. `Schema.isUUID(version?)`
+accepts an optional UUID version pin. `Schema.String.check(Schema.isULID())` validates ULID
+strings the same way.
+
+`Schema.brand` takes one concrete string identifier and only narrows the TypeScript type. It
+adds no runtime check and stores nothing in the AST, so a schema rebuilt from a
+`SchemaRepresentation` loses the brand. Reapply `Schema.brand` after rebuilding. To stack two
+brands, apply `Schema.brand` twice. Put the runtime validation in `.check(...)` before it.
 
 ### Branding Convention
 
 Use `@Namespace/EntityName` format:
+
 - `@App/UserId` - Main application entities
 - `@Billing/InvoiceId` - Billing domain entities
 - `@External/StripeCustomerId` - External system IDs
@@ -37,23 +51,47 @@ const userId = Schema.decodeSync(UserId)("123e4567-e89b-12d3-a456-426614174000")
 // Generate new ID
 const newUserId = UserId.make(crypto.randomUUID())
 
-// Type error - can't mix ID types
+// Type error, IDs do not mix
 const order = yield* orderService.findById(userId) // Error: UserId is not OrderId
 ```
 
 ### When NOT to Brand
 
-Don't brand simple strings that don't need type safety:
+Don't brand simple strings that need no type safety:
 
 ```typescript
-// NOT branded - acceptable
+// NOT branded, acceptable
 export const Url = Schema.String
 export const FilePath = Schema.String
-export const EmailAddress = Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
+export const EmailAddress = Schema.String.check(Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/))
 
-// These don't need branding because:
-// 1. They don't cross service boundaries in ways that could be confused
-// 2. They're typically validated by format, not by type
+// These need no branding because:
+// 1. They do not cross service boundaries in ways that could be confused
+// 2. They are validated by format, not by type
+```
+
+## Checks
+
+Apply refinements as checks with `.check(...)`, which accepts several checks at once:
+
+| Check | Constraint |
+| --- | --- |
+| `Schema.isPattern(re)` | String matches `re` |
+| `Schema.isMinLength(n)`, `Schema.isMaxLength(n)` | String length bounds |
+| `Schema.isBetweenLength(min, max)` | String or array length range, exact length with equal bounds |
+| `Schema.isMinCodePoints(n)`, `Schema.isMaxCodePoints(n)`, `Schema.isBetweenCodePoints(min, max)` | String length counted in Unicode code points |
+| `Schema.isMinSize(n)`, `Schema.isMaxSize(n)`, `Schema.isBetweenSize(min, max)` | `Map` and `Set` size (anything with `size`) |
+| `Schema.isStartingWith(s)`, `Schema.isEndingWith(s)`, `Schema.isIncluding(s)` | String affix and substring |
+| `Schema.isNonEmpty()` | Non empty string or array |
+| `Schema.isInt()` | Integer numbers |
+| `Schema.isGreaterThan(n)` | Numbers above `n`, positive numbers with `Schema.isGreaterThan(0)` |
+| `Schema.isBetween({ minimum, maximum })` | Numbers within inclusive bounds |
+| `Schema.check(Schema.makeFilter(predicate))` | Custom predicate |
+| `Schema.refine(refinement)` | Custom type refinement |
+
+```typescript
+// One .check call, multiple checks
+Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(100))
 ```
 
 ## Schema.Struct for Domain Types
@@ -61,111 +99,125 @@ export const EmailAddress = Schema.String.pipe(Schema.pattern(/^[^\s@]+@[^\s@]+\
 **Prefer Schema.Struct** over TypeScript interfaces for domain types:
 
 ```typescript
-// CORRECT - Schema.Struct
+// CORRECT, Schema.Struct
 export const User = Schema.Struct({
     id: UserId,
     email: Schema.String,
     name: Schema.String,
     organizationId: OrganizationId,
-    role: Schema.Literal("admin", "member", "viewer"),
-    createdAt: Schema.DateTimeUtc,
-    updatedAt: Schema.DateTimeUtc,
+    role: Schema.Literals(["admin", "member", "viewer"]),
+    createdAt: Schema.DateTimeUtcFromString,
+    updatedAt: Schema.DateTimeUtcFromString,
 })
 export type User = Schema.Schema.Type<typeof User>
 
-// Can derive encoded type for database/API
-export type UserEncoded = Schema.Schema.Encoded<typeof User>
+// Derive encoded type for database and API
+export type UserEncoded = Schema.Codec.Encoded<typeof User>
 ```
+
+`Schema.Literals` takes one array argument. `Schema.Literal` takes exactly one value.
+`Schema.Null` covers null. `Schema.DateTimeUtcFromString` decodes ISO date strings.
+`Schema.DateTimeUtc` is the self schema for `DateTime` values.
 
 ### Input Types for Mutations
 
 ```typescript
+import { Effect, Schema } from "effect"
+
 export const CreateUserInput = Schema.Struct({
-    email: Schema.String.pipe(
-        Schema.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
-        Schema.annotations({ description: "Valid email address" }),
-    ),
-    name: Schema.String.pipe(
-        Schema.minLength(1),
-        Schema.maxLength(100),
-    ),
+    email: Schema.String.check(
+        Schema.isPattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+    ).annotate({ description: "Valid email address" }),
+
+    name: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(100)),
+
     organizationId: OrganizationId,
-    role: Schema.optionalWith(
-        Schema.Literal("admin", "member", "viewer"),
-        { default: () => "member" as const }
+
+    // Absent role decodes to "member", the default is an Effect
+    role: Schema.Literals(["admin", "member", "viewer"]).pipe(
+        Schema.withDecodingDefaultType(Effect.succeed("member" as const)),
     ),
 })
 export type CreateUserInput = Schema.Schema.Type<typeof CreateUserInput>
 
 export const UpdateUserInput = Schema.Struct({
-    name: Schema.optional(Schema.String.pipe(Schema.minLength(1))),
-    role: Schema.optional(Schema.Literal("admin", "member", "viewer")),
+    name: Schema.optional(Schema.String.check(Schema.isMinLength(1))),
+    role: Schema.optional(Schema.Literals(["admin", "member", "viewer"])),
 })
 export type UpdateUserInput = Schema.Schema.Type<typeof UpdateUserInput>
 ```
 
-## Schema.transform and transformOrFail
+## Transforms with decodeTo
 
-**Use transforms** instead of manual parsing:
+Pipe the source schema through `Schema.decodeTo(target, transformation)`.
 
-```typescript
-// Transform string to Date
-export const DateFromString = Schema.transform(
-    Schema.String,
-    Schema.DateTimeUtc,
-    {
-        decode: (s) => new Date(s),
-        encode: (d) => d.toISOString(),
-    }
-)
-
-// Transform with validation (can fail)
-export const PositiveNumber = Schema.transformOrFail(
-    Schema.Number,
-    Schema.Number.pipe(Schema.brand("PositiveNumber")),
-    {
-        decode: (n, _, ast) =>
-            n > 0
-                ? ParseResult.succeed(n as Schema.Schema.Type<typeof PositiveNumber>)
-                : ParseResult.fail(new ParseResult.Type(ast, n, "Must be positive")),
-        encode: ParseResult.succeed,
-    }
-)
-```
-
-### Common Transforms
+### Total Transforms
 
 ```typescript
-// JSON string to object
-export const JsonFromString = <A, I>(schema: Schema.Schema<A, I>) =>
-    Schema.transform(
-        Schema.String,
-        schema,
-        {
-            decode: (s) => JSON.parse(s),
-            encode: (a) => JSON.stringify(a),
-        }
-    )
+import { Schema, SchemaTransformation } from "effect"
 
 // Comma-separated string to array
-export const CommaSeparatedList = Schema.transform(
-    Schema.String,
-    Schema.Array(Schema.String),
-    {
-        decode: (s) => s.split(",").map((x) => x.trim()).filter(Boolean),
-        encode: (arr) => arr.join(","),
-    }
+export const CommaSeparatedList = Schema.String.pipe(
+    Schema.decodeTo(
+        Schema.Array(Schema.String),
+        SchemaTransformation.transform({
+            // Annotate both sides: Schema.Array decodes to ReadonlyArray, and
+            // the mutable `string[]` that `split` infers is not assignable to it
+            decode: (s: string): ReadonlyArray<string> =>
+                s.split(",").map((x) => x.trim()).filter(Boolean),
+            encode: (arr: ReadonlyArray<string>) => arr.join(","),
+        }),
+    ),
 )
 
 // Cents to dollars
-export const DollarsFromCents = Schema.transform(
-    Schema.Number.pipe(Schema.int()),
-    Schema.Number,
-    {
-        decode: (cents) => cents / 100,
-        encode: (dollars) => Math.round(dollars * 100),
-    }
+export const DollarsFromCents = Schema.Number.check(Schema.isInt()).pipe(
+    Schema.decodeTo(
+        Schema.Number,
+        SchemaTransformation.transform({
+            decode: (cents) => cents / 100,
+            encode: (dollars) => Math.round(dollars * 100),
+        }),
+    ),
 )
+```
+
+### Fallible Transforms
+
+Inside a `SchemaGetter`, signal success with `Effect.succeed` and failure with
+`Effect.fail(new SchemaIssue.*)`:
+
+```typescript
+import { Effect, Schema, SchemaGetter, SchemaIssue } from "effect"
+
+export const PositiveNumber = Schema.Number.pipe(
+    Schema.decodeTo(Schema.Number.pipe(Schema.brand("PositiveNumber")), {
+        decode: SchemaGetter.transformEffect((n: number) =>
+            n > 0
+                ? Effect.succeed(n)
+                : Effect.fail(new SchemaIssue.InvalidValue())
+        ),
+        encode: SchemaGetter.passthrough(),
+    }),
+)
+```
+
+`Effect.succeed` signals success. `Effect.fail` signals failure.
+`SchemaIssue.InvalidType` reports type mismatches.
+
+A simple predicate fits a **check** better than a fallible transform:
+`Schema.Number.check(Schema.isGreaterThan(0)).pipe(Schema.brand("PositiveNumber"))`.
+
+### JSON Strings
+
+For JSON strings, define:
+
+```typescript
+// JSON string to AppSettings, any schema works as the target
+export const AppSettingsFromJson = Schema.fromJsonString(AppSettings)
+
+// Untyped JSON string
+export const AnyJson = Schema.fromJsonString(Schema.Unknown)
 ```
 
 ## Schema.Class for Entities with Methods
@@ -177,8 +229,8 @@ export class User extends Schema.Class<User>("User")({
     id: UserId,
     email: Schema.String,
     name: Schema.String,
-    role: Schema.Literal("admin", "member", "viewer"),
-    createdAt: Schema.DateTimeUtc,
+    role: Schema.Literals(["admin", "member", "viewer"]),
+    createdAt: Schema.DateTimeUtcFromString,
 }) {
     get isAdmin(): boolean {
         return this.role === "admin"
@@ -200,77 +252,87 @@ const user = new User({
     email: "alice@example.com",
     name: "Alice",
     role: "member",
-    createdAt: new Date(),
+    createdAt: DateTime.nowUnsafe(),
 })
 
 console.log(user.displayName) // "Alice"
 console.log(user.isAdmin) // false
 ```
 
-## Schema.annotations
+## Annotations
 
-Add annotations for documentation and validation messages:
+Add documentation and examples with `.annotate(...)`:
 
 ```typescript
 export const CreateOrderInput = Schema.Struct({
-    productId: ProductId.pipe(
-        Schema.annotations({ description: "The product to order" }),
-    ),
-    quantity: Schema.Number.pipe(
-        Schema.int(),
-        Schema.positive(),
-        Schema.annotations({
-            description: "Number of items to order",
-            examples: [1, 5, 10],
-        }),
-    ),
+    productId: ProductId.annotate({ description: "The product to order" }),
+
+    quantity: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).annotate({
+        description: "Number of items to order",
+        examples: [1, 5, 10],
+    }),
+
     shippingAddress: Schema.Struct({
-        line1: Schema.String.pipe(Schema.annotations({ description: "Street address" })),
+        line1: Schema.String.annotate({ description: "Street address" }),
         line2: Schema.optional(Schema.String),
         city: Schema.String,
-        state: Schema.String.pipe(Schema.length(2)),
-        zip: Schema.String.pipe(Schema.pattern(/^\d{5}(-\d{4})?$/)),
-    }).pipe(Schema.annotations({ description: "Shipping destination" })),
-}).pipe(
-    Schema.annotations({
-        title: "Create Order Input",
-        description: "Input for creating a new order",
-    }),
-)
-```
-
-## Optional Fields
-
-Use `Schema.optional` and `Schema.optionalWith`:
-
-```typescript
-export const UserPreferences = Schema.Struct({
-    // Optional, undefined if not provided
-    theme: Schema.optional(Schema.Literal("light", "dark")),
-
-    // Optional with default value
-    language: Schema.optionalWith(Schema.String, { default: () => "en" }),
-
-    // Optional with null support (for database compatibility)
-    bio: Schema.NullOr(Schema.String),
-
-    // Optional but must be present if set (no undefined)
-    timezone: Schema.optional(Schema.String, { exact: true }),
+        state: Schema.String.check(Schema.isBetweenLength(2, 2)),
+        zip: Schema.String.check(Schema.isPattern(/^\d{5}(-\d{4})?$/)),
+    }).annotate({ description: "Shipping destination" }),
+}).annotate({
+    title: "Create Order Input",
+    description: "Input for creating a new order",
 })
 ```
 
-## Union Types and Discriminated Unions
+Checks take their own annotations as a trailing argument, as in
+`Schema.isMinLength(1, { description: "..." })`, for messages tied to a specific constraint.
+
+## Optional Fields
+
+Struct fields combine distinct combinators for absent keys, `undefined` values, defaults,
+and nulls:
+
+| Combinator | Meaning |
+| --- | --- |
+| `Schema.optional(s)` | Key may be absent or `undefined` |
+| `Schema.optionalKey(s)` | Key may be absent, never explicitly `undefined` |
+| `s.pipe(Schema.withDecodingDefaultType(Effect.succeed(v)))` | Absent key decodes to `v`, with `v` as a Type value |
+| `s.pipe(Schema.withDecodingDefaultTypeKey(Effect.succeed(v)))` | Key level default, absent key decodes to `v` |
+| `Schema.optional(Schema.NullOr(s))` plus `decodeTo` filtering nulls | Nullable input decoded to an optional field |
 
 ```typescript
-// Simple union
-export const PaymentMethod = Schema.Union(
-    Schema.Literal("card"),
-    Schema.Literal("bank_transfer"),
-    Schema.Literal("crypto"),
-)
+import { Effect, Schema } from "effect"
+
+export const UserPreferences = Schema.Struct({
+    // Optional, undefined if not provided
+    theme: Schema.optional(Schema.Literals(["light", "dark"])),
+
+    // Optional with default value
+    language: Schema.String.pipe(Schema.withDecodingDefaultType(Effect.succeed("en"))),
+
+    // Nullable (for database compatibility)
+    bio: Schema.NullOr(Schema.String),
+
+    // Key may be absent, but never explicitly undefined
+    timezone: Schema.optionalKey(Schema.String),
+})
+```
+
+The default is an **`Effect`**, not a thunk. Write `Effect.succeed("en")`, not `() => "en"`. Use
+`withDecodingDefault*` (without `Type`) when the default is expressed in `Encoded` terms rather
+than `Type` terms.
+
+## Union Types and Discriminated Unions
+
+`Schema.Union` takes one array:
+
+```typescript
+// Simple union, prefer Literals for a set of literals
+export const PaymentMethod = Schema.Literals(["card", "bank_transfer", "crypto"])
 
 // Discriminated union (tagged)
-export const PaymentDetails = Schema.Union(
+export const PaymentDetails = Schema.Union([
     Schema.Struct({
         _tag: Schema.Literal("Card"),
         cardNumber: Schema.String,
@@ -285,12 +347,12 @@ export const PaymentDetails = Schema.Union(
     Schema.Struct({
         _tag: Schema.Literal("Crypto"),
         walletAddress: Schema.String,
-        network: Schema.Literal("ethereum", "bitcoin", "solana"),
+        network: Schema.Literals(["ethereum", "bitcoin", "solana"]),
     }),
-)
+])
 export type PaymentDetails = Schema.Schema.Type<typeof PaymentDetails>
 
-// Usage with match
+// Usage with switch
 const processPayment = (details: PaymentDetails) => {
     switch (details._tag) {
         case "Card":
@@ -303,15 +365,18 @@ const processPayment = (details: PaymentDetails) => {
 }
 ```
 
+`Schema.TaggedStruct(tag, fields)` is the shorthand for a `_tag`-discriminated struct.
+`Schema.Tuple` takes one array: `Schema.Tuple([A, B])`.
+
 ## Enums and Literals
 
 ```typescript
-// Use Literal for small, fixed sets
-export const UserRole = Schema.Literal("admin", "member", "viewer")
+// Use Literals for small, fixed sets
+export const UserRole = Schema.Literals(["admin", "member", "viewer"])
 export type UserRole = Schema.Schema.Type<typeof UserRole>
 
-// Use Enums for larger sets or when you need runtime values
-export const OrderStatus = Schema.Enums({
+// Use Enum for larger sets or when runtime values help
+export const OrderStatus = Schema.Enum({
     Pending: "pending",
     Processing: "processing",
     Shipped: "shipped",
@@ -330,24 +395,54 @@ interface Category {
     children: readonly Category[]
 }
 
-export const Category: Schema.Schema<Category> = Schema.Struct({
+export const Category = Schema.Struct({
     id: Schema.String,
     name: Schema.String,
-    children: Schema.Array(Schema.suspend(() => Category)),
+    children: Schema.Array(Schema.suspend((): Schema.Codec<Category> => Category)),
 })
 ```
 
 ## Decoding and Encoding
 
-```typescript
-// Decode (parse) - use in services
-const parseUser = Schema.decodeUnknown(User)
-const result = yield* parseUser(rawData) // Effect<User, ParseError>
+Effectful codecs end with `Effect`. `Exit` variants return `Exit`. Sync codecs throw
+`SchemaError` on failure:
 
-// Decode sync - only in controlled contexts
+| Function | Result |
+| --- | --- |
+| `Schema.decodeUnknownEffect(s)` | Effect decoding `unknown` input, fails with `SchemaError` |
+| `Schema.decodeEffect(s)` | Effect decoding Type input, fails with `SchemaError` |
+| `Schema.decodeUnknownExit(s)` | `Exit` decoding `unknown` input |
+| `Schema.encodeEffect(s)` | Effect encoding to Encoded form, fails with `SchemaError` |
+| `Schema.encodeUnknownExit(s)` | `Exit` encoding `unknown` input |
+| `Schema.decodeUnknownSync(s)` | Sync decoding of `unknown` input |
+| `Schema.decodeSync(s)` | Sync decoding of Type input |
+
+```typescript
+// Decode (parse), use in services
+const parseUser = Schema.decodeUnknownEffect(User)
+const result = yield* parseUser(rawData) // Effect<User, SchemaError>
+
+// Decode sync, only in controlled contexts
 const user = Schema.decodeUnknownSync(User)(rawData)
 
-// Encode - for serialization
-const encodeUser = Schema.encode(User)
-const encoded = yield* encodeUser(user) // Effect<UserEncoded, ParseError>
+// Encode, for serialization
+const encodeUser = Schema.encodeEffect(User)
+const encoded = yield* encodeUser(user) // Effect<UserEncoded, SchemaError>
 ```
+
+The failure type is `Schema.SchemaError`, so a decode failure is caught with
+`Effect.catchTag("SchemaError", ...)`. Inside a service, a decode failure is often **your**
+bug, not the caller's, so `Effect.die` it rather than surfacing it. See `error-patterns.md`.
+
+## Structural Field Operations
+
+Derive structs with `mapFields`:
+
+| Goal | Pattern |
+| --- | --- |
+| Pick keys | `schema.mapFields(Struct.pick(["a"]))` |
+| Omit keys | `schema.mapFields(Struct.omit(["a"]))` |
+| All fields optional | `schema.mapFields(Struct.map(Schema.optional))` |
+| All fields required | `schema.mapFields(Struct.map(Schema.requiredKey))`, every field must already be `optionalKey` |
+| Add fields | `schema.mapFields(Struct.assign(otherFields))` |
+| Dictionary | `Schema.Record(key, value)` with separate key and value arguments |

@@ -41,9 +41,11 @@ export const RenderRequest = Schema.Struct({
 	// render just the first-page cover thumbnail. Omitted => render all pages.
 	thumbnailLimit: Schema.optional(Schema.Number),
 });
+
 export type RenderRequest = Schema.Schema.Type<typeof RenderRequest>;
 
-export const Rotation = Schema.Literal(0, 90, 180, 270);
+export const Rotation = Schema.Literals([0, 90, 180, 270]);
+
 export type Rotation = Schema.Schema.Type<typeof Rotation>;
 
 // Copy the given 0-based page indices (in the order provided) into a new PDF.
@@ -57,6 +59,7 @@ export const ExtractRequest = Schema.Struct({
 	// order as pageIndices. Omitted => no rotation.
 	rotations: Schema.optional(Schema.Array(Rotation)),
 });
+
 export type ExtractRequest = Schema.Schema.Type<typeof ExtractRequest>;
 
 // One output PDF in a split job: a member file name + the 0-based page indices
@@ -65,6 +68,7 @@ export const SplitPart = Schema.Struct({
 	name: Schema.String,
 	pageIndices: Schema.Array(Schema.Number),
 });
+
 export type SplitPart = Schema.Schema.Type<typeof SplitPart>;
 
 // Copy each part into its own PDF, then bundle them all into a single zip.
@@ -74,6 +78,7 @@ export const SplitRequest = Schema.Struct({
 	buffer: Schema.instanceOf(ArrayBuffer),
 	parts: Schema.Array(SplitPart),
 });
+
 export type SplitRequest = Schema.Schema.Type<typeof SplitRequest>;
 
 // Concatenate every page of each buffer (in array order) into one PDF.
@@ -82,6 +87,7 @@ export const MergeRequest = Schema.Struct({
 	id: Schema.String,
 	buffers: Schema.Array(Schema.instanceOf(ArrayBuffer)),
 });
+
 export type MergeRequest = Schema.Schema.Type<typeof MergeRequest>;
 
 // Remove Metadata tool: list the document info + XMP, or strip them and
@@ -91,6 +97,7 @@ export const ReadMetadataRequest = Schema.Struct({
 	id: Schema.String,
 	buffer: Schema.instanceOf(ArrayBuffer),
 });
+
 export type ReadMetadataRequest = Schema.Schema.Type<
 	typeof ReadMetadataRequest
 >;
@@ -100,15 +107,18 @@ export const StripMetadataRequest = Schema.Struct({
 	id: Schema.String,
 	buffer: Schema.instanceOf(ArrayBuffer),
 });
+
 export type StripMetadataRequest = Schema.Schema.Type<
 	typeof StripMetadataRequest
 >;
 
 // PDF to Images: render every page to PNG or JPEG and stream them into a zip.
-export const RasterFormat = Schema.Literal("png", "jpeg");
+export const RasterFormat = Schema.Literals(["png", "jpeg"]);
+
 export type RasterFormat = Schema.Schema.Type<typeof RasterFormat>;
 
-export const RasterDpi = Schema.Literal(72, 150, 300);
+export const RasterDpi = Schema.Literals([72, 150, 300]);
+
 export type RasterDpi = Schema.Schema.Type<typeof RasterDpi>;
 
 export const RasterizeRequest = Schema.Struct({
@@ -121,9 +131,10 @@ export const RasterizeRequest = Schema.Struct({
 	// Zip member names: "<baseName>_page_07.png".
 	baseName: Schema.String,
 });
+
 export type RasterizeRequest = Schema.Schema.Type<typeof RasterizeRequest>;
 
-export const PdfWorkerRequest = Schema.Union(
+export const PdfWorkerRequest = Schema.Union([
 	RenderRequest,
 	ExtractRequest,
 	SplitRequest,
@@ -131,24 +142,26 @@ export const PdfWorkerRequest = Schema.Union(
 	ReadMetadataRequest,
 	StripMetadataRequest,
 	RasterizeRequest,
-);
+]);
+
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
-export const PdfWorkerErrorReason = Schema.Literal(
+export const PdfWorkerErrorReason = Schema.Literals([
 	"invalid",
 	"encrypted",
 	"too-many-pages",
 	// Rasterize: the whole job would exceed MAX_RASTER_TOTAL_PIXELS.
 	"too-large",
 	"worker",
-);
+]);
+
 export type PdfWorkerErrorReason = Schema.Schema.Type<
 	typeof PdfWorkerErrorReason
 >;
 
 // The worker streams its result: one "meta", then one "page" per rendered
 // thumbnail, then "done". Any failure is reported as a single "error".
-export const PdfWorkerResponse = Schema.Union(
+export const PdfWorkerResponse = Schema.Union([
 	Schema.Struct({
 		type: Schema.Literal("meta"),
 		id: Schema.String,
@@ -207,7 +220,8 @@ export const PdfWorkerResponse = Schema.Union(
 		message: Schema.String,
 		pageCount: Schema.optional(Schema.Number),
 	}),
-);
+]);
+
 export type PdfWorkerResponse = Schema.Schema.Type<typeof PdfWorkerResponse>;
 
 // --- Domain types (UI-facing) ----------------------------------------------
@@ -219,6 +233,7 @@ export const PdfThumbnail = Schema.Struct({
 	width: Schema.Number,
 	height: Schema.Number,
 });
+
 export type PdfThumbnail = Schema.Schema.Type<typeof PdfThumbnail>;
 
 // The result of loading + rendering a PDF: its page count and the thumbnails.
@@ -226,4 +241,5 @@ export const RenderedPdf = Schema.Struct({
 	pageCount: Schema.Number,
 	thumbnails: Schema.Array(PdfThumbnail),
 });
+
 export type RenderedPdf = Schema.Schema.Type<typeof RenderedPdf>;

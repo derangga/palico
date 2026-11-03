@@ -1,12 +1,10 @@
-import { Effect, Option } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { FileArchive, Loader2, UploadCloud } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
+
 import { FileRow } from "#/components/office-to-pdf/file-row.tsx";
-import type {
-	ItemStatus,
-	OfficeItem,
-} from "#/components/office-to-pdf/types.ts";
+import type { OfficeItem } from "#/components/office-to-pdf/types.ts";
 import {
 	downloadBlob,
 	pdfName,
@@ -36,39 +34,47 @@ export function OfficeShell() {
 	const convertable = items.filter(
 		(i) => i.status === "ready" || i.status === "error",
 	);
+
 	const doneItems = items.filter((i) => i.status === "done" && i.outBlob);
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
 		const accepted: File[] = [];
+
 		for (const file of Array.from(fileList)) {
 			const check = checkOfficeFile({ name: file.name, size: file.size });
+
 			if (check.kind === "unsupported") {
 				toast.error(`"${file.name}" isn't a supported Office document.`);
 				continue;
 			}
+
 			if (check.kind === "too-large") {
 				toast.error(
 					`"${file.name}" is over the ${Math.round(MAX_OFFICE_BYTES / MB)} MB limit.`,
 				);
 				continue;
 			}
+
 			accepted.push(file);
 		}
 
 		const room = Math.max(MAX_BATCH_FILES - items.length, 0);
+
 		if (accepted.length > room) {
 			toast.error(`You can convert up to ${MAX_BATCH_FILES} files at a time.`);
 		}
+
 		const taken = accepted.slice(0, room);
+
 		if (taken.length === 0) return;
 
 		setItems((prev) => [
 			...prev,
-			...taken.map((file) => ({
+			...taken.map((file): OfficeItem => ({
 				id: crypto.randomUUID(),
 				file,
-				status: "ready" as ItemStatus,
+				status: "ready",
 			})),
 		]);
 	}
@@ -89,6 +95,7 @@ export function OfficeShell() {
 		const targets = items.filter(
 			(i) => i.status === "ready" || i.status === "error",
 		);
+
 		if (targets.length === 0 || converting) return;
 		setConverting(true);
 		setBatchTotal(targets.length);
@@ -105,6 +112,7 @@ export function OfficeShell() {
 
 		let ok = 0;
 		let failed = 0;
+
 		for (const target of targets) {
 			// Sequential by design: the LibreOffice engine is single-threaded and
 			// converts one document at a time — running these together would corrupt
@@ -113,7 +121,8 @@ export function OfficeShell() {
 			const exit = await Effect.runPromiseExit(
 				withBusy(convertFileToPdf({ id: target.id, file: target.file })),
 			);
-			if (exit._tag === "Success") {
+
+			if (Exit.isSuccess(exit)) {
 				ok += 1;
 				const blob = exit.value;
 				setItems((prev) =>
@@ -132,8 +141,11 @@ export function OfficeShell() {
 				);
 			} else {
 				failed += 1;
-				const failure =
-					exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+
+				const failure = Option.getOrUndefined(
+					Cause.findErrorOption(exit.cause),
+				);
+
 				if (failure) console.error(failure);
 				setItems((prev) =>
 					prev.map((it) =>
@@ -147,13 +159,16 @@ export function OfficeShell() {
 					),
 				);
 			}
+
 			setBatchDone((n) => n + 1);
 		}
 
 		setConverting(false);
+
 		if (ok > 0) {
 			toast.success(`Converted ${ok} file${ok === 1 ? "" : "s"} to PDF.`);
 		}
+
 		if (failed > 0) {
 			toast.error(
 				`${failed} file${failed === 1 ? "" : "s"} couldn't be converted.`,
@@ -164,15 +179,19 @@ export function OfficeShell() {
 	async function downloadAllZip() {
 		if (doneItems.length === 0) return;
 		const { zipPdfs } = await import("#/lib/file/office.ts");
+
 		const exit = await Effect.runPromiseExit(
 			zipPdfs(
-				doneItems.map((it) => ({
-					name: it.outName ?? pdfName(it.file.name),
-					blob: it.outBlob as Blob,
-				})),
+				doneItems.flatMap((it) =>
+					it.outBlob
+						? [{ name: it.outName ?? pdfName(it.file.name), blob: it.outBlob }]
+						: [],
+				),
 			),
 		);
+
 		const result = toastOnExit(exit, "Could not build the zip file.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, "converted-pdfs.zip");
 		toast.success("Downloaded all PDFs as a zip.");
@@ -189,7 +208,7 @@ export function OfficeShell() {
 				time.
 			</PageHeader>
 
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: dropzone wraps a real file input. */}
+			{/* The dropzone wraps a real file input. */}
 			<div
 				onDragOver={(e) => e.preventDefault()}
 				onDrop={(e) => {

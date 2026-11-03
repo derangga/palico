@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildGifArgs } from "./gif.ts";
 import { fitLongSide, initialGifEnd, MAX_GIF_SECONDS } from "./gif-options.ts";
+import { buildGifArgs } from "./gif.ts";
 
 describe("buildGifArgs", () => {
 	const args = buildGifArgs("input.mp4", "output.gif", {

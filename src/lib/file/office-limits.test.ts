@@ -80,6 +80,7 @@ describe("checkOfficeBatch", () => {
 		const files = Array.from({ length: MAX_BATCH_FILES + 1 }, () => ({
 			size: 1,
 		}));
+
 		expect(checkOfficeBatch(files)).toEqual({
 			kind: "too-many",
 			limit: MAX_BATCH_FILES,
@@ -99,6 +100,7 @@ describe("checkOfficeBatch", () => {
 		const files = Array.from({ length: MAX_BATCH_FILES + 1 }, () => ({
 			size: MAX_BATCH_BYTES,
 		}));
+
 		expect(checkOfficeBatch(files)).toEqual({
 			kind: "too-many",
 			limit: MAX_BATCH_FILES,

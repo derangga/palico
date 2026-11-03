@@ -54,7 +54,7 @@ Before any encode, the job runs:
 ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,channels -of json input.<ext> -o probe.json
 ```
 
-`parseAudioProbe` decodes `probe.json` with `Schema.parseJson`.
+`parseAudioProbe` decodes `probe.json` with `Schema.fromJsonString`.
 
 - No audio stream: `NoAudioTrackError`, "This video has no sound to extract."
   Nothing is encoded.

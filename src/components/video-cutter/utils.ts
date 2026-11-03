@@ -1,4 +1,4 @@
-import { Either } from "effect";
+import { Result } from "effect";
 
 import { classifyDevice, MB } from "#/lib/video/limits.ts";
 import {
@@ -9,7 +9,9 @@ import {
 
 export function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
+
 	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
+
 	return `${(n / MB).toFixed(2)} MB`;
 }
 
@@ -18,6 +20,7 @@ export function formatTime(totalSeconds: number) {
 	const s = Math.max(0, Math.floor(totalSeconds));
 	const mins = Math.floor(s / 60);
 	const secs = s % 60;
+
 	return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
@@ -44,7 +47,8 @@ export function deviceClass() {
 export function formatLabelFor(file: File): string {
 	const ext = inputExtension(file);
 	const parsed = parseVideoOutputFormat(ext);
-	return Either.isRight(parsed)
-		? formatMeta(parsed.right).label
+
+	return Result.isSuccess(parsed)
+		? formatMeta(parsed.success).label
 		: ext.toUpperCase();
 }

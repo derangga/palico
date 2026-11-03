@@ -16,6 +16,6 @@ export const guardedEngineLoad = <A, E, R>(
 	load: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, E | StorageQuotaError, R | StorageHost> =>
 	preflightDownload(id).pipe(
-		Effect.zipRight(withBusy(load)),
+		Effect.andThen(withBusy(load)),
 		Effect.tap(() => afterDownload(id)),
 	);

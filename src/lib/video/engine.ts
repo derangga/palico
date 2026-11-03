@@ -20,12 +20,13 @@ import { EngineLoadError, EngineNotLoadedError } from "./errors.ts";
 // `FFmpeg` class so converter.ts can stay type-only against this contract
 // (no value-level @ffmpeg/* dependency at the type position).
 type ProgressHandler = (e: { progress: number }) => void;
+
 type LogHandler = (e: { type: string; message: string }) => void;
 
 export interface EngineHandle {
 	readonly readFile: (name: string) => Promise<Uint8Array | string>;
-	readonly writeFile: (name: string, data: Uint8Array) => Promise<unknown>;
-	readonly deleteFile: (name: string) => Promise<unknown>;
+	readonly writeFile: (name: string, data: Uint8Array) => Promise<boolean>;
+	readonly deleteFile: (name: string) => Promise<boolean>;
 	readonly exec: (args: string[]) => Promise<number>;
 	readonly ffprobe: (args: string[]) => Promise<number>;
 	readonly on: {
@@ -36,19 +37,20 @@ export interface EngineHandle {
 		(event: "progress", handler: ProgressHandler): void;
 		(event: "log", handler: LogHandler): void;
 	};
+	readonly terminate: () => void;
 }
 
 // Module-singleton via Ref. Initialization is a constant; every read and
 // write goes through Ref.get / Ref.set so the singleton stays inside the
 // Effect graph instead of being a hidden mutable `let`.
-const engineRef = Ref.unsafeMake<Option.Option<EngineHandle>>(Option.none());
+const engineRef = Ref.makeUnsafe<Option.Option<EngineHandle>>(Option.none());
 
 // Blob URLs backing the engine assets (~31MB of data pinned per set). Kept
 // alive for the engine's whole lifetime — emscripten pthread workers can
 // importScripts the core blob lazily at exec time, so revoking right after
 // ffmpeg.load risks breaking later execs. Revoked in disposeEngine so every
 // cancel → re-load cycle releases the previous set instead of leaking it.
-const blobUrlsRef = Ref.unsafeMake<ReadonlyArray<string>>([]);
+const blobUrlsRef = Ref.makeUnsafe<ReadonlyArray<string>>([]);
 
 const revokeTrackedBlobUrls: Effect.Effect<void> = Ref.getAndSet(
 	blobUrlsRef,
@@ -83,13 +85,15 @@ export const getEngine: Effect.Effect<EngineHandle, EngineNotLoadedError> =
 // instance was never loaded, but we want to land in `none()` regardless.
 export const disposeEngine: Effect.Effect<void> = Effect.gen(function* () {
 	const current = yield* Ref.get(engineRef);
+
 	if (Option.isSome(current)) {
 		yield* Effect.try({
-			try: () => (current.value as unknown as FFmpeg).terminate(),
+			try: () => current.value.terminate(),
 			catch: () => null,
 		}).pipe(Effect.ignore);
 		yield* Ref.set(engineRef, Option.none());
 	}
+
 	yield* revokeTrackedBlobUrls;
 });
 
@@ -139,25 +143,28 @@ const fetchAssetWithProgress = (
 				message: `Failed to download ${asset.key} (HTTP ${res.status}).`,
 			});
 		}
+
 		const body = res.body;
 
 		return yield* Effect.tryPromise({
 			try: async () => {
 				const reader = body.getReader();
-				const chunks: Uint8Array[] = [];
+				const chunks: Uint8Array<ArrayBuffer>[] = [];
 				let received = 0;
+
 				while (true) {
 					const { done, value } = await reader.read();
+
 					if (done) break;
 					chunks.push(value);
 					received += value.length;
 					onBytes(received);
 				}
-				// Cast away the Uint8Array<SharedArrayBuffer> branch; ReadableStream
-				// chunks in browser code are always backed by ArrayBuffer.
-				const blob = new Blob(chunks as unknown as BlobPart[], {
+
+				const blob = new Blob(chunks, {
 					type: asset.mime,
 				});
+
 				return new Response(blob, { headers: { "Content-Type": asset.mime } });
 			},
 			catch: (cause) =>
@@ -175,6 +182,7 @@ const fetchAssetWithProgress = (
 // quota errors). Cache failures must never block the network path.
 const openCache: Effect.Effect<Option.Option<Cache>> = Effect.gen(function* () {
 	if (typeof caches === "undefined") return Option.none<Cache>();
+
 	return yield* Effect.tryPromise({
 		try: () => caches.open(CACHE_NAME),
 		catch: () => "cache-open-failed" as const,
@@ -192,7 +200,7 @@ const peekCache = (
 		try: () => cache.match(asset.url),
 		catch: () => "cache-match-failed" as const,
 	}).pipe(
-		Effect.map(Option.fromNullable),
+		Effect.map(Option.fromNullishOr),
 		Effect.orElseSucceed(() => Option.none<Response>()),
 	);
 
@@ -239,16 +247,20 @@ const initFFmpeg = (
 
 		for (const asset of ENGINE_ASSETS) {
 			const r = responses.get(asset.url);
+
 			if (!r) {
 				yield* revokeCreated;
+
 				return yield* new EngineLoadError({
 					stage: "preparing",
 					message: `Engine asset "${asset.key}" is missing after download.`,
 				});
 			}
+
 			const url = yield* buildBlobUrl(asset, r).pipe(
 				Effect.onError(() => revokeCreated),
 			);
+
 			created.push(url);
 			urls[asset.key] = url;
 		}
@@ -272,7 +284,8 @@ const initFFmpeg = (
 		}).pipe(Effect.onError(() => revokeCreated));
 
 		yield* Ref.set(blobUrlsRef, created);
-		return ffmpeg as unknown as EngineHandle;
+
+		return ffmpeg;
 	});
 
 export const loadEngine = (
@@ -280,8 +293,10 @@ export const loadEngine = (
 ): Effect.Effect<EngineHandle, EngineLoadError> =>
 	Effect.gen(function* () {
 		const existing = yield* Ref.get(engineRef);
+
 		if (Option.isSome(existing)) {
 			yield* emit(onPhase, { kind: "ready" });
+
 			return existing.value;
 		}
 
@@ -297,6 +312,7 @@ export const loadEngine = (
 					),
 				{ concurrency: "unbounded" },
 			);
+
 			for (const [asset, opt] of hits) {
 				if (Option.isSome(opt)) responses.set(asset.url, opt.value);
 			}
@@ -310,29 +326,35 @@ export const loadEngine = (
 			const sizes = yield* Effect.forEach(missing, headSize, {
 				concurrency: "unbounded",
 			});
+
 			const totalAll = sizes.reduce((s, n) => s + n, 0);
 			const receivedPerAsset = new Map<string, number>();
 
 			for (const asset of missing) {
 				const fresh = yield* fetchAssetWithProgress(asset, (received) => {
 					receivedPerAsset.set(asset.url, received);
+
 					if (totalAll === 0) return;
 					let sum = 0;
+
 					for (const v of receivedPerAsset.values()) sum += v;
 					const percent = Math.min(100, Math.round((sum / totalAll) * 100));
 					onPhase({ kind: "downloading", percent });
 				});
+
 				responses.set(asset.url, fresh);
 			}
 
 			// Browsers evict HTTP cache aggressively; Cache API survives. Same
 			// defensive pattern background-removal applies to its model files.
 			yield* emit(onPhase, { kind: "caching" });
+
 			if (Option.isSome(maybeCache)) {
 				yield* Effect.forEach(
 					missing,
 					(asset) => {
 						const r = responses.get(asset.url);
+
 						return r ? putInCache(maybeCache.value, asset, r) : Effect.void;
 					},
 					{ concurrency: 1 },
@@ -344,5 +366,6 @@ export const loadEngine = (
 		const engine = yield* initFFmpeg(responses);
 		yield* Ref.set(engineRef, Option.some(engine));
 		yield* emit(onPhase, { kind: "ready" });
+
 		return engine;
 	});

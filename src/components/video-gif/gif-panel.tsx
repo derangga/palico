@@ -1,5 +1,6 @@
 import { Ban, Download, ImagePlay, Loader2 } from "lucide-react";
 import { useId } from "react";
+
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Select,
@@ -23,6 +24,7 @@ const FPS_ITEMS = GIF_FPS_OPTIONS.map((f) => ({
 	value: String(f),
 	label: `${f} fps`,
 }));
+
 const SIZE_ITEMS = GIF_SIZE_OPTIONS.map((s) => ({
 	value: String(s.value),
 	label: `${s.label} (${s.value}px)`,
@@ -74,6 +76,7 @@ export function GifPanel({
 						value={String(fps)}
 						onValueChange={(value) => {
 							const next = GIF_FPS_OPTIONS.find((f) => String(f) === value);
+
 							if (next) onChangeFps(next);
 						}}
 						disabled={making}
@@ -101,6 +104,7 @@ export function GifPanel({
 							const next = GIF_SIZE_OPTIONS.find(
 								(s) => String(s.value) === value,
 							);
+
 							if (next) onChangeSize(next.value);
 						}}
 						disabled={making}
@@ -159,6 +163,7 @@ export function GifPanel({
 
 function GifResultCard({ output }: { output: GifResult }) {
 	const url = useObjectUrl(output.blob);
+
 	return (
 		<div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-card p-3">
 			{url ? (

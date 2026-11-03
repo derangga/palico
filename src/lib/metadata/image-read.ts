@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Match } from "effect";
 
 import { MetadataParseError, UnsupportedFormatError } from "./errors.ts";
 import {
@@ -57,6 +57,7 @@ export const REMOVABLE: ReadonlySet<SegmentKind> = new Set([
 ]);
 
 class ParseFailure extends Error {}
+
 const fail = (message: string): never => {
 	throw new ParseFailure(message);
 };
@@ -66,9 +67,11 @@ const utf8 = new TextDecoder("utf-8");
 
 const startsWith = (b: Uint8Array, at: number, text: string) => {
 	if (at + text.length > b.length) return false;
+
 	for (let i = 0; i < text.length; i++) {
 		if (b[at + i] !== text.charCodeAt(i)) return false;
 	}
+
 	return true;
 };
 
@@ -82,8 +85,11 @@ const PNG_SIGNATURE = "\x89PNG\r\n\x1a\n";
 
 export const detectImageFormat = (b: Uint8Array): ImageFormat | undefined => {
 	if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "jpeg";
+
 	if (startsWith(b, 0, PNG_SIGNATURE)) return "png";
+
 	if (startsWith(b, 0, "RIFF") && startsWith(b, 8, "WEBP")) return "webp";
+
 	return undefined;
 };
 
@@ -92,33 +98,46 @@ export const detectImageFormat = (b: Uint8Array): ImageFormat | undefined => {
 const jpegKind = (b: Uint8Array, marker: number, data: number): SegmentKind => {
 	if (marker === 0xe1) {
 		if (startsWith(b, data, "Exif\0\0")) return "exif";
+
 		if (startsWith(b, data, "http://ns.adobe.com/")) return "xmp";
+
 		return "extra";
 	}
+
 	if (marker === 0xe2) {
 		return startsWith(b, data, "ICC_PROFILE\0") ? "icc" : "extra";
 	}
+
 	if (marker === 0xed) return "iptc";
+
 	if (marker === 0xfe) return "comment";
+
 	// APP0 (JFIF) and APP14 (Adobe colour transform) are needed to decode.
 	if (marker === 0xe0 || marker === 0xee) return "keep";
+
 	if (marker >= 0xe3 && marker <= 0xef) return "extra";
+
 	return "keep";
 };
 
 const walkJpeg = (b: Uint8Array): Layout => {
 	const segments: Segment[] = [];
 	let pos = 2;
+
 	for (;;) {
 		// Skip optional 0xFF fill bytes before a marker.
 		while (pos + 1 < b.length && b[pos] === 0xff && b[pos + 1] === 0xff) pos++;
+
 		if (pos + 2 > b.length) fail("This JPEG ends before its image data.");
+
 		if (b[pos] !== 0xff) fail(`Expected a JPEG marker at byte ${pos}.`);
 		const marker = b[pos + 1];
+
 		// Start of scan or end of image: the rest is compressed image data.
 		if (marker === 0xda || marker === 0xd9) {
 			return { format: "jpeg", segments, tailStart: pos };
 		}
+
 		if ((marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) {
 			segments.push({
 				kind: "keep",
@@ -131,12 +150,15 @@ const walkJpeg = (b: Uint8Array): Layout => {
 			pos += 2;
 			continue;
 		}
+
 		if (pos + 4 > b.length) fail("This JPEG ends inside a segment header.");
 		const length = (b[pos + 2] << 8) | b[pos + 3];
 		const end = pos + 2 + length;
+
 		if (length < 2 || end > b.length) {
 			fail("A JPEG segment runs past the end of the file.");
 		}
+
 		const dataStart = pos + 4;
 		segments.push({
 			kind: jpegKind(b, marker, dataStart),
@@ -175,6 +197,7 @@ const walkPng = (b: Uint8Array): Layout => {
 	const dv = view(b);
 	const segments: Segment[] = [];
 	let pos = 8;
+
 	while (pos < b.length) {
 		if (pos + 12 > b.length) fail("A PNG chunk runs past the end of the file.");
 		const length = dv.getUint32(pos);
@@ -182,6 +205,7 @@ const walkPng = (b: Uint8Array): Layout => {
 		const dataStart = pos + 8;
 		const dataEnd = dataStart + length;
 		const end = dataEnd + 4;
+
 		if (end > b.length) fail("A PNG chunk runs past the end of the file.");
 		segments.push({
 			kind: pngKind(b, type, dataStart),
@@ -192,8 +216,10 @@ const walkPng = (b: Uint8Array): Layout => {
 			dataEnd,
 		});
 		pos = end;
+
 		if (type === "IEND") break;
 	}
+
 	// Bytes after IEND are not part of the image and are dropped.
 	return { format: "png", segments, tailStart: b.length };
 };
@@ -204,22 +230,23 @@ const walkWebp = (b: Uint8Array): Layout => {
 	const riffEnd = Math.min(b.length, 8 + dv.getUint32(4, true));
 	const segments: Segment[] = [];
 	let pos = 12;
+
 	while (pos + 8 <= riffEnd) {
 		const type = ascii(b, pos, 4);
 		const length = dv.getUint32(pos + 4, true);
 		const dataStart = pos + 8;
 		const dataEnd = dataStart + length;
+
 		if (dataEnd > b.length) fail("A WebP chunk runs past the end of the file.");
 		const end = Math.min(dataEnd + (length & 1), b.length);
 		segments.push({
-			kind:
-				type === "EXIF"
-					? "exif"
-					: type === "XMP "
-						? "xmp"
-						: type === "ICCP"
-							? "icc"
-							: "keep",
+			kind: Match.value(type).pipe(
+				Match.withReturnType<SegmentKind>(),
+				Match.when("EXIF", () => "exif"),
+				Match.when("XMP ", () => "xmp"),
+				Match.when("ICCP", () => "icc"),
+				Match.orElse(() => "keep"),
+			),
 			name: type,
 			start: pos,
 			end,
@@ -228,48 +255,55 @@ const walkWebp = (b: Uint8Array): Layout => {
 		});
 		pos = end;
 	}
+
 	return { format: "webp", segments, tailStart: b.length };
 };
 
+const WALKERS: Record<ImageFormat, (b: Uint8Array) => Layout> = {
+	jpeg: walkJpeg,
+	png: walkPng,
+	webp: walkWebp,
+};
+
 export const walkImage = (format: ImageFormat, b: Uint8Array): Layout =>
-	format === "jpeg" ? walkJpeg(b) : format === "png" ? walkPng(b) : walkWebp(b);
+	WALKERS[format](b);
 
 // --- EXIF (TIFF) ------------------------------------------------------------
 
-const TYPE_SIZE: Record<number, number> = {
-	1: 1,
-	2: 1,
-	3: 2,
-	4: 4,
-	5: 8,
-	6: 1,
-	7: 1,
-	8: 2,
-	9: 4,
-	10: 8,
-	11: 4,
-	12: 8,
-};
+const TYPE_SIZE = new Map<number, number>([
+	[1, 1],
+	[2, 1],
+	[3, 2],
+	[4, 4],
+	[5, 8],
+	[6, 1],
+	[7, 1],
+	[8, 2],
+	[9, 4],
+	[10, 8],
+	[11, 4],
+	[12, 8],
+]);
 
-type Known = Record<number, readonly [MetadataGroup, string]>;
+type Known = ReadonlyMap<number, readonly [MetadataGroup, string]>;
 
-const IFD0_TAGS: Known = {
-	271: ["Device", "Camera maker"],
-	272: ["Device", "Camera model"],
-	305: ["Software", "Software"],
-	306: ["Dates", "Modified"],
-	315: ["People", "Artist"],
-	33432: ["People", "Copyright"],
-	270: ["Other", "Description"],
-};
+const IFD0_TAGS = new Map<number, readonly [MetadataGroup, string]>([
+	[271, ["Device", "Camera maker"]],
+	[272, ["Device", "Camera model"]],
+	[305, ["Software", "Software"]],
+	[306, ["Dates", "Modified"]],
+	[315, ["People", "Artist"]],
+	[33432, ["People", "Copyright"]],
+	[270, ["Other", "Description"]],
+]);
 
-const EXIF_TAGS: Known = {
-	36867: ["Dates", "Taken"],
-	36868: ["Dates", "Digitized"],
-	42032: ["People", "Camera owner"],
-	42033: ["Device", "Serial number"],
-	42036: ["Device", "Lens"],
-};
+const EXIF_TAGS = new Map<number, readonly [MetadataGroup, string]>([
+	[36867, ["Dates", "Taken"]],
+	[36868, ["Dates", "Digitized"]],
+	[42032, ["People", "Camera owner"]],
+	[42033, ["Device", "Serial number"]],
+	[42036, ["Device", "Lens"]],
+]);
 
 const ORIENTATION = 0x0112;
 const EXIF_IFD = 0x8769;
@@ -296,6 +330,7 @@ const prettyDate = (value: string) =>
 const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 	const dv = new DataView(b.buffer, b.byteOffset + start, end - start);
 	const order = dv.getUint16(0);
+
 	if (order !== 0x4949 && order !== 0x4d4d) throw new Error("bad byte order");
 	const le = order === 0x4949;
 	const u16 = (o: number) => dv.getUint16(o, le);
@@ -304,16 +339,19 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 	const readIfd = (offset: number) => {
 		const entries = new Map<number, Entry>();
 		const n = Math.min(u16(offset), 1000);
+
 		for (let i = 0; i < n; i++) {
 			const e = offset + 2 + i * 12;
 			const type = u16(e + 2);
 			const count = u32(e + 4);
-			const size = (TYPE_SIZE[type] ?? 1) * count;
+			const size = (TYPE_SIZE.get(type) ?? 1) * count;
 			const at = size <= 4 ? e + 8 : u32(e + 8);
+
 			if (at + size <= dv.byteLength) {
 				entries.set(u16(e), { type, count, at });
 			}
 		}
+
 		return { entries, next: u32(offset + 2 + n * 12) };
 	};
 
@@ -324,30 +362,35 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 				.replace(/\0+$/, "")
 				.trim(),
 		);
+
 	const rational = (e: Entry, i: number) => {
 		const den = u32(e.at + i * 8 + 4);
+
 		return den === 0 ? 0 : u32(e.at + i * 8) / den;
 	};
-	const value = (e: Entry) =>
-		e.type === 2
-			? text(e)
-			: e.type === 3
-				? String(u16(e.at))
-				: e.type === 4
-					? String(u32(e.at))
-					: `${e.count} bytes`;
+
+	const value = (e: Entry): string =>
+		Match.value(e.type).pipe(
+			Match.when(2, () => text(e)),
+			Match.when(3, () => String(u16(e.at))),
+			Match.when(4, () => String(u32(e.at))),
+			Match.orElse(() => `${e.count} bytes`),
+		);
 
 	const fields: MetadataField[] = [];
 	let others = 0;
+
 	const collect = (
 		entries: Map<number, Entry>,
 		known: Known,
 		skip: number[],
 	) => {
 		for (const [tag, entry] of entries) {
-			const meta = known[tag];
+			const meta = known.get(tag);
+
 			if (meta) {
 				const v = value(entry);
+
 				if (v) {
 					fields.push({
 						group: meta[0],
@@ -367,12 +410,14 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 	const orientation = orientationEntry ? u16(orientationEntry.at) : 1;
 
 	const exifPtr = ifd0.entries.get(EXIF_IFD);
+
 	if (exifPtr) {
 		collect(readIfd(u32(exifPtr.at)).entries, EXIF_TAGS, [INTEROP_IFD]);
 	}
 
 	let gps: ExifSummary["gps"];
 	const gpsPtr = ifd0.entries.get(GPS_IFD);
+
 	if (gpsPtr) {
 		const g = readIfd(u32(gpsPtr.at)).entries;
 		const latRef = g.get(1);
@@ -380,11 +425,14 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 		const lonRef = g.get(3);
 		const lon = g.get(4);
 		const used = new Set<number>();
+
 		if (lat && lon && lat.count >= 3 && lon.count >= 3) {
 			const deg = (e: Entry) =>
 				rational(e, 0) + rational(e, 1) / 60 + rational(e, 2) / 3600;
+
 			const sign = (e: Entry | undefined, negative: string) =>
 				e && String.fromCharCode(dv.getUint8(e.at)) === negative ? -1 : 1;
+
 			gps = {
 				lat: deg(lat) * sign(latRef, "S"),
 				lon: deg(lon) * sign(lonRef, "W"),
@@ -394,11 +442,15 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 				label: "Coordinates",
 				value: `${gps.lat.toFixed(5)}, ${gps.lon.toFixed(5)}`,
 			});
+
 			for (const t of [1, 2, 3, 4]) used.add(t);
 		}
+
 		const alt = g.get(6);
+
 		if (alt?.type === 5) {
-			const below = g.get(5) && dv.getUint8((g.get(5) as Entry).at) === 1;
+			const ref = g.get(5);
+			const below = ref !== undefined && dv.getUint8(ref.at) === 1;
 			fields.push({
 				group: "Location",
 				label: "Altitude",
@@ -407,7 +459,9 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 			used.add(5);
 			used.add(6);
 		}
+
 		const rest = [...g.keys()].filter((t) => !used.has(t)).length;
+
 		if (rest > 0) {
 			fields.push({
 				group: "Location",
@@ -424,6 +478,7 @@ const parseTiff = (b: Uint8Array, start: number, end: number): ExifSummary => {
 			value: `${others} more tag${others === 1 ? "" : "s"}`,
 		});
 	}
+
 	if (ifd0.next !== 0) {
 		fields.push({
 			group: "Other",
@@ -442,6 +497,7 @@ export const readExif = (
 ): ExifSummary => {
 	// JPEG APP1 always starts with "Exif\0\0"; some PNG/WebP writers add it too.
 	const body = startsWith(b, start, "Exif\0\0") ? start + 6 : start;
+
 	try {
 		return parseTiff(b, body, end);
 	} catch {
@@ -460,21 +516,24 @@ export const readExif = (
 
 // --- PNG text chunks --------------------------------------------------------
 
-const PNG_TEXT_KEYS: Record<string, readonly [MetadataGroup, string]> = {
-	Author: ["People", "Author"],
-	Copyright: ["People", "Copyright"],
-	"Creation Time": ["Dates", "Created"],
-	Software: ["Software", "Software"],
-	Source: ["Device", "Source"],
-};
+const PNG_TEXT_KEYS = new Map<string, readonly [MetadataGroup, string]>([
+	["Author", ["People", "Author"]],
+	["Copyright", ["People", "Copyright"]],
+	["Creation Time", ["Dates", "Created"]],
+	["Software", ["Software", "Software"]],
+	["Source", ["Device", "Source"]],
+]);
 
 const pngText = (b: Uint8Array, s: Segment): MetadataField => {
 	const data = b.subarray(s.dataStart, s.dataEnd);
 	const nul = data.indexOf(0);
+
 	const keyword = latin1.decode(
 		data.subarray(0, nul === -1 ? data.length : nul),
 	);
+
 	let value: string;
+
 	if (nul === -1) {
 		value = "";
 	} else if (s.name === "tEXt") {
@@ -484,49 +543,61 @@ const pngText = (b: Uint8Array, s: Segment): MetadataField => {
 	} else {
 		// iTXt: keyword\0 flag method language\0 translated-keyword\0 text
 		let at = nul + 3;
+
 		for (let skip = 0; skip < 2 && at <= data.length; skip++) {
 			const next = data.indexOf(0, at);
 			at = next === -1 ? data.length : next + 1;
 		}
+
 		value = utf8.decode(data.subarray(at));
 	}
-	const [group, label] = PNG_TEXT_KEYS[keyword] ?? ["Other", keyword || "Text"];
+
+	const [group, label] = PNG_TEXT_KEYS.get(keyword) ?? [
+		"Other",
+		keyword || "Text",
+	];
+
 	return { group, label, value: clip(value.trim()) || "(empty)" };
 };
 
 const pngTime = (b: Uint8Array, s: Segment): MetadataField => {
 	const dv = view(b);
 	const p2 = (n: number) => String(n).padStart(2, "0");
+
 	const value =
 		s.dataEnd - s.dataStart >= 7
 			? `${dv.getUint16(s.dataStart)}-${p2(b[s.dataStart + 2])}-${p2(b[s.dataStart + 3])} ${p2(b[s.dataStart + 4])}:${p2(b[s.dataStart + 5])}:${p2(b[s.dataStart + 6])}`
 			: "present";
+
 	return { group: "Dates", label: "Modified", value };
 };
 
 // --- Report -----------------------------------------------------------------
 
-const ORIENTATION_LABELS: Record<number, string> = {
-	2: "Mirrored",
-	3: "Upside down",
-	4: "Upside down, mirrored",
-	5: "Rotated, mirrored",
-	6: "Rotated 90° clockwise",
-	7: "Rotated, mirrored",
-	8: "Rotated 90° anticlockwise",
-};
+const ORIENTATION_LABELS = new Map<number, string>([
+	[2, "Mirrored"],
+	[3, "Upside down"],
+	[4, "Upside down, mirrored"],
+	[5, "Rotated, mirrored"],
+	[6, "Rotated 90° clockwise"],
+	[7, "Rotated, mirrored"],
+	[8, "Rotated 90° anticlockwise"],
+]);
 
 export const buildReport = (b: Uint8Array, layout: Layout): MetadataReport => {
 	const fields: MetadataField[] = [];
 	const kept = new Set<string>();
 	let gps: MetadataReport["gps"];
+
 	for (const s of layout.segments) {
 		const size = formatSize(s.end - s.start);
+
 		switch (s.kind) {
 			case "exif": {
 				const exif = readExif(b, s.dataStart, s.dataEnd);
 				fields.push(...exif.fields);
 				gps ??= exif.gps;
+
 				if (exif.orientation !== 1) {
 					// JPEG keeps orientation in a minimal EXIF block; PNG/WebP lose it.
 					if (layout.format === "jpeg") kept.add("orientation");
@@ -534,11 +605,13 @@ export const buildReport = (b: Uint8Array, layout: Layout): MetadataReport => {
 						fields.push({
 							group: "Other",
 							label: "Orientation",
-							value: ORIENTATION_LABELS[exif.orientation] ?? "Rotated",
+							value: ORIENTATION_LABELS.get(exif.orientation) ?? "Rotated",
 						});
 				}
+
 				break;
 			}
+
 			case "xmp":
 				fields.push({ group: "Other", label: "XMP data", value: size });
 				break;
@@ -574,6 +647,7 @@ export const buildReport = (b: Uint8Array, layout: Layout): MetadataReport => {
 				break;
 		}
 	}
+
 	return { fields, kept: [...kept], gps };
 };
 
@@ -584,6 +658,7 @@ export const parseImage = (
 	bytes: Uint8Array,
 ): Effect.Effect<Layout, MetadataParseError | UnsupportedFormatError> => {
 	const format = detectImageFormat(bytes);
+
 	if (!format) {
 		return Effect.fail(
 			new UnsupportedFormatError({
@@ -593,6 +668,7 @@ export const parseImage = (
 			}),
 		);
 	}
+
 	return Effect.try({
 		try: () => walkImage(format, bytes),
 		catch: (err) =>

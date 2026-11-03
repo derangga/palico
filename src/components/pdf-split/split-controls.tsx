@@ -1,6 +1,7 @@
+import { Schema } from "effect";
 import { Download, Loader2 } from "lucide-react";
 
-import type { SplitMode } from "#/components/pdf-split/state.ts";
+import { SplitMode } from "#/components/pdf-split/state.ts";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import {
@@ -47,7 +48,9 @@ export function SplitControls({
 	return (
 		<Tabs
 			value={mode}
-			onValueChange={(value) => onModeChange(value as SplitMode)}
+			onValueChange={(value) => {
+				if (Schema.is(SplitMode)(value)) onModeChange(value);
+			}}
 		>
 			<TabsList>
 				<TabsTrigger value="extract">Extract pages</TabsTrigger>

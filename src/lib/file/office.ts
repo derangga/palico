@@ -21,6 +21,7 @@ const validateFile = (
 	OfficeUnsupportedFormatError | OfficeTooLargeError
 > => {
 	const check = checkOfficeFile({ name: file.name, size: file.size });
+
 	switch (check.kind) {
 		case "ok":
 			return Effect.succeed(check.ext);
@@ -50,14 +51,17 @@ export const validateBatch = (
 	files: ReadonlyArray<File>,
 ): Effect.Effect<void, OfficeBatchTooLargeError> => {
 	const check = checkOfficeBatch(files);
+
 	if (check.kind === "ok") return Effect.void;
 	const total = files.reduce((sum, f) => sum + f.size, 0);
+
 	const message =
 		check.kind === "too-many"
 			? `You can convert up to ${check.limit} files at a time.`
 			: `That batch is larger than the ${Math.round(
 					check.limitBytes / MB,
 				)} MB combined limit.`;
+
 	return Effect.fail(
 		new OfficeBatchTooLargeError({
 			count: files.length,
@@ -86,13 +90,15 @@ export const convertFileToPdf = Effect.fn("Office.convertFileToPdf")(
 	function* (params: { readonly id: string; readonly file: File }) {
 		const ext = yield* validateFile(params.file);
 		const bytes = yield* readBytes(params.file);
+
 		const pdf = yield* convertToPdf({
 			id: params.id,
 			fileName: params.file.name,
 			ext,
 			bytes,
 		});
-		return new Blob([pdf as BlobPart], { type: "application/pdf" });
+
+		return new Blob([pdf], { type: "application/pdf" });
 	},
 );
 
@@ -100,11 +106,14 @@ export const convertFileToPdf = Effect.fn("Office.convertFileToPdf")(
 // report-1.pdf), mirroring the image converter's zip behavior.
 const uniqueNames = (names: ReadonlyArray<string>): string[] => {
 	const seen = new Map<string, number>();
+
 	return names.map((name) => {
 		const count = seen.get(name) ?? 0;
 		seen.set(name, count + 1);
+
 		if (count === 0) return name;
 		const dot = name.lastIndexOf(".");
+
 		return dot === -1
 			? `${name}-${count}`
 			: `${name.slice(0, dot)}-${count}${name.slice(dot)}`;
@@ -121,6 +130,7 @@ export const zipPdfs = (
 	Effect.gen(function* () {
 		const names = uniqueNames(entries.map((e) => e.name));
 		const files: Record<string, Uint8Array> = {};
+
 		for (let i = 0; i < entries.length; i++) {
 			const buffer = yield* Effect.tryPromise({
 				try: () => entries[i].blob.arrayBuffer(),
@@ -132,17 +142,20 @@ export const zipPdfs = (
 								: "Could not read a converted PDF.",
 					}),
 			});
+
 			files[names[i]] = new Uint8Array(buffer);
 		}
-		return yield* Effect.async<Blob, OfficeZipError>((resume) => {
+
+		return yield* Effect.callback<Blob, OfficeZipError>((resume) => {
 			zip(files, { level: 0 }, (err, data) => {
 				if (err) {
 					resume(Effect.fail(new OfficeZipError({ message: err.message })));
 				} else {
+					// SAFETY: fflate allocates the zip output itself with new Uint8Array, so
+					// it is backed by a plain ArrayBuffer, never a SharedArrayBuffer.
+					const bytes = data as Uint8Array<ArrayBuffer>;
 					resume(
-						Effect.succeed(
-							new Blob([data as BlobPart], { type: "application/zip" }),
-						),
+						Effect.succeed(new Blob([bytes], { type: "application/zip" })),
 					);
 				}
 			});

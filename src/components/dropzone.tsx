@@ -38,22 +38,28 @@ export function Dropzone({
 	const active = dragging && !disabled;
 
 	return (
+		// oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drop target that wraps a real file input.
 		<label
 			onDragEnter={(e) => {
 				if (hasFiles(e)) setDragging(true);
 			}}
 			onDragOver={(e) => {
 				e.preventDefault();
+
 				if (hasFiles(e)) setDragging(true);
 			}}
 			onDragLeave={(e) => {
-				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+				if (
+					!(e.relatedTarget instanceof Node) ||
+					!e.currentTarget.contains(e.relatedTarget)
+				) {
 					setDragging(false);
 				}
 			}}
 			onDrop={(e) => {
 				e.preventDefault();
 				setDragging(false);
+
 				if (disabled) return;
 				onFiles(e.dataTransfer.files);
 			}}

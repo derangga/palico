@@ -68,6 +68,7 @@ describe("stripImageMetadata: JPEG", () => {
 			APP0_JFIF,
 			exifSegment(tiff([...PHONE_EXIF, [0x0112, 3, 6]], { gps: PARIS_GPS })),
 		);
+
 		const out = strip(rotated);
 		const report = read(out);
 		expect(report.fields).toEqual([]);
@@ -102,6 +103,7 @@ describe("stripImageMetadata: PNG", () => {
 			IEND,
 			bytes("trailing junk"),
 		);
+
 		const out = strip(b);
 		expect(out).toEqual(concat(PNG_SIG, IHDR, ICCP, IDAT, IEND));
 		expect(read(out).fields).toEqual([]);
@@ -111,6 +113,7 @@ describe("stripImageMetadata: PNG", () => {
 describe("stripImageMetadata: WebP", () => {
 	it("drops EXIF and XMP, clears their VP8X flags and fixes the RIFF size", () => {
 		const iccp = riffChunk("ICCP", bytes("prof"));
+
 		const b = webp(
 			VP8X,
 			iccp,
@@ -118,6 +121,7 @@ describe("stripImageMetadata: WebP", () => {
 			riffChunk("EXIF", tiff(PHONE_EXIF)),
 			riffChunk("XMP ", bytes("<x/>")),
 		);
+
 		const out = strip(b);
 		const dv = new DataView(out.buffer, out.byteOffset);
 		expect(dv.getUint32(4, true)).toBe(out.length - 8);

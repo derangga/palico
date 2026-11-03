@@ -2,7 +2,7 @@ import { Schema } from "effect";
 
 // Languages offered for syntax highlighting. Values are Shiki language ids as
 // understood by @pierre/diffs (plain text is "text"). The label is UI-only.
-export const DiffLanguage = Schema.Literal(
+export const DiffLanguage = Schema.Literals([
 	"text",
 	"javascript",
 	"typescript",
@@ -20,7 +20,8 @@ export const DiffLanguage = Schema.Literal(
 	"nix",
 	"sql",
 	"yaml",
-);
+]);
+
 export type DiffLanguage = typeof DiffLanguage.Type;
 
 export const DIFF_LANGUAGES: ReadonlyArray<{

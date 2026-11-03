@@ -11,6 +11,7 @@ export function CoverThumbnail({ item }: { item: MergeItem }) {
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const bitmap = item.thumbnail?.bitmap;
+
 		if (!canvas || !bitmap) return;
 		const ctx = canvas.getContext("2d");
 		ctx?.drawImage(bitmap, 0, 0);

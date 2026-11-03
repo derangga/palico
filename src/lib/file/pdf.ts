@@ -56,6 +56,7 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 	onThumbnail: (thumbnail: PdfThumbnail) => void,
 ) {
 	yield* validateSize(params.file);
+
 	const buffer = yield* Effect.tryPromise({
 		try: () => params.file.arrayBuffer(),
 		catch: (err) =>
@@ -64,6 +65,7 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	return yield* renderPdfThumbnails(
 		{
 			id: params.id,
@@ -95,6 +97,7 @@ export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	const result = yield* extractPdfPages({
 		id: params.id,
 		fileName: params.file.name,
@@ -102,6 +105,7 @@ export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 		pageIndices: params.pageIndices,
 		rotations: params.rotations,
 	});
+
 	return new Blob([result], { type: "application/pdf" });
 });
 
@@ -116,12 +120,15 @@ export const everyNPageParts = (
 ): ReadonlyArray<SplitPart> => {
 	const base = baseName(fileName);
 	const parts: SplitPart[] = [];
+
 	for (let start = 0; start < pageCount; start += size) {
 		const end = Math.min(start + size, pageCount);
 		const pageIndices: number[] = [];
+
 		for (let i = start; i < end; i++) pageIndices.push(i);
 		parts.push({ name: `${base}_part_${parts.length + 1}.pdf`, pageIndices });
 	}
+
 	return parts;
 };
 
@@ -132,9 +139,11 @@ export const allIndividualParts = (
 ): ReadonlyArray<SplitPart> => {
 	const base = baseName(fileName);
 	const parts: SplitPart[] = [];
+
 	for (let i = 0; i < pageCount; i++) {
 		parts.push({ name: `${base}_page_${i + 1}.pdf`, pageIndices: [i] });
 	}
+
 	return parts;
 };
 
@@ -153,12 +162,14 @@ export const splitPdf = Effect.fn("Pdf.splitPdf")(function* (params: {
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	const zip = yield* splitPdfToZip({
 		id: params.id,
 		fileName: params.file.name,
 		buffer,
 		parts: params.parts,
 	});
+
 	return new Blob([zip], { type: "application/zip" });
 });
 
@@ -179,11 +190,13 @@ export const mergePdfs = Effect.fn("Pdf.mergePdfs")(function* (params: {
 				}),
 		}),
 	);
+
 	const merged = yield* mergePdfFiles({
 		id: params.id,
 		fileName: "merged.pdf",
 		buffers,
 	});
+
 	return new Blob([merged], { type: "application/pdf" });
 });
 
@@ -206,6 +219,7 @@ export const pdfToImages = Effect.fn("Pdf.pdfToImages")(function* (
 				message: err instanceof Error ? err.message : "Could not read file.",
 			}),
 	});
+
 	return yield* rasterizePdfToZip(
 		{
 			id: params.id,

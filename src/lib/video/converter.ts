@@ -4,7 +4,7 @@
 // module must only be reached via a dynamic import('#/lib/video/converter.ts')
 // so the engine stays out of the initial route bundle (palico-rpj contract).
 
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import { type EngineHandle, getEngine } from "./engine.ts";
 import {
@@ -33,6 +33,7 @@ export const ConvertVideoInput = Schema.Struct({
 	file: FileFromSelf,
 	format: VideoOutputFormat,
 });
+
 export type ConvertVideoInput = Schema.Schema.Type<typeof ConvertVideoInput>;
 
 export const ConvertVideoOutput = Schema.Struct({
@@ -42,6 +43,7 @@ export const ConvertVideoOutput = Schema.Struct({
 	name: Schema.String,
 	format: VideoOutputFormat,
 });
+
 export type ConvertVideoOutput = Schema.Schema.Type<typeof ConvertVideoOutput>;
 
 const ProgressProcessing = Schema.Struct({
@@ -59,14 +61,19 @@ const ProgressDone = Schema.Struct({
 const ProgressError = Schema.Struct({
 	id: Schema.String,
 	status: Schema.Literal("error"),
-	error: Schema.Union(EngineNotLoadedError, VideoDecodeError, VideoEncodeError),
+	error: Schema.Union([
+		EngineNotLoadedError,
+		VideoDecodeError,
+		VideoEncodeError,
+	]),
 });
 
-export const VideoProgressUpdate = Schema.Union(
+export const VideoProgressUpdate = Schema.Union([
 	ProgressProcessing,
 	ProgressDone,
 	ProgressError,
-);
+]);
+
 export type VideoProgressUpdate = Schema.Schema.Type<
 	typeof VideoProgressUpdate
 >;
@@ -121,7 +128,7 @@ const convertOne = (
 // OOM the browser tab or interleave progress events.
 //
 // The Effect fails with EngineNotLoadedError when the singleton hasn't been
-// initialized; per-file decode/encode failures are caught with Effect.either
+// initialized; per-file decode/encode failures are caught with Effect.result
 // so one bad input never aborts the batch.
 //
 // `isCancelled` lets the caller stop the batch: when the route terminates the
@@ -141,11 +148,11 @@ export const convertVideos = (
 			inputs,
 			(
 				input,
-			): Effect.Effect<Either.Either<ConvertVideoOutput, ConvertVideoError>> =>
+			): Effect.Effect<Result.Result<ConvertVideoOutput, ConvertVideoError>> =>
 				Effect.gen(function* () {
 					// Already cancelled before this file started — skip silently.
 					if (isCancelled()) {
-						return Either.left(
+						return Result.fail(
 							new VideoEncodeError({
 								fileName: input.file.name,
 								format: input.format,
@@ -153,12 +160,14 @@ export const convertVideos = (
 							}),
 						);
 					}
+
 					yield* emitProgress(onProgress, {
 						id: input.id,
 						status: "processing",
 						percent: 0,
 					});
-					const outcome = yield* Effect.either(
+
+					const outcome = yield* Effect.result(
 						convertOne(ffmpeg, input, (percent) =>
 							onProgress({
 								id: input.id,
@@ -167,32 +176,35 @@ export const convertVideos = (
 							}),
 						),
 					);
+
 					// Cancelled mid-encode (terminate() rejected the exec): swallow the
 					// outcome without emitting, so the UI stays clean for the reset.
 					if (isCancelled()) {
 						return outcome;
 					}
-					if (Either.isRight(outcome)) {
+
+					if (Result.isSuccess(outcome)) {
 						yield* emitProgress(onProgress, {
 							id: input.id,
 							status: "done",
-							output: outcome.right,
+							output: outcome.success,
 						});
 					} else {
 						yield* emitProgress(onProgress, {
 							id: input.id,
 							status: "error",
-							error: outcome.left,
+							error: outcome.failure,
 						});
 					}
+
 					return outcome;
 				}),
 			{ concurrency: 1 },
 		);
 
-		return results.flatMap((r) => (Either.isRight(r) ? [r.right] : []));
+		return results.flatMap((r) => (Result.isSuccess(r) ? [r.success] : []));
 	});
 
 // Re-exported for the route's catch path, which renders `ConvertVideoError`
-// instances coming back from per-row Effect.either outcomes.
+// instances coming back from per-row Effect.result outcomes.
 export type { ConvertVideoError };

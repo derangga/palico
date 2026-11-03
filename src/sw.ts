@@ -29,6 +29,7 @@ declare const self: ServiceWorkerGlobalScope;
 
 // Injected at build time by scripts/build-sw.ts (workbox-build injectManifest).
 precacheAndRoute(self.__WB_MANIFEST);
+
 cleanupOutdatedCaches();
 
 const stampPlugin: WorkboxPlugin = {
@@ -37,6 +38,7 @@ const stampPlugin: WorkboxPlugin = {
 			? stampIsolationHeaders(new URL(request.url), cachedResponse)
 			: cachedResponse,
 };
+
 addPlugins([stampPlugin]);
 
 // ONNX Runtime files for background removal are not precached (21 MB). The page
@@ -74,9 +76,17 @@ self.addEventListener("activate", (event) => {
 	event.waitUntil(
 		(async () => {
 			const disabled = await fetch("/sw-killswitch.json", { cache: "no-store" })
-				.then((r) => r.json() as Promise<{ disabled?: boolean }>)
-				.then((j) => j.disabled === true)
+				.then(async (r) => {
+					const body: unknown = await r.json();
+
+					return (
+						body instanceof Object &&
+						"disabled" in body &&
+						body.disabled === true
+					);
+				})
 				.catch(() => false);
+
 			if (!disabled) return;
 			const keys = await caches.keys();
 			await Promise.all(

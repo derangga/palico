@@ -10,26 +10,32 @@ import { busyRef, handleRef, updateRef } from "./state.ts";
 export const applyUpdate = Effect.gen(function* () {
 	const host = yield* ServiceWorkerHost;
 	const busy = yield* SubscriptionRef.get(busyRef);
+
 	if (busy > 0) {
 		return yield* new UpdateBlockedError({
 			busy,
 			message: "Finish the current job before updating.",
 		});
 	}
+
 	const handle = yield* Ref.get(handleRef);
+
 	if (Option.isNone(handle)) {
 		return yield* new SwUpdateError({
 			message: "Offline mode is not running.",
 		});
 	}
+
 	yield* SubscriptionRef.set(updateRef, "applying");
-	const changed = yield* Effect.fork(host.awaitControllerChange);
+	const changed = yield* Effect.forkChild(host.awaitControllerChange);
 	yield* handle.value.activateWaiting;
 	yield* Fiber.join(changed).pipe(
-		Effect.timeoutFail({
+		Effect.timeoutOrElse({
 			duration: "5 seconds",
-			onTimeout: () =>
-				new SwUpdateError({ message: "The update did not finish." }),
+			orElse: () =>
+				Effect.fail(
+					new SwUpdateError({ message: "The update did not finish." }),
+				),
 		}),
 	);
 	yield* host.reload;

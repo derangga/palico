@@ -1,10 +1,11 @@
 import { useWorkerPool, WorkerPoolContextProvider } from "@pierre/diffs/react";
 // Vite bundles the package's worker entry; `?worker` yields a Worker constructor.
 import DiffsWorker from "@pierre/diffs/worker/worker.js?worker";
-import { Effect } from "effect";
+import { Cause, Effect, Option, Exit } from "effect";
 import { FileDiff, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
 import { DIFF_THEME, DiffView } from "#/components/diff-view.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { DIFF_DESCRIPTION } from "#/components/page-skeletons.tsx";
@@ -21,6 +22,7 @@ function PoolWarmup() {
 	useEffect(() => {
 		pool?.initialize().catch((cause) => console.error(cause));
 	}, [pool]);
+
 	return null;
 }
 
@@ -47,17 +49,23 @@ export function DiffWorkspace() {
 
 	async function findDifference() {
 		setRunning(true);
+
 		const exit = await Effect.runPromiseExit(
 			computeDiff({ original, changed, language: "text" }),
 		);
+
 		setRunning(false);
-		if (exit._tag === "Success") {
+
+		if (Exit.isSuccess(exit)) {
 			// Start every result plain so the selector acts as a re-highlight toggle.
 			setLanguage("text");
 			setResult(exit.value);
+
 			return;
 		}
-		const failure = exit.cause._tag === "Fail" ? exit.cause.error : undefined;
+
+		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+
 		if (failure) console.error(failure);
 		toast.error(failure?.message ?? "Couldn't compute the difference.");
 	}

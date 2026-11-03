@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Cause, Effect, Either, Exit, Option } from "effect";
+import { Cause, Effect, Exit, Option, Result } from "effect";
 import { Scissors } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { VideoClipStage } from "#/components/video-clip-stage.tsx";
@@ -67,25 +68,32 @@ function CutterShell() {
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
+
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
 			toast.error(`"${f.name}" is not a video.`);
+
 			return;
 		}
+
 		// Output keeps the input container, so the input must be one we can mux.
-		if (Either.isLeft(parseVideoOutputFormat(inputExtension(f)))) {
+		if (Result.isFailure(parseVideoOutputFormat(inputExtension(f)))) {
 			toast.error("Supported formats: MP4, WebM, MOV, MKV, AVI.");
+
 			return;
 		}
 
 		const verdict = checkCutterFileSize(f.size, deviceClass());
+
 		if (verdict.kind === "rejected") {
 			toast.error(
 				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
 			);
+
 			return;
 		}
+
 		if (verdict.kind === "warn") {
 			toast(
 				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while trimming.`,
@@ -117,10 +125,12 @@ function CutterShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
+
 			if (token.cancelled) return;
 
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { trimVideo } = await import("#/lib/video/trim.ts");
+
 			const exit = await Effect.runPromiseExit(
 				withBusy(
 					trimVideo(
@@ -129,6 +139,7 @@ function CutterShell() {
 					),
 				),
 			);
+
 			if (token.cancelled) return;
 
 			if (Exit.isSuccess(exit)) {
@@ -141,10 +152,11 @@ function CutterShell() {
 			} else {
 				// Both failure types (EngineNotLoadedError | VideoTrimError) carry a
 				// typed `message`; defects (non-Fail causes) fall back to a generic.
-				const message = Option.match(Cause.failureOption(exit.cause), {
+				const message = Option.match(Cause.findErrorOption(exit.cause), {
 					onNone: () => "Could not trim the video.",
 					onSome: (error) => error.message,
 				});
+
 				toast.error(message);
 			}
 		} catch (err) {
@@ -162,6 +174,7 @@ function CutterShell() {
 	async function handleCancel() {
 		cancelTokenRef.current.cancelled = true;
 		dispatch({ type: "cancelStart" });
+
 		try {
 			const { disposeEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(disposeEngine);

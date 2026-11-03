@@ -10,7 +10,7 @@
 // the user); the route surfaces it honestly. Because nothing is decoded, ffmpeg
 // emits no `progress` events — callers show an indeterminate "trimming" state.
 
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import { type EngineHandle, getEngine } from "./engine.ts";
 import { type EngineNotLoadedError, VideoTrimError } from "./errors.ts";
@@ -26,6 +26,7 @@ export const TrimVideoInput = Schema.Struct({
 	startSec: Schema.Number,
 	endSec: Schema.Number,
 });
+
 export type TrimVideoInput = Schema.Schema.Type<typeof TrimVideoInput>;
 
 export const TrimVideoOutput = Schema.Struct({
@@ -33,18 +34,22 @@ export const TrimVideoOutput = Schema.Struct({
 	size: Schema.Number,
 	name: Schema.String,
 });
+
 export type TrimVideoOutput = Schema.Schema.Type<typeof TrimVideoOutput>;
 
 // The output container always matches the input. For the five formats the tool
 // accepts the extension equals the format literal, so we can recover the proper
 // mime via formatMeta; anything else falls back to the file's own type.
-export const outputContainer = (file: File): { ext: string; mime: string } => {
+export const outputContainer = (file: File) => {
 	const ext = inputExtension(file);
 	const parsed = parseVideoOutputFormat(ext);
-	if (Either.isRight(parsed)) {
-		const meta = formatMeta(parsed.right);
+
+	if (Result.isSuccess(parsed)) {
+		const meta = formatMeta(parsed.success);
+
 		return { ext: meta.ext, mime: meta.mime };
 	}
+
 	return { ext, mime: file.type || `video/${ext}` };
 };
 
@@ -52,6 +57,7 @@ export const outputContainer = (file: File): { ext: string; mime: string } => {
 export const trimmedOutputName = (srcName: string, ext: string): string => {
 	const dot = srcName.lastIndexOf(".");
 	const base = dot > 0 ? srcName.slice(0, dot) : srcName;
+
 	return `${base}-trimmed.${ext}`;
 };
 
@@ -123,11 +129,13 @@ export const trimVideo = (
 ): Effect.Effect<TrimVideoOutput, EngineNotLoadedError | VideoTrimError> =>
 	Effect.gen(function* () {
 		const ffmpeg = yield* getEngine;
+
 		if (isCancelled()) {
 			return yield* new VideoTrimError({
 				fileName: input.file.name,
 				message: "Cancelled.",
 			});
 		}
+
 		return yield* trimOne(ffmpeg, input);
 	});

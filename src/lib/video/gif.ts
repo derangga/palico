@@ -26,6 +26,7 @@ export const GifInput = Schema.Struct({
 	width: Schema.Number,
 	height: Schema.Number,
 });
+
 export type GifInput = Schema.Schema.Type<typeof GifInput>;
 
 export const GifOutput = Schema.Struct({
@@ -33,6 +34,7 @@ export const GifOutput = Schema.Struct({
 	size: Schema.Number,
 	name: Schema.String,
 });
+
 export type GifOutput = Schema.Schema.Type<typeof GifOutput>;
 
 // Pure argv builder, exported for unit testing. `-ss` before `-i` is fast input
@@ -64,6 +66,7 @@ const gifOne = (
 	Effect.gen(function* () {
 		const inputName = `input.${inputExtension(input.file)}`;
 		const outputName = "output.gif";
+
 		const error = (message: string) =>
 			new VideoGifError({ fileName: input.file.name, message });
 
@@ -98,11 +101,13 @@ export const makeGif = (
 ): Effect.Effect<GifOutput, EngineNotLoadedError | VideoGifError> =>
 	Effect.gen(function* () {
 		const ffmpeg = yield* getEngine;
+
 		if (isCancelled()) {
 			return yield* new VideoGifError({
 				fileName: input.file.name,
 				message: "Cancelled.",
 			});
 		}
+
 		return yield* gifOne(ffmpeg, input);
 	});

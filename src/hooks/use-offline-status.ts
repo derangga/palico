@@ -28,25 +28,31 @@ export function useOfflineStatus(engine?: EngineId): OfflineStatus | undefined {
 		() => true,
 		() => false,
 	);
+
 	const shell = useStore(shellStore);
 	const notSaved = useStore(notSavedStore);
 	const refresh = useStore(refreshStore);
-	const [cached, setCached] = useState<boolean | undefined>(undefined);
+	// The check is keyed by engine and refresh, so a stale answer reads as
+	// "not checked yet" until the new check lands.
+	const key = `${engine}:${refresh}`;
+	const [check, setCheck] = useState<{ key: string; cached: boolean }>();
+	const cached = check?.key === key ? check.cached : undefined;
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refresh re-checks the caches after a download
+	// refresh re-checks the caches after a download
 	useEffect(() => {
 		if (!engine) return;
 		let alive = true;
-		setCached(undefined);
 		void Effect.runPromise(ENGINES[engine].isCached).then((value) => {
-			if (alive) setCached(value);
+			if (alive) setCheck({ key, cached: value });
 		});
+
 		return () => {
 			alive = false;
 		};
-	}, [engine, refresh]);
+	}, [engine, key]);
 
 	if (!mounted) return undefined;
+
 	return computeStatus({
 		shell,
 		engine: engine ? ENGINES[engine] : undefined,

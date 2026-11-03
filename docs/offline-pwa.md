@@ -169,7 +169,7 @@ The offline logic follows the design pass in the plan. Shapes: `EngineId`,
   mobile data).
 - Escape: every failure of the world falls back to online-only behavior.
 - Die: only a busy counter that would go below zero (our own pairing bug).
-- R: `ServiceWorkerHost`, `CacheHost` and `StorageHost` are `Context.Tag` services with
+- R: `ServiceWorkerHost`, `CacheHost` and `StorageHost` are `Context.Service` services with
   live layers in `runtime.ts`. This is a new pattern for the client (the old comment in
   `background-removal.ts` said there is no Layer system on the client). It exists so the
   same graph runs in Vitest on the fakes in `fakes.ts`. The engine specs stay plain

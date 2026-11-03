@@ -29,6 +29,7 @@ export const downloadMarkdown = (
 			const url = URL.createObjectURL(
 				new Blob([source], { type: "text/markdown" }),
 			);
+
 			try {
 				const anchor = document.createElement("a");
 				anchor.href = url;

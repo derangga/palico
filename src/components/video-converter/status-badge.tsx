@@ -9,8 +9,11 @@ export function StatusBadge({
 	celebrate?: boolean;
 }) {
 	if (status === "processing") return <StatusPill state="working" />;
+
 	if (status === "done")
 		return <StatusPill state="done" celebrate={celebrate} />;
+
 	if (status === "error") return <StatusPill state="failed" />;
+
 	return null;
 }

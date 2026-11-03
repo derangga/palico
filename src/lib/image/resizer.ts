@@ -10,6 +10,7 @@ export const ResizeInput = Schema.Struct({
 	targetWidth: Schema.Number,
 	targetHeight: Schema.Number,
 });
+
 export type ResizeInput = Schema.Schema.Type<typeof ResizeInput>;
 
 export type ResizeOutput = WorkerOutput;
@@ -37,6 +38,7 @@ export const resizeImage = (
 	Effect.gen(function* () {
 		yield* validateSize(input.file);
 		const meta = sourceFormatMeta(input.file.type);
+
 		const buffer = yield* Effect.tryPromise({
 			try: () => input.file.arrayBuffer(),
 			catch: (err) =>
@@ -45,6 +47,7 @@ export const resizeImage = (
 					message: err instanceof Error ? err.message : "Could not read file.",
 				}),
 		});
+
 		return yield* runImageWorker({
 			id: input.id,
 			fileName: input.file.name,

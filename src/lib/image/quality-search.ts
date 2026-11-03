@@ -28,14 +28,17 @@ export const searchQuality = async (
 	const maxPasses = opts.maxPasses ?? COMPRESS_MAX_PASSES;
 
 	const top = await encode(max);
+
 	if (top.size <= targetBytes) {
 		return { blob: top, quality: max, targetMet: true, passes: 1 };
 	}
+
 	if (max <= min || maxPasses < 2) {
 		return { blob: top, quality: max, targetMet: false, passes: 1 };
 	}
 
 	const bottom = await encode(min);
+
 	if (bottom.size > targetBytes) {
 		return { blob: bottom, quality: min, targetMet: false, passes: 2 };
 	}
@@ -45,10 +48,12 @@ export const searchQuality = async (
 	let lo = min;
 	let hi = max;
 	let passes = 2;
+
 	while (passes < maxPasses) {
 		const q = (lo + hi) / 2;
 		const blob = await encode(q);
 		passes++;
+
 		if (blob.size <= targetBytes) {
 			best = { blob, quality: q };
 			lo = q;
@@ -56,5 +61,6 @@ export const searchQuality = async (
 			hi = q;
 		}
 	}
+
 	return { ...best, targetMet: true, passes };
 };

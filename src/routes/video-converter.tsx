@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { Film } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CancelDialog } from "#/components/video-converter/cancel-dialog.tsx";
@@ -75,6 +76,7 @@ function VideoConverterPage() {
 function ConverterShell() {
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 	const [state, dispatch] = useReducer(converterReducer, initialConverterState);
+
 	const {
 		items,
 		format,
@@ -100,6 +102,7 @@ function ConverterShell() {
 			}
 
 			const verdict = checkFileSize(file.size, device);
+
 			if (verdict.kind === "rejected") {
 				// Rejected files never enter the queue, so conversion never runs
 				// on them — no engine work is triggered.
@@ -108,6 +111,7 @@ function ConverterShell() {
 				);
 				continue;
 			}
+
 			if (verdict.kind === "warn") {
 				toast(
 					`"${file.name}" is ${formatBytes(file.size)}. This may take several minutes to convert.`,
@@ -125,9 +129,11 @@ function ConverterShell() {
 
 		if (accepted.length > 0) {
 			const room = Math.max(MAX_FILES - items.length, 0);
+
 			if (accepted.length > room) {
 				toast.error(`You can convert up to ${MAX_FILES} videos at a time.`);
 			}
+
 			dispatch({ type: "addItems", items: accepted.slice(0, room) });
 		}
 	}
@@ -141,6 +147,7 @@ function ConverterShell() {
 		const targets = items.filter(
 			(i) => i.status === "ready" || i.status === "error",
 		);
+
 		if (targets.length === 0) return;
 
 		const largest = Math.max(...targets.map((t) => t.file.size));
@@ -148,12 +155,16 @@ function ConverterShell() {
 
 		if (level === "none") {
 			void runConversion(targets);
+
 			return;
 		}
+
 		if (level === "suppressible") {
 			const suppressed = Effect.runSync(getSuppressSmallWarning);
+
 			if (suppressed) {
 				void runConversion(targets);
+
 				return;
 			}
 		}
@@ -164,7 +175,9 @@ function ConverterShell() {
 	function confirmPending() {
 		const targets = pending;
 		dispatch({ type: "clearPending" });
+
 		if (!targets) return;
+
 		if (dontShowAgain) Effect.runSync(setSuppressSmallWarning(true));
 		void runConversion(targets);
 	}
@@ -176,6 +189,7 @@ function ConverterShell() {
 
 		const meta = VIDEO_OUTPUT_FORMATS.find((f) => f.value === format);
 		const formatLabel = meta?.label ?? format.toUpperCase();
+
 		const inputs = targets.map((item) => ({
 			id: item.id,
 			file: item.file,
@@ -194,6 +208,7 @@ function ConverterShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
+
 			if (token.cancelled) return;
 
 			// react-doctor-disable-next-line react-doctor/async-defer-await
@@ -205,6 +220,7 @@ function ConverterShell() {
 						inputs,
 						(update) => {
 							dispatch({ type: "progressUpdate", update, formatLabel });
+
 							if (update.status === "done" || update.status === "error") {
 								dispatch({ type: "batchTick" });
 							}
@@ -220,11 +236,13 @@ function ConverterShell() {
 
 			const ok = outputs.length;
 			const failed = inputs.length - ok;
+
 			if (ok > 0) {
 				toast.success(
 					`Converted ${ok} video${ok === 1 ? "" : "s"} to ${formatLabel}.`,
 				);
 			}
+
 			if (failed > 0) {
 				toast.error(
 					`${failed} video${failed === 1 ? "" : "s"} could not be converted.`,
@@ -249,6 +267,7 @@ function ConverterShell() {
 	async function cancelConversion() {
 		cancelTokenRef.current.cancelled = true;
 		dispatch({ type: "cancelStart" });
+
 		try {
 			const { disposeEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(disposeEngine);

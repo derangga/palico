@@ -7,7 +7,9 @@ const MB = 1024 * 1024;
 
 function formatBytes(n: number) {
 	if (n < 1024) return `${n} B`;
+
 	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
+
 	return `${(n / MB).toFixed(2)} MB`;
 }
 
@@ -27,6 +29,7 @@ export function FileCard({
 	onDrop: () => void;
 }) {
 	return (
+		// oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drag-and-drop reorder target. There is no keyboard reorder yet.
 		<li
 			draggable
 			onDragStart={onDragStart}

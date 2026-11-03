@@ -30,7 +30,7 @@ type SegmentationModel = (
 	input: HTMLCanvasElement,
 ) => Promise<ImageSegmentationPipelineOutput[]>;
 
-export const RemoveProgress = Schema.Union(
+export const RemoveProgress = Schema.Union([
 	Schema.Struct({
 		stage: Schema.Literal("downloading"),
 		percent: Schema.Number,
@@ -38,7 +38,8 @@ export const RemoveProgress = Schema.Union(
 	Schema.Struct({
 		stage: Schema.Literal("processing"),
 	}),
-);
+]);
+
 export type RemoveProgress = Schema.Schema.Type<typeof RemoveProgress>;
 
 // Schema-derived data slice — the callback below can't be schema'd, so the
@@ -46,6 +47,7 @@ export type RemoveProgress = Schema.Schema.Type<typeof RemoveProgress>;
 export const RemoveBackgroundData = Schema.Struct({
 	file: Schema.instanceOf(File),
 });
+
 export type RemoveBackgroundData = Schema.Schema.Type<
 	typeof RemoveBackgroundData
 >;
@@ -57,11 +59,11 @@ export interface RemoveBackgroundInput extends RemoveBackgroundData {
 const MB = 1024 * 1024;
 const MODEL_ID = "briaai/RMBG-1.4";
 
-const toModelLoadError = (err: unknown): ModelLoadError =>
+const toModelLoadError = (cause: unknown): ModelLoadError =>
 	new ModelLoadError({
 		message:
-			err instanceof Error
-				? err.message
+			cause instanceof Error
+				? cause.message
 				: "Could not load the background removal model.",
 	});
 
@@ -79,15 +81,18 @@ const buildPipeline = (
 			env.useBrowserCache = false;
 			env.useCustomCache = true;
 			env.customCache = modelCache;
+
 			// Self-host ONNX Runtime (default is jsdelivr, which fails offline).
 			if (env.backends.onnx.wasm)
 				env.backends.onnx.wasm.wasmPaths = ORT_ASSET_URLS;
+
 			const model = await pipeline("image-segmentation", MODEL_ID, {
 				device,
 				dtype: "fp32",
 				progress_callback: onEvent,
 			});
-			return model as unknown as SegmentationModel;
+
+			return model;
 		},
 		catch: toModelLoadError,
 	});
@@ -96,7 +101,7 @@ const buildPipeline = (
 // cache stays inside the Effect graph instead of a mutable `let` — mirrors the
 // engine singleton in video/engine.ts. Failures never reach Ref.set, so the user
 // can retry by clicking Proceed again.
-const modelRef = Ref.unsafeMake<Option.Option<SegmentationModel>>(
+const modelRef = Ref.makeUnsafe<Option.Option<SegmentationModel>>(
 	Option.none(),
 );
 
@@ -105,12 +110,15 @@ const loadPipeline = (
 ): Effect.Effect<SegmentationModel, ModelLoadError> =>
 	Effect.gen(function* () {
 		const cached = yield* Ref.get(modelRef);
+
 		if (Option.isSome(cached)) return cached.value;
 
 		const model = yield* buildPipeline("webgpu", onEvent).pipe(
-			Effect.orElse(() => buildPipeline("wasm", onEvent)),
+			Effect.catch(() => buildPipeline("wasm", onEvent)),
 		);
+
 		yield* Ref.set(modelRef, Option.some(model));
+
 		return model;
 	});
 
@@ -160,8 +168,10 @@ const decodeSourceToCanvas = (url: string): Promise<HTMLCanvasElement> =>
 		canvas.width = img.naturalWidth || img.width;
 		canvas.height = img.naturalHeight || img.height;
 		const ctx = canvas.getContext("2d");
+
 		if (!ctx) throw new Error("Canvas 2D context unavailable.");
 		ctx.drawImage(img, 0, 0);
+
 		return canvas;
 	});
 
@@ -171,9 +181,11 @@ const maskToDataUrl = (mask: RawImage): string => {
 	canvas.width = mask.width;
 	canvas.height = mask.height;
 	const ctx = canvas.getContext("2d");
+
 	if (!ctx) throw new Error("Canvas 2D context unavailable.");
 	const imageData = ctx.createImageData(mask.width, mask.height);
 	const data = mask.data;
+
 	for (let i = 0; i < data.length; i++) {
 		const v = data[i];
 		imageData.data[i * 4] = v;
@@ -181,7 +193,9 @@ const maskToDataUrl = (mask: RawImage): string => {
 		imageData.data[i * 4 + 2] = v;
 		imageData.data[i * 4 + 3] = 255;
 	}
+
 	ctx.putImageData(imageData, 0, 0);
+
 	return canvas.toDataURL();
 };
 
@@ -193,6 +207,7 @@ const composeCutout = async (
 ): Promise<Blob> => {
 	const { width, height } = sourceCanvas;
 	const ctx = sourceCanvas.getContext("2d");
+
 	if (!ctx) throw new Error("Canvas 2D context unavailable.");
 	const imageData = ctx.getImageData(0, 0, width, height);
 
@@ -201,6 +216,7 @@ const composeCutout = async (
 	maskCanvas.width = width;
 	maskCanvas.height = height;
 	const maskCtx = maskCanvas.getContext("2d");
+
 	if (!maskCtx) throw new Error("Canvas 2D context unavailable.");
 	maskCtx.drawImage(maskImg, 0, 0, width, height);
 	const maskData = maskCtx.getImageData(0, 0, width, height);
@@ -208,6 +224,7 @@ const composeCutout = async (
 	for (let i = 0; i < imageData.data.length; i += 4) {
 		imageData.data[i + 3] = maskData.data[i];
 	}
+
 	ctx.putImageData(imageData, 0, 0);
 
 	return new Promise<Blob>((resolve, reject) => {
@@ -231,15 +248,18 @@ const aggregateDownloadProgress = (
 	onProgress: ((p: RemoveProgress) => void) | undefined,
 ): ((e: ProgressInfo) => void) => {
 	const perFile = new Map<string, { loaded: number; total: number }>();
+
 	return (e) => {
 		if (e.status !== "progress" || e.total < MIN_PROGRESS_BYTES) return;
 		perFile.set(e.file, { loaded: e.loaded, total: e.total });
 		let loaded = 0;
 		let total = 0;
+
 		for (const f of perFile.values()) {
 			loaded += f.loaded;
 			total += f.total;
 		}
+
 		if (total === 0) return;
 		onProgress?.({
 			stage: "downloading",
@@ -326,6 +346,7 @@ export const removeBackground = (
 				});
 
 				const first = segments[0];
+
 				if (!first?.mask) {
 					return yield* new InferenceError({
 						fileName: input.file.name,
@@ -338,6 +359,7 @@ export const removeBackground = (
 					catch: (err) => {
 						const message =
 							err instanceof Error ? err.message : "Could not compose image.";
+
 						return message.toLowerCase().includes("decode")
 							? new DecodeError({ fileName: input.file.name, message })
 							: new EncodeError({

@@ -14,8 +14,10 @@ export const applyRotations = (
 			`Got ${rotations.length} rotations for ${pages.length} pages.`,
 		);
 	}
+
 	pages.forEach((page, i) => {
 		const delta = rotations[i];
+
 		if (delta === 0) return;
 		page.setRotation(degrees((page.getRotation().angle + delta) % 360));
 	});

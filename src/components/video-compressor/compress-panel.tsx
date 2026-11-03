@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { Ban, Download, Film, Loader2, Minimize2 } from "lucide-react";
 import { type Dispatch, useId } from "react";
+
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import {
@@ -67,6 +68,7 @@ export function CompressPanel({
 	} = state;
 
 	const verdict: ModeVerdict = resolveMode(state, file);
+
 	// The field's own message wins; the too-small message comes from a run.
 	const fieldMessage =
 		tab === "size"
@@ -74,9 +76,11 @@ export function CompressPanel({
 				? verdict.message
 				: sizeError
 			: null;
+
 	const minutes = estimateMinutes(file.size, "mp4");
 
 	let compressLabel = "Compress";
+
 	if (compressing)
 		compressLabel = percent > 0 ? `Compressing… ${percent}%` : "Compressing…";
 

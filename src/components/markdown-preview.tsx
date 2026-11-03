@@ -1,3 +1,4 @@
+import type { Properties } from "hast";
 import Markdown, { type Components } from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
@@ -20,6 +21,7 @@ import { MermaidDiagram } from "#/components/mermaid-diagram.tsx";
 // `ignoreMissing` keeps unknown languages — notably `mermaid` — as plain text
 // instead of throwing, so the mermaid source reaches our code override intact.
 const REMARK_PLUGINS: PluggableList = [remarkGfm];
+
 const REHYPE_PLUGINS: PluggableList = [
 	rehypeRaw,
 	rehypeSanitize,
@@ -28,7 +30,7 @@ const REHYPE_PLUGINS: PluggableList = [
 
 const MERMAID_CLASS = "language-mermaid";
 
-function hasMermaidClass(className: unknown): boolean {
+function hasMermaidClass(className: Properties[string]): boolean {
 	return Array.isArray(className) && className.includes(MERMAID_CLASS);
 }
 
@@ -36,10 +38,11 @@ function hasMermaidClass(className: unknown): boolean {
 // override swaps in the diagram component; the pre override drops the <pre>
 // chrome around it so the diagram isn't wrapped in a code block's styling.
 const COMPONENTS: Components = {
-	code({ className, children, node, ...props }) {
-		if (typeof className === "string" && className.includes(MERMAID_CLASS)) {
+	code({ className, children, node: _node, ...props }) {
+		if (className?.includes(MERMAID_CLASS)) {
 			return <MermaidDiagram chart={String(children)} />;
 		}
+
 		return (
 			<code className={className} {...props}>
 				{children}
@@ -48,12 +51,14 @@ const COMPONENTS: Components = {
 	},
 	pre({ children, node, ...props }) {
 		const firstChild = node?.children?.[0];
+
 		if (
 			firstChild?.type === "element" &&
 			hasMermaidClass(firstChild.properties?.className)
 		) {
 			return <>{children}</>;
 		}
+
 		return <pre {...props}>{children}</pre>;
 	},
 };

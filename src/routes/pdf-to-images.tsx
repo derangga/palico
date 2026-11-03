@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect, Option } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { Download, Loader2, RotateCcw } from "lucide-react";
 import { useState } from "react";
 
@@ -18,14 +18,13 @@ import {
 } from "#/components/ui/select.tsx";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
-import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
-	type PdfThumbnail,
-	type RasterDpi,
-	type RasterFormat,
+	RasterDpi,
+	RasterFormat,
 } from "#/lib/file/pdf-types.ts";
+import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
 
 export const Route = createFileRoute("/pdf-to-images")({
 	component: PdfToImagesPage,
@@ -44,6 +43,7 @@ function PdfToImagesPage() {
 	const [item, setItem] = useState<MergeItem | null>(null);
 	const [format, setFormat] = useState<RasterFormat>("png");
 	const [dpi, setDpi] = useState<RasterDpi>(150);
+
 	const [progress, setProgress] = useState<{
 		done: number;
 		total: number;
@@ -52,22 +52,24 @@ function PdfToImagesPage() {
 	async function loadFile(file: File) {
 		const id = crypto.randomUUID();
 		setItem({ id, file, status: "loading", thumbnail: null, pageCount: 0 });
-		let cover: PdfThumbnail | null = null;
+
 		const exit = await Effect.runPromiseExit(
-			loadPdf({ id, file, thumbnailLimit: 1 }, (thumbnail) => {
-				cover = thumbnail;
-			}),
+			loadPdf({ id, file, thumbnailLimit: 1 }, () => {}),
 		);
+
 		const result = toastOnExit(exit, `Couldn't open "${file.name}".`);
+
 		if (Option.isNone(result)) {
 			setItem(null);
+
 			return;
 		}
+
 		setItem({
 			id,
 			file,
 			status: "ready",
-			thumbnail: cover,
+			thumbnail: result.value.thumbnails[0] ?? null,
 			pageCount: result.value.pageCount,
 		});
 	}
@@ -75,14 +77,17 @@ function PdfToImagesPage() {
 	async function convert() {
 		if (!item) return;
 		setProgress({ done: 0, total: item.pageCount });
+
 		const exit = await Effect.runPromiseExit(
 			pdfToImages(
 				{ id: crypto.randomUUID(), file: item.file, format, dpi },
 				(done, total) => setProgress({ done, total }),
 			),
 		);
+
 		setProgress(null);
 		const result = toastOnExit(exit, "Couldn't turn this PDF into images.");
+
 		if (Option.isNone(result)) return;
 		downloadBlob(
 			result.value,
@@ -92,6 +97,7 @@ function PdfToImagesPage() {
 
 	const working = progress !== null;
 	const ready = item?.status === "ready";
+
 	const percent =
 		progress && progress.total > 0
 			? Math.round((progress.done / progress.total) * 100)
@@ -128,6 +134,7 @@ function PdfToImagesPage() {
 					ariaLabel="Choose a PDF to turn into images"
 					onFiles={(files) => {
 						const picked = files?.[0];
+
 						if (picked) void loadFile(picked);
 					}}
 				/>
@@ -154,7 +161,9 @@ function PdfToImagesPage() {
 							</span>
 							<Tabs
 								value={format}
-								onValueChange={(value) => setFormat(value as RasterFormat)}
+								onValueChange={(value) => {
+									if (Schema.is(RasterFormat)(value)) setFormat(value);
+								}}
 							>
 								<TabsList>
 									<TabsTrigger value="png" disabled={working}>
@@ -172,7 +181,9 @@ function PdfToImagesPage() {
 							</span>
 							<Select
 								value={dpi}
-								onValueChange={(value) => setDpi(value as RasterDpi)}
+								onValueChange={(value) => {
+									if (Schema.is(RasterDpi)(value)) setDpi(value);
+								}}
 								disabled={working}
 							>
 								<SelectTrigger className="w-64" aria-label="Resolution">
@@ -203,6 +214,7 @@ function PdfToImagesPage() {
 						<div>
 							<div
 								className="h-1 w-full overflow-hidden rounded-full bg-muted"
+								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- native <progress> cannot draw the striped fill.
 								role="progressbar"
 								aria-label="Pages converted"
 								aria-valuemin={0}

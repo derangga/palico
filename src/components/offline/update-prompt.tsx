@@ -43,8 +43,10 @@ export function UpdatePrompt() {
 	useEffect(() => {
 		if (update === "idle") {
 			toast.dismiss(UPDATE_ID);
+
 			return;
 		}
+
 		const canApply = busy === 0 && update === "waiting";
 		toast.info("A new version is ready", {
 			id: UPDATE_ID,
@@ -74,7 +76,9 @@ export function UpdatePrompt() {
 			event.preventDefault();
 			Effect.runSync(SubscriptionRef.set(reloadNeededRef, true));
 		};
+
 		window.addEventListener("vite:preloadError", onPreloadError);
+
 		return () =>
 			window.removeEventListener("vite:preloadError", onPreloadError);
 	}, []);

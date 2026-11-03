@@ -12,6 +12,7 @@
 import { Effect, Ref } from "effect";
 
 import { ORT_CACHE_NAME } from "#/lib/offline/cache-names.ts";
+
 import { ModelCacheError } from "./errors.ts";
 
 export const MODEL_CACHE_NAME = "palico-model-v1";
@@ -35,7 +36,8 @@ const openBucket = (name: string, op: "open" = "open") =>
 
 // Set when a cache write failed (quota, private mode). The offline status shows
 // "Not saved in this browser" instead of "Works offline".
-const writeDroppedRef = Ref.unsafeMake(false);
+const writeDroppedRef = Ref.makeUnsafe(false);
+
 export const modelCacheWriteDropped: Effect.Effect<boolean> =
 	Ref.get(writeDroppedRef);
 
@@ -52,7 +54,7 @@ const matchModel = (key: string) =>
 			}),
 		),
 		// A read failure is a miss; transformers.js then downloads the file.
-		Effect.catchAll(() => Effect.succeed(undefined)),
+		Effect.catch(() => Effect.succeed(undefined)),
 	);
 
 const putModel = (key: string, response: Response) =>
@@ -68,7 +70,7 @@ const putModel = (key: string, response: Response) =>
 			}),
 		),
 		// Swallow so this session still works; remember it for the status UI.
-		Effect.catchAll(() => Ref.set(writeDroppedRef, true)),
+		Effect.catch(() => Ref.set(writeDroppedRef, true)),
 	);
 
 // The one Promise-shaped seam: transformers.js calls these as plain async
@@ -86,16 +88,19 @@ export const modelCache = {
 export const prefetchOrtAssets = (urls: readonly string[]) =>
 	Effect.gen(function* () {
 		const cache = yield* openBucket(ORT_CACHE_NAME);
+
 		for (const url of urls) {
 			const hit = yield* Effect.tryPromise({
 				try: () => cache.match(url),
 				catch: (cause) =>
 					new ModelCacheError({ op: "match", message: String(cause) }),
 			});
+
 			if (hit) continue;
 			yield* Effect.tryPromise({
 				try: async () => {
 					const res = await fetch(url);
+
 					if (!res.ok) throw new Error(`${url} returned ${res.status}`);
 					await cache.put(url, res);
 				},
@@ -117,16 +122,20 @@ export const isModelCached = (
 		if (typeof caches === "undefined") return false;
 		const model = yield* openBucket(MODEL_CACHE_NAME);
 		const ort = yield* openBucket(ORT_CACHE_NAME);
+
 		const modelKeys = yield* Effect.tryPromise({
 			try: () => model.keys(),
 			catch: () => new ModelCacheError({ op: "match", message: "keys" }),
 		});
+
 		const hasModel = REQUIRED_MODEL_FILES.every((f) =>
 			modelKeys.some((r) => new URL(r.url).pathname.endsWith(f)),
 		);
+
 		const ortHits = yield* Effect.tryPromise({
 			try: () => Promise.all(ortUrls.map((u) => ort.match(u))),
 			catch: () => new ModelCacheError({ op: "match", message: "ort" }),
 		});
+
 		return hasModel && ortHits.every((h) => h !== undefined);
 	}).pipe(Effect.orElseSucceed(() => false));

@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { type CSSProperties, useRef } from "react";
+import { useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { useObjectUrl } from "#/hooks/use-object-url.ts";
@@ -21,6 +21,7 @@ export function ComparePanel({
 	const frameRef = useRef<HTMLDivElement>(null);
 	const beforeUrl = useObjectUrl(before);
 	const afterUrl = useObjectUrl(after);
+
 	if (!beforeUrl || !afterUrl) return null;
 
 	return (
@@ -44,7 +45,7 @@ export function ComparePanel({
 			<div
 				ref={frameRef}
 				className="relative overflow-hidden rounded-lg bg-muted"
-				style={{ "--split": "50%" } as CSSProperties}
+				style={{ "--split": "50%" }}
 			>
 				<img
 					src={beforeUrl}

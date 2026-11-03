@@ -51,6 +51,7 @@ export function PageGrid({
 
 	useEffect(() => {
 		const key = pendingFocus.current;
+
 		if (key === null) return;
 		pendingFocus.current = null;
 		cards.current.get(key)?.focus();
@@ -58,6 +59,7 @@ export function PageGrid({
 
 	const focusAt = (index: number) => {
 		const page = pages[Math.min(Math.max(index, 0), pages.length - 1)];
+
 		if (!page) return;
 		setActiveKey(page.key);
 		cards.current.get(page.key)?.focus();
@@ -66,13 +68,16 @@ export function PageGrid({
 	// Read the live column count so Up/Down follow the responsive layout.
 	const columns = () => {
 		const grid = gridRef.current;
+
 		if (!grid) return 1;
+
 		return getComputedStyle(grid).gridTemplateColumns.split(" ").length || 1;
 	};
 
 	const move = (index: number, to: number) => {
 		const page = pages[index];
 		const target = Math.min(Math.max(to, 0), pages.length - 1);
+
 		if (!page || target === index) return;
 		dispatch({ type: "move", from: index, to: target });
 		pendingFocus.current = page.key;
@@ -90,13 +95,16 @@ export function PageGrid({
 
 	const remove = (index: number) => {
 		const page = pages[index];
+
 		if (!page) return;
 		const neighbour = pages[index + 1] ?? pages[index - 1];
 		dispatch({ type: "remove", key: page.key });
+
 		if (neighbour) {
 			pendingFocus.current = neighbour.key;
 			setActiveKey(neighbour.key);
 		}
+
 		const left = pages.length - 1;
 		setAnnouncement(
 			`Page ${page.sourceIndex + 1} deleted, ${left} ${left === 1 ? "page" : "pages"} left.`,
@@ -106,17 +114,21 @@ export function PageGrid({
 	const onKeyDown = (e: KeyboardEvent<HTMLLIElement>, index: number) => {
 		// Leave keys on the card's own buttons to the buttons.
 		if (e.target !== e.currentTarget || disabled) return;
+
 		if (e.ctrlKey || e.metaKey) return;
-		const step: Record<string, number> = {
-			ArrowLeft: -1,
-			ArrowRight: 1,
-			ArrowUp: -columns(),
-			ArrowDown: columns(),
-		};
+
+		const step = new Map<string, number>([
+			["ArrowLeft", -1],
+			["ArrowRight", 1],
+			["ArrowUp", -columns()],
+			["ArrowDown", columns()],
+		]).get(e.key);
+
 		let handled = true;
-		if (e.key in step) {
-			if (e.altKey) move(index, index + step[e.key]);
-			else focusAt(index + step[e.key]);
+
+		if (step !== undefined) {
+			if (e.altKey) move(index, index + step);
+			else focusAt(index + step);
 		} else if (e.key === "Home") {
 			focusAt(0);
 		} else if (e.key === "End") {
@@ -128,6 +140,7 @@ export function PageGrid({
 		} else {
 			handled = false;
 		}
+
 		if (handled) e.preventDefault();
 	};
 
@@ -145,7 +158,9 @@ export function PageGrid({
 				{pages.map((page, index) => {
 					const active = index === activeIndex;
 					const tab = active && !disabled ? 0 : -1;
+
 					return (
+						// oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- focusable grid cell with roving tabindex and keyboard shortcuts.
 						<li
 							key={page.key}
 							ref={(el) => {
@@ -168,6 +183,7 @@ export function PageGrid({
 								e.preventDefault();
 								const from = dragFrom.current;
 								dragFrom.current = null;
+
 								if (from !== null) move(from, index);
 							}}
 							className={cn(

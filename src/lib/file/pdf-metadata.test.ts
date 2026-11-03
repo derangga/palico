@@ -15,12 +15,14 @@ const makePdf = async () => {
 	doc.setCreator("Microsoft Word");
 	doc.setCreationDate(new Date("2024-05-01T10:22:33Z"));
 	const ctx = doc.context;
+
 	const xmp = ctx.register(
 		ctx.stream("<x:xmpmeta>Jane Doe</x:xmpmeta>", {
 			Type: "Metadata",
 			Subtype: "XML",
 		}),
 	);
+
 	doc.catalog.set(PDFName.of("Metadata"), xmp);
 	// An info dictionary from an earlier save that nothing references any more.
 	ctx.register(
@@ -29,15 +31,18 @@ const makePdf = async () => {
 			Producer: PDFString.of("Old Word"),
 		}),
 	);
+
 	return doc.save({ useObjectStreams: false });
 };
 
 describe("readPdfMetadata", () => {
 	it("lists the info dictionary, XMP and orphaned info", async () => {
 		const report = readPdfMetadata(await loadForMetadata(await makePdf()));
+
 		const byLabel = Object.fromEntries(
 			report.fields.map((f) => [f.label, f.value]),
 		);
+
 		expect(byLabel.Title).toBe("Quarterly report");
 		expect(byLabel.Author).toBe("Jane Doe");
 		expect(byLabel["Created with"]).toBe("Microsoft Word");
@@ -52,6 +57,7 @@ describe("stripPdfMetadata", () => {
 		const { bytes, after } = await stripPdfMetadata(
 			await loadForMetadata(await makePdf()),
 		);
+
 		expect(after.fields).toEqual([]);
 
 		const reloaded = await loadForMetadata(bytes);
@@ -64,10 +70,13 @@ describe("stripPdfMetadata", () => {
 		const { bytes } = await stripPdfMetadata(
 			await loadForMetadata(await makePdf()),
 		);
+
 		const doc = await loadForMetadata(bytes);
+
 		const plain = new TextDecoder("latin1").decode(
 			await doc.save({ useObjectStreams: false }),
 		);
+
 		expect(plain).not.toContain("Jane Doe");
 		expect(plain).not.toContain("Old Name");
 		expect(plain).not.toContain("pdf-lib");

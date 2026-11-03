@@ -12,6 +12,7 @@ function DarkClassSync() {
 	useEffect(() => {
 		document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
 	}, [resolvedTheme]);
+
 	return null;
 }
 

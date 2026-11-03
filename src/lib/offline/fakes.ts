@@ -1,5 +1,6 @@
 // Test doubles for the three host services. Not imported by app code.
 import { Effect, Layer, Queue, Stream } from "effect";
+
 import { StorageUnavailableError } from "./errors.ts";
 import {
 	CacheHost,
@@ -33,6 +34,7 @@ export const makeFakeSw = (
 		}),
 		activateWaiting: Effect.suspend(() => {
 			calls.activate++;
+
 			return opts.controllerChangeOnActivate === false
 				? Effect.void
 				: Queue.offer(controllerChanges, undefined).pipe(Effect.asVoid);
@@ -45,6 +47,7 @@ export const makeFakeSw = (
 		register: () =>
 			Effect.sync(() => {
 				calls.register++;
+
 				return handle;
 			}),
 		awaitControllerChange: Queue.take(controllerChanges),
@@ -66,6 +69,7 @@ export const makeFakeSw = (
 
 export const makeFakeCache = (initial: readonly string[]) => {
 	const names = new Set(initial);
+
 	const layer = Layer.succeed(CacheHost, {
 		keys: Effect.sync(() => [...names]),
 		delete: (name) =>
@@ -73,6 +77,7 @@ export const makeFakeCache = (initial: readonly string[]) => {
 				names.delete(name);
 			}),
 	});
+
 	return { layer, names };
 };
 
@@ -82,22 +87,25 @@ export const makeFakeStorage = (opts: {
 	persist?: boolean;
 }) => {
 	const calls = { persist: 0 };
+
 	const layer = Layer.succeed(StorageHost, {
 		estimate: opts.unavailable
 			? Effect.fail(new StorageUnavailableError({ message: "none" }))
 			: Effect.succeed(opts.estimate),
 		persist: Effect.sync(() => {
 			calls.persist++;
+
 			return opts.persist ?? true;
 		}),
 		persisted: Effect.succeed(opts.persist ?? true),
 	});
+
 	return { layer, calls };
 };
 
 // Lets forked fibers run to their next suspension point.
 export const settle = Effect.forEach(
 	Array.from({ length: 25 }),
-	() => Effect.yieldNow(),
+	() => Effect.yieldNow,
 	{ discard: true },
 );

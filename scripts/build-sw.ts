@@ -52,6 +52,7 @@ const { count, size, warnings } = await injectManifest({
 });
 
 for (const w of warnings) console.warn(w);
+
 console.log(
 	`sw.js: precaching ${count} files, ${(size / 1024 / 1024).toFixed(1)} MB`,
 );

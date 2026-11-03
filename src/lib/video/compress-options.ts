@@ -4,9 +4,10 @@
 // it statically. The pipeline that uses these lives in compress.ts (dynamic
 // import only).
 
-import { Schema } from "effect";
+import { Data, Schema } from "effect";
 
-export const CompressQuality = Schema.Literal("high", "medium", "low");
+export const CompressQuality = Schema.Literals(["high", "medium", "low"]);
+
 export type CompressQuality = Schema.Schema.Type<typeof CompressQuality>;
 
 export const CRF_BY_QUALITY: Record<CompressQuality, number> = {
@@ -23,10 +24,12 @@ export const QUALITY_OPTIONS: ReadonlyArray<{
 	{ value: "medium", label: "Medium" },
 	{ value: "low", label: "Low" },
 ];
+
 export const DEFAULT_QUALITY: CompressQuality = "medium";
 
 // The SHORT side in pixels, so portrait video keeps its orientation.
-export const Resolution = Schema.Literal("original", "1080", "720", "480");
+export const Resolution = Schema.Literals(["original", "1080", "720", "480"]);
+
 export type Resolution = Schema.Schema.Type<typeof Resolution>;
 
 export const RESOLUTION_OPTIONS: ReadonlyArray<{
@@ -38,15 +41,34 @@ export const RESOLUTION_OPTIONS: ReadonlyArray<{
 	{ value: "720", label: "720p" },
 	{ value: "480", label: "480p" },
 ];
+
 export const DEFAULT_RESOLUTION: Resolution = "original";
 
-export const CompressMode = Schema.Union(
-	Schema.TaggedStruct("size", { targetMB: Schema.Number }),
-	Schema.TaggedStruct("quality", { quality: CompressQuality }),
-);
+export const CompressMode = Schema.TaggedUnion({
+	size: { targetMB: Schema.Number },
+	quality: { quality: CompressQuality },
+});
+
 export type CompressMode = Schema.Schema.Type<typeof CompressMode>;
 
-export const SizeChoice = Schema.Literal("10", "25", "50", "custom");
+// What compressOne returns. Lives here, not in compress.ts, so the route can
+// branch on it without pulling the engine into its bundle.
+export type CompressOutput = Data.TaggedEnum<{
+	compressed: {
+		readonly blob: Blob;
+		readonly name: string;
+		readonly size: number;
+		// Size mode only: the result is over the target despite the cap.
+		readonly overTarget: boolean;
+	};
+	// The output was not smaller than the source, so the source is kept.
+	kept: { readonly size: number };
+}>;
+
+export const CompressOutput = Data.taggedEnum<CompressOutput>();
+
+export const SizeChoice = Schema.Literals(["10", "25", "50", "custom"]);
+
 export type SizeChoice = Schema.Schema.Type<typeof SizeChoice>;
 
 export const SIZE_PRESETS: ReadonlyArray<{
@@ -58,6 +80,7 @@ export const SIZE_PRESETS: ReadonlyArray<{
 	{ value: "25", mb: 25, label: "25 MB (Email)" },
 	{ value: "50", mb: 50, label: "50 MB" },
 ];
+
 export const DEFAULT_SIZE_CHOICE: SizeChoice = "25";
 
 // Decimal MB: the stricter reading of "10 MB" on upload sites.
@@ -74,10 +97,13 @@ export const startsOnQuality = (fileBytes: number): boolean =>
 
 export const AUDIO_KBPS_SIZE = 96;
 export const AUDIO_KBPS_QUALITY = 128;
+
 // Below this the picture is not worth keeping; ask for a bigger target.
 export const MIN_VIDEO_KBPS = 150;
+
 // 5% of the target is left for the MP4 container.
 const CONTAINER_MARGIN = 0.95;
+
 // -bufsize is 2 s of video, so a capped encode can overshoot by that much.
 const BUFFER_SECONDS = 2;
 
@@ -93,12 +119,16 @@ export const planVideoKbps = (
 ): BitratePlan => {
 	const budgetBits = targetBytes(targetMB) * 8 * CONTAINER_MARGIN;
 	const audioBits = AUDIO_KBPS_SIZE * 1000 * durationSec;
+
 	const videoKbps = Math.floor(
 		(budgetBits - audioBits) / (durationSec + BUFFER_SECONDS) / 1000,
 	);
+
 	if (videoKbps >= MIN_VIDEO_KBPS) return { kind: "ok", videoKbps };
+
 	const neededBits =
 		MIN_VIDEO_KBPS * 1000 * (durationSec + BUFFER_SECONDS) + audioBits;
+
 	return {
 		kind: "too-small",
 		minMB: Math.ceil(neededBits / (8 * CONTAINER_MARGIN) / 1_000_000),
@@ -115,15 +145,18 @@ export const checkCustomSize = (
 	fileBytes: number,
 ): CustomSizeVerdict => {
 	const mb = Number(text);
+
 	if (text.trim() === "" || !Number.isFinite(mb) || mb <= 0) {
 		return { kind: "invalid", message: "Enter a size in MB." };
 	}
+
 	if (isUnderTarget(fileBytes, mb)) {
 		return {
 			kind: "invalid",
 			message: "This video is already under that size.",
 		};
 	}
+
 	return { kind: "ok", mb };
 };
 
@@ -131,5 +164,6 @@ export const checkCustomSize = (
 export const compressedFileName = (srcName: string): string => {
 	const dot = srcName.lastIndexOf(".");
 	const base = dot > 0 ? srcName.slice(0, dot) : srcName;
+
 	return `${base}-compressed.mp4`;
 };

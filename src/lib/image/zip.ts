@@ -8,16 +8,15 @@ import { ZipError } from "./errors.ts";
 export const createZip = (
 	files: Record<string, Uint8Array>,
 ): Effect.Effect<Blob, ZipError> =>
-	Effect.async<Blob, ZipError>((resume) => {
+	Effect.callback<Blob, ZipError>((resume) => {
 		zip(files, { level: 0 }, (err, data) => {
 			if (err) {
 				resume(Effect.fail(new ZipError({ message: err.message })));
 			} else {
-				resume(
-					Effect.succeed(
-						new Blob([data as BlobPart], { type: "application/zip" }),
-					),
-				);
+				// SAFETY: fflate allocates the zip output itself with new Uint8Array, so
+				// it is backed by a plain ArrayBuffer, never a SharedArrayBuffer.
+				const bytes = data as Uint8Array<ArrayBuffer>;
+				resume(Effect.succeed(new Blob([bytes], { type: "application/zip" })));
 			}
 		});
 	});

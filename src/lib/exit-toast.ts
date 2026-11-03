@@ -6,7 +6,7 @@
 //   toast.error(failure?.message ?? fallback);
 // That version only inspected `Fail` causes, so a `Die`/defect was silently
 // dropped (toasted the fallback but never logged). Building on
-// `Cause.failureOption` surfaces the typed failure's `message`, and logging the
+// `Cause.findErrorOption` surfaces the typed failure's `message`, and logging the
 // pretty cause covers defects too.
 
 import { Cause, Exit, Option } from "effect";
@@ -23,11 +23,14 @@ export const toastOnExit = <A, E extends { readonly message: string }>(
 		onSuccess: Option.some,
 		onFailure: (cause) => {
 			console.error(Cause.pretty(cause));
-			const message = Option.match(Cause.failureOption(cause), {
+
+			const message = Option.match(Cause.findErrorOption(cause), {
 				onNone: () => fallback,
 				onSome: (error) => error.message,
 			});
+
 			toast.error(message);
+
 			return Option.none();
 		},
 	});

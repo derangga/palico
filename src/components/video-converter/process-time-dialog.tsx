@@ -1,5 +1,6 @@
 import { Clock } from "lucide-react";
 import { useId } from "react";
+
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -41,6 +42,7 @@ export function ProcessTimeDialog({
 	// Files ≥50MB always warn — the checkbox can't suppress them, so hide it.
 	const suppressible = largest < 50 * MB;
 	const minutes = estimateMinutes(largest, format);
+
 	const formatLabel =
 		VIDEO_OUTPUT_FORMATS.find((f) => f.value === format)?.label ??
 		format.toUpperCase();

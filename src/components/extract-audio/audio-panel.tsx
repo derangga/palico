@@ -1,6 +1,7 @@
-import { Either } from "effect";
+import { Result } from "effect";
 import { AudioLines, Ban, Download, Film, Loader2 } from "lucide-react";
 import { useId } from "react";
+
 import type { AudioResult } from "#/components/extract-audio/state.ts";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -45,6 +46,7 @@ export function AudioPanel({
 	const formatLabelId = useId();
 
 	let extractLabel = "Extract audio";
+
 	if (extracting)
 		extractLabel = percent > 0 ? `Extracting… ${percent}%` : "Extracting…";
 
@@ -74,7 +76,8 @@ export function AudioPanel({
 							value={format}
 							onValueChange={(value) => {
 								const parsed = parseAudioFormat(value);
-								if (Either.isRight(parsed)) onChangeFormat(parsed.right);
+
+								if (Result.isSuccess(parsed)) onChangeFormat(parsed.success);
 							}}
 							disabled={extracting}
 						>

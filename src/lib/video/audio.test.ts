@@ -1,4 +1,4 @@
-import { Either, Option } from "effect";
+import { Option, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -18,6 +18,7 @@ describe("buildAudioArgs", () => {
 			["opus", "opus"],
 			["wav", "pcm_s16le"],
 		];
+
 		for (const [format, codec] of cases) {
 			const { args, copied } = buildAudioArgs(
 				"input.mp4",
@@ -25,6 +26,7 @@ describe("buildAudioArgs", () => {
 				format,
 				{ codec_name: codec, channels: 6 },
 			);
+
 			expect(copied).toBe(true);
 			expect(args).toEqual([
 				"-i",
@@ -55,20 +57,24 @@ describe("buildAudioArgs", () => {
 				copied: false,
 			},
 		);
+
 		const m4a = buildAudioArgs("input.webm", "output.m4a", "m4a", {
 			codec_name: "opus",
 			channels: 2,
 		});
+
 		expect(m4a.copied).toBe(false);
 		expect(m4a.args).toContain("aac");
 	});
 
 	it("downmixes surround to stereo for MP3 and Opus only", () => {
 		const surround = { codec_name: "ac3", channels: 6 };
+
 		for (const format of ["mp3", "opus"] as const) {
 			const { args } = buildAudioArgs("in.mkv", "out", format, surround);
 			expect(args.slice(-3)).toEqual(["-ac", "2", "out"]);
 		}
+
 		for (const format of ["m4a", "wav"] as const) {
 			const { args } = buildAudioArgs("in.mkv", "out", format, surround);
 			expect(args).not.toContain("-ac");
@@ -81,6 +87,7 @@ describe("buildAudioArgs", () => {
 				codec_name: "aac",
 				channels,
 			});
+
 			expect(args).not.toContain("-ac");
 		}
 	});
@@ -97,20 +104,23 @@ describe("parseAudioProbe", () => {
 			programs: [],
 			streams: [{ codec_name: "aac", channels: 2 }],
 		});
-		expect(parseAudioProbe(json)).toEqual(Either.right(Option.some(aacStereo)));
+
+		expect(parseAudioProbe(json)).toEqual(
+			Result.succeed(Option.some(aacStereo)),
+		);
 	});
 
 	it("returns None when the video has no audio", () => {
 		expect(parseAudioProbe('{"programs":[],"streams":[]}')).toEqual(
-			Either.right(Option.none()),
+			Result.succeed(Option.none()),
 		);
-		expect(parseAudioProbe("{}")).toEqual(Either.right(Option.none()));
+		expect(parseAudioProbe("{}")).toEqual(Result.succeed(Option.none()));
 	});
 
 	it("fails on output that is not ffprobe JSON", () => {
-		expect(Either.isLeft(parseAudioProbe("not json"))).toBe(true);
-		expect(Either.isLeft(parseAudioProbe('{"streams":[{"channels":2}]}'))).toBe(
-			true,
-		);
+		expect(Result.isFailure(parseAudioProbe("not json"))).toBe(true);
+		expect(
+			Result.isFailure(parseAudioProbe('{"streams":[{"channels":2}]}')),
+		).toBe(true);
 	});
 });

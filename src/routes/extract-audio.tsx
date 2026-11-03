@@ -3,6 +3,7 @@ import { Cause, Effect, Exit, Option } from "effect";
 import { AudioLines } from "lucide-react";
 import { useReducer, useRef } from "react";
 import { toast } from "sonner";
+
 import { Dropzone } from "#/components/dropzone.tsx";
 import { AudioPanel } from "#/components/extract-audio/audio-panel.tsx";
 import {
@@ -59,22 +60,27 @@ function ExtractShell() {
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
+
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
 			toast.error(`"${f.name}" is not a video.`);
+
 			return;
 		}
 
 		// The video stream is never decoded, so memory is mostly the staged file:
 		// the cutter's larger caps apply.
 		const verdict = checkCutterFileSize(f.size, deviceClass());
+
 		if (verdict.kind === "rejected") {
 			toast.error(
 				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
 			);
+
 			return;
 		}
+
 		if (verdict.kind === "warn") {
 			toast(
 				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while extracting.`,
@@ -96,10 +102,12 @@ function ExtractShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { loadEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(loadEngine(() => {}));
+
 			if (token.cancelled) return;
 
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { extractAudio } = await import("#/lib/video/extract-audio.ts");
+
 			const exit = await Effect.runPromiseExit(
 				withBusy(
 					extractAudio(
@@ -111,6 +119,7 @@ function ExtractShell() {
 					),
 				),
 			);
+
 			if (token.cancelled) return;
 
 			if (Exit.isSuccess(exit)) {
@@ -127,10 +136,11 @@ function ExtractShell() {
 			} else {
 				// Every failure (EngineNotLoadedError | NoAudioTrackError |
 				// AudioExtractError) carries a typed, user-facing `message`.
-				const message = Option.match(Cause.failureOption(exit.cause), {
+				const message = Option.match(Cause.findErrorOption(exit.cause), {
 					onNone: () => "Could not extract the audio.",
 					onSome: (error) => error.message,
 				});
+
 				toast.error(message);
 			}
 		} catch (err) {
@@ -148,6 +158,7 @@ function ExtractShell() {
 	async function handleCancel() {
 		cancelTokenRef.current.cancelled = true;
 		dispatch({ type: "cancelStart" });
+
 		try {
 			const { disposeEngine } = await import("#/lib/video/engine.ts");
 			await Effect.runPromise(disposeEngine);

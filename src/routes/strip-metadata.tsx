@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Effect, Either } from "effect";
+import { Effect, Result, Exit } from "effect";
 import { FileArchive, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -47,25 +47,28 @@ function StripMetadataPage() {
 		if (!fileList) return;
 		const room = Math.max(MAX_FILES - items.length, 0);
 		const files = Array.from(fileList);
+
 		if (files.length > room) {
 			toast.error(`You can check up to ${MAX_FILES} files at a time.`);
 		}
+
 		const added: MetadataItem[] = files.slice(0, room).map((file) => ({
 			id: crypto.randomUUID(),
 			file,
 			status: "reading",
 		}));
+
 		if (added.length === 0) return;
 		setItems((prev) => [...prev, ...added]);
 
 		Effect.runPromise(
 			forEachFile(added, inspectFile, (id, result) =>
-				Either.isRight(result)
+				Result.isSuccess(result)
 					? update(id, {
-							status: result.right.fields.length > 0 ? "found" : "nothing",
-							before: result.right,
+							status: result.success.fields.length > 0 ? "found" : "nothing",
+							before: result.success,
 						})
-					: update(id, { status: "error", message: result.left.message }),
+					: update(id, { status: "error", message: result.failure.message }),
 			),
 		);
 	}
@@ -75,34 +78,39 @@ function StripMetadataPage() {
 			id,
 			file,
 		}));
+
 		if (targets.length === 0) return;
 		setIsRunning(true);
+
 		for (const t of targets)
 			update(t.id, { status: "stripping", message: undefined });
 
-		let ok = 0;
+		const cleaned = new Set<string>();
 		await Effect.runPromise(
 			forEachFile(targets, stripFile, (id, result) => {
-				if (Either.isRight(result)) {
-					ok++;
+				if (Result.isSuccess(result)) {
+					cleaned.add(id);
 					update(id, {
 						status: "clean",
-						blob: result.right.blob,
-						after: result.right.after,
+						blob: result.success.blob,
+						after: result.success.after,
 					});
 				} else {
-					update(id, { status: "error", message: result.left.message });
+					update(id, { status: "error", message: result.failure.message });
 				}
 			}),
 		);
 		setIsRunning(false);
+		const ok = cleaned.size;
 
 		if (ok > 0) {
 			toast.success(
 				`Removed hidden data from ${ok} file${ok === 1 ? "" : "s"}.`,
 			);
 		}
+
 		const failed = targets.length - ok;
+
 		if (failed > 0) {
 			toast.error(
 				`${failed} file${failed === 1 ? "" : "s"} could not be cleaned.`,
@@ -112,22 +120,30 @@ function StripMetadataPage() {
 
 	async function handleDownloadZip() {
 		const names = uniqueNames(cleanItems.map((i) => i.file.name));
+
 		const program = Effect.gen(function* () {
 			const entries: Record<string, Uint8Array> = {};
+
 			for (const [i, item] of cleanItems.entries()) {
 				const blob = item.blob;
+
 				if (!blob) continue;
 				entries[names[i]] = new Uint8Array(
 					yield* Effect.promise(() => blob.arrayBuffer()),
 				);
 			}
+
 			return yield* createZip(entries);
 		});
+
 		const exit = await Effect.runPromiseExit(program);
-		if (exit._tag !== "Success") {
+
+		if (Exit.isFailure(exit)) {
 			toast.error("Could not build the zip file.");
+
 			return;
 		}
+
 		downloadBlob(exit.value, "palico-cleaned.zip");
 	}
 

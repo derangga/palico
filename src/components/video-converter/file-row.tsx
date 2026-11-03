@@ -1,4 +1,5 @@
 import { Download, Film, X } from "lucide-react";
+
 import { useJustDone } from "#/components/done-burst.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { StatusBadge } from "#/components/video-converter/status-badge.tsx";
@@ -33,7 +34,7 @@ export function FileRow({
 				<p className="text-xs text-muted-foreground">
 					{formatBytes(item.file.size)}
 					{item.status === "processing" &&
-						typeof item.percent === "number" &&
+						item.percent !== undefined &&
 						` · ${item.percent}%`}
 					{item.status === "done" &&
 						item.outSize != null &&

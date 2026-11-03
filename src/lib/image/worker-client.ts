@@ -22,6 +22,7 @@ export const WorkerOutput = Schema.Struct({
 	quality: Schema.Number,
 	targetMet: Schema.Boolean,
 });
+
 export type WorkerOutput = Schema.Schema.Type<typeof WorkerOutput>;
 
 // Spin up a one-shot worker, transfer the bytes in, await the single response,
@@ -54,9 +55,10 @@ export const runImageWorker = (params: {
 				),
 		),
 		(worker) =>
-			Effect.async<WorkerOutput, ConvertError>((resume) => {
+			Effect.callback<WorkerOutput, ConvertError>((resume) => {
 				worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
 					const res = event.data;
+
 					if (res.ok) {
 						resume(
 							Effect.succeed({
@@ -69,8 +71,10 @@ export const runImageWorker = (params: {
 								targetMet: res.targetMet,
 							}),
 						);
+
 						return;
 					}
+
 					switch (res.reason) {
 						case "dimensions":
 							resume(
@@ -107,6 +111,7 @@ export const runImageWorker = (params: {
 							);
 					}
 				};
+
 				worker.onerror = (event) => {
 					resume(
 						Effect.fail(
@@ -117,6 +122,7 @@ export const runImageWorker = (params: {
 						),
 					);
 				};
+
 				worker.postMessage(
 					{
 						id: params.id,

@@ -9,12 +9,13 @@
 // so the file is staged once and a too-small target fails before any encode.
 // Quality mode skips the probe.
 
-import { Effect, Either, Schema } from "effect";
+import { Effect, Result, Schema } from "effect";
 
 import {
 	AUDIO_KBPS_QUALITY,
 	AUDIO_KBPS_SIZE,
-	type CompressMode,
+	CompressMode,
+	CompressOutput,
 	CRF_BY_QUALITY,
 	compressedFileName,
 	planVideoKbps,
@@ -37,23 +38,12 @@ export interface CompressInput {
 	readonly resolution: Resolution;
 }
 
-export type CompressOutput =
-	| {
-			readonly _tag: "compressed";
-			readonly blob: Blob;
-			readonly name: string;
-			readonly size: number;
-			// Size mode only: the result is over the target despite the cap.
-			readonly overTarget: boolean;
-	  }
-	// The output was not smaller than the source, so the source is kept.
-	| { readonly _tag: "kept"; readonly size: number };
-
 // Short side of `n` px, never upscaled, both sides even (yuv420p needs it).
 // The quotes are filtergraph quoting so the commas stay inside the expression.
 export const scaleFilter = (resolution: Resolution): string => {
 	if (resolution === "original") return "scale=trunc(iw/2)*2:trunc(ih/2)*2";
 	const n = resolution;
+
 	return `scale='if(gte(iw,ih),-2,trunc(min(iw,${n})/2)*2)':'if(gte(iw,ih),trunc(min(ih,${n})/2)*2,-2)'`;
 };
 
@@ -66,18 +56,21 @@ export const buildCompressArgs = (
 	resolution: Resolution,
 	videoKbps = 0,
 ): string[] => {
-	const rate =
-		mode._tag === "size"
-			? [
-					"-b:v",
-					`${videoKbps}k`,
-					"-maxrate",
-					`${videoKbps}k`,
-					"-bufsize",
-					`${videoKbps * 2}k`,
-				]
-			: ["-crf", String(CRF_BY_QUALITY[mode.quality])];
-	const audioKbps = mode._tag === "size" ? AUDIO_KBPS_SIZE : AUDIO_KBPS_QUALITY;
+	const rate = CompressMode.guards.size(mode)
+		? [
+				"-b:v",
+				`${videoKbps}k`,
+				"-maxrate",
+				`${videoKbps}k`,
+				"-bufsize",
+				`${videoKbps * 2}k`,
+			]
+		: ["-crf", String(CRF_BY_QUALITY[mode.quality])];
+
+	const audioKbps = CompressMode.guards.size(mode)
+		? AUDIO_KBPS_SIZE
+		: AUDIO_KBPS_QUALITY;
+
 	return [
 		"-i",
 		inputName,
@@ -106,28 +99,29 @@ export const buildCompressArgs = (
 };
 
 // ffprobe writes durations as strings ("12.345000"), or leaves them out.
-const DurationProbe = Schema.parseJson(
+const DurationProbe = Schema.fromJsonString(
 	Schema.Struct({
 		format: Schema.Struct({
 			duration: Schema.optional(Schema.NumberFromString),
 		}),
 	}),
 );
-const decodeDurationProbe = Schema.decodeUnknownEither(DurationProbe);
 
-// ffprobe JSON (`-show_entries format=duration -of json`) → seconds, Left when
+const decodeDurationProbe = Schema.decodeUnknownResult(DurationProbe);
+
+// ffprobe JSON (`-show_entries format=duration -of json`) → seconds, Failure when
 // the duration is missing, not a number, or not positive.
 export const parseDurationProbe = (
 	json: string,
-): Either.Either<number, string> =>
-	Either.flatMap(
-		Either.mapLeft(decodeDurationProbe(json), (e) => e.message),
+): Result.Result<number, string> =>
+	Result.flatMap(
+		Result.mapError(decodeDurationProbe(json), (e) => e.message),
 		({ format }) =>
 			format.duration !== undefined &&
 			Number.isFinite(format.duration) &&
 			format.duration > 0
-				? Either.right(format.duration)
-				: Either.left("No duration in probe output."),
+				? Result.succeed(format.duration)
+				: Result.fail("No duration in probe output."),
 	);
 
 const NO_LENGTH = "Could not read this video's length. Try Quality mode.";
@@ -157,12 +151,15 @@ const sizeModeArgs = (
 			unreadable: NO_LENGTH,
 			error: (message) => new VideoCompressError({ fileName, message }),
 		});
-		const duration = yield* Either.match(parseDurationProbe(json), {
-			onLeft: () =>
+
+		const duration = yield* Result.match(parseDurationProbe(json), {
+			onFailure: () =>
 				Effect.fail(new VideoCompressError({ fileName, message: NO_LENGTH })),
-			onRight: (seconds) => Effect.succeed(seconds),
+			onSuccess: (seconds) => Effect.succeed(seconds),
 		});
+
 		const plan = planVideoKbps(targetMB, duration);
+
 		if (plan.kind === "too-small") {
 			return yield* new TargetTooSmallError({
 				fileName,
@@ -171,10 +168,11 @@ const sizeModeArgs = (
 				message: `This video needs at least ${plan.minMB} MB at this length.`,
 			});
 		}
+
 		return buildCompressArgs(
 			inputName,
 			outputName,
-			{ _tag: "size", targetMB },
+			CompressMode.cases.size.make({ targetMB }),
 			resolution,
 			plan.videoKbps,
 		);
@@ -190,6 +188,7 @@ export const compressOne = (
 		const { file, mode, resolution } = input;
 		const inputName = `input.${inputExtension(file)}`;
 		const outputName = "output.mp4";
+
 		const error = (message: string) =>
 			new VideoCompressError({ fileName: file.name, message });
 
@@ -198,18 +197,17 @@ export const compressOne = (
 			file,
 			inputName,
 			outputName,
-			args:
-				mode._tag === "size"
-					? (engine) =>
-							sizeModeArgs(
-								engine,
-								inputName,
-								outputName,
-								file.name,
-								mode.targetMB,
-								resolution,
-							)
-					: buildCompressArgs(inputName, outputName, mode, resolution),
+			args: CompressMode.guards.size(mode)
+				? (engine) =>
+						sizeModeArgs(
+							engine,
+							inputName,
+							outputName,
+							file.name,
+							mode.targetMB,
+							resolution,
+						)
+				: buildCompressArgs(inputName, outputName, mode, resolution),
 			outputMime: "video/mp4",
 			label: "Encoder",
 			oomMessage: "Your device ran out of memory. Try 720p or a smaller file.",
@@ -219,16 +217,17 @@ export const compressOne = (
 		});
 
 		if (blob.size >= file.size) {
-			return { _tag: "kept", size: file.size } as const;
+			return CompressOutput.kept({ size: file.size });
 		}
-		return {
-			_tag: "compressed",
+
+		return CompressOutput.compressed({
 			blob,
 			name: compressedFileName(file.name),
 			size: blob.size,
 			overTarget:
-				mode._tag === "size" && blob.size > targetBytes(mode.targetMB),
-		} as const;
+				CompressMode.guards.size(mode) &&
+				blob.size > targetBytes(mode.targetMB),
+		});
 	});
 
 // Compress one video. Fails with EngineNotLoadedError when the engine isn't
@@ -246,11 +245,13 @@ export const compressVideo = (
 > =>
 	Effect.gen(function* () {
 		const ffmpeg = yield* getEngine;
+
 		if (isCancelled()) {
 			return yield* new VideoCompressError({
 				fileName: input.file.name,
 				message: "Cancelled.",
 			});
 		}
+
 		return yield* compressOne(ffmpeg, input, onPercent);
 	});
