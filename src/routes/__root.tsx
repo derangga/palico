@@ -78,6 +78,7 @@ const PAGE_CRUMBS: Record<string, { group?: string; title: string }> = {
 	"/favicon-generator": { group: "Image", title: "Favicon Generator" },
 	"/video-converter": { group: "Video", title: "Converter" },
 	"/video-cutter": { group: "Video", title: "Cutter" },
+	"/video-compressor": { group: "Video", title: "Compress" },
 	"/video-to-gif": { group: "Video", title: "To GIF" },
 	"/extract-audio": { group: "Video", title: "Extract Audio" },
 	"/markdown-preview": { group: "File", title: "Markdown Preview" },

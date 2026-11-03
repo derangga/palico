@@ -18,13 +18,14 @@ import {
 	buildAudioArgs,
 	parseAudioProbe,
 } from "./audio.ts";
-import { disposeEngine, type EngineHandle, getEngine } from "./engine.ts";
+import { type EngineHandle, getEngine } from "./engine.ts";
 import {
 	AudioExtractError,
 	type EngineNotLoadedError,
 	NoAudioTrackError,
 } from "./errors.ts";
 import { runFfmpegJob } from "./ffmpeg-job.ts";
+import { readProbeJson } from "./probe.ts";
 import { inputExtension, outputFileName } from "./types.ts";
 
 export interface ExtractAudioInput {
@@ -40,64 +41,31 @@ export interface ExtractAudioOutput {
 	readonly copied: boolean;
 }
 
-const PROBE_FILE = "probe.json";
-
 const UNREADABLE = "Could not read the audio in this video.";
 
-// ffprobe the staged input for its first audio stream. Deletes probe.json on
-// every exit path. A thrown ffprobe means the wasm instance died, so it is
-// disposed like a thrown exec in runFfmpegJob.
+// ffprobe the staged input for its first audio stream.
 const probeAudio = (
 	ffmpeg: EngineHandle,
 	inputName: string,
 	fileName: string,
 ): Effect.Effect<AudioStream, AudioExtractError | NoAudioTrackError> =>
 	Effect.gen(function* () {
-		const result = yield* Effect.promise(
-			(): Promise<
-				| { readonly _tag: "done" }
-				| { readonly _tag: "threw"; readonly message: string }
-			> =>
-				ffmpeg
-					.ffprobe([
-						"-v",
-						"error",
-						"-select_streams",
-						"a:0",
-						"-show_entries",
-						"stream=codec_name,channels",
-						"-of",
-						"json",
-						inputName,
-						"-o",
-						PROBE_FILE,
-					])
-					.then(() => ({ _tag: "done" as const }))
-					.catch((cause) => ({
-						_tag: "threw" as const,
-						message:
-							cause instanceof Error && cause.message
-								? cause.message
-								: UNREADABLE,
-					})),
-		);
-
-		if (result._tag === "threw") {
-			yield* disposeEngine;
-			return yield* new AudioExtractError({
-				fileName,
-				message: result.message,
-			});
-		}
-		// The exit code is not checked: core-mt 0.12.10's ffprobe returns -1 even
-		// on success (checked in the browser). probe.json is the signal: a failed
-		// probe leaves none or leaves invalid JSON, and both fail below.
-		const data = yield* Effect.tryPromise({
-			try: () => ffmpeg.readFile(PROBE_FILE),
-			catch: () => new AudioExtractError({ fileName, message: UNREADABLE }),
+		const json = yield* readProbeJson({
+			ffmpeg,
+			args: [
+				"-v",
+				"error",
+				"-select_streams",
+				"a:0",
+				"-show_entries",
+				"stream=codec_name,channels",
+				"-of",
+				"json",
+				inputName,
+			],
+			unreadable: UNREADABLE,
+			error: (message) => new AudioExtractError({ fileName, message }),
 		});
-		const json =
-			typeof data === "string" ? data : new TextDecoder().decode(data);
 
 		const parsed = parseAudioProbe(json);
 		if (Either.isLeft(parsed)) {
@@ -113,13 +81,7 @@ const probeAudio = (
 				),
 			onSome: (stream) => Effect.succeed(stream),
 		});
-	}).pipe(
-		Effect.ensuring(
-			Effect.tryPromise(() => ffmpeg.deleteFile(PROBE_FILE)).pipe(
-				Effect.ignore,
-			),
-		),
-	);
+	});
 
 const extractOne = (
 	ffmpeg: EngineHandle,

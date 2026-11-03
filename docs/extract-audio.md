@@ -63,7 +63,8 @@ ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,channels -o
 - A thrown ffprobe means the wasm instance died, so the engine is disposed, like
   a thrown exec.
 
-`probe.json` is deleted on every exit path.
+`probe.json` is deleted on every exit path. The run, dispose and cleanup steps
+live in `readProbeJson` (`probe.ts`), shared with Compress Video.
 
 ### How the probe fits the job runner
 
