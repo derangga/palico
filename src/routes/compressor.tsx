@@ -31,8 +31,10 @@ import {
 } from "#/lib/image/compressor.ts";
 import { MAX_DIMENSION, MAX_FILE_BYTES, MAX_FILES } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/compressor")({
+	head: () => seoHead("/compressor"),
 	component: CompressorPage,
 });
 

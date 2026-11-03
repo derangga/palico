@@ -32,8 +32,10 @@ import {
 	outputFileName,
 } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/converter")({
+	head: () => seoHead("/converter"),
 	component: ConverterPage,
 });
 

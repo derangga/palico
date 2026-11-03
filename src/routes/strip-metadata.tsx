@@ -22,8 +22,10 @@ import {
 	stripFile,
 } from "#/lib/metadata/metadata.ts";
 import { ACCEPTED_MIME_TYPES } from "#/lib/metadata/types.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/strip-metadata")({
+	head: () => seoHead("/strip-metadata"),
 	component: StripMetadataPage,
 });
 

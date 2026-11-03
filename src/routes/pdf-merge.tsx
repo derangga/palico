@@ -12,8 +12,10 @@ import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/pdf-merge")({
+	head: () => seoHead("/pdf-merge"),
 	component: PdfMergePage,
 });
 

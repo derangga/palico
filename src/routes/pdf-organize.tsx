@@ -15,8 +15,10 @@ import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/pdf-organize")({
+	head: () => seoHead("/pdf-organize"),
 	component: PdfOrganizePage,
 });
 

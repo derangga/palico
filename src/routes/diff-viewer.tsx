@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { DiffViewerSkeleton } from "#/components/page-skeletons.tsx";
+import { seoHead } from "#/lib/seo.ts";
 
 // The workspace pulls in @pierre/diffs + its worker; keep it lazy so the rest
 // of the app isn't weighed down by the diff engine. It also owns the persistent
@@ -9,6 +10,7 @@ import { DiffViewerSkeleton } from "#/components/page-skeletons.tsx";
 const DiffWorkspace = lazy(() => import("#/components/diff-workspace.tsx"));
 
 export const Route = createFileRoute("/diff-viewer")({
+	head: () => seoHead("/diff-viewer"),
 	component: DiffViewerPage,
 });
 

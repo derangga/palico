@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
 import { MarkdownPreviewSkeleton } from "#/components/page-skeletons.tsx";
+import { seoHead } from "#/lib/seo.ts";
 
 // react-markdown + its remark/rehype plugins (and, later, mermaid) are a chunk
 // of their own; keep the workspace lazy so the rest of the app isn't weighed
@@ -13,6 +14,7 @@ const MarkdownWorkspace = lazy(() =>
 );
 
 export const Route = createFileRoute("/markdown-preview")({
+	head: () => seoHead("/markdown-preview"),
 	component: MarkdownPreviewPage,
 });
 

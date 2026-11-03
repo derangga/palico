@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import "#/components/home/home.css";
 import { ToolTile } from "#/components/home/tool-tile.tsx";
 import { buttonVariants } from "#/components/ui/button.tsx";
+import { seoHead } from "#/lib/seo.ts";
 import { CATEGORY_STYLES, toolGroups } from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
 
@@ -14,7 +15,14 @@ const SEEN_KEY = "palico-home-seen";
 const SEEN_SCRIPT = `try{if(sessionStorage.getItem("${SEEN_KEY}"))document.documentElement.dataset.homeSeen="1"}catch(e){}`;
 
 export const Route = createFileRoute("/")({
-	head: () => ({ scripts: [{ children: SEEN_SCRIPT }] }),
+	head: () => {
+		const seo = seoHead("/");
+
+		return {
+			...seo,
+			scripts: [...seo.scripts, { children: SEEN_SCRIPT }],
+		};
+	},
 	component: Home,
 });
 

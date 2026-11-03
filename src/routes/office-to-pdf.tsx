@@ -8,8 +8,10 @@ import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { isEngineCached, type LoadPhase } from "#/lib/file/office-types.ts";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/office-to-pdf")({
+	head: () => seoHead("/office-to-pdf"),
 	component: OfficeToPdfPage,
 });
 
