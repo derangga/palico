@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Cause, Effect, Either, Exit, Option } from "effect";
 import { Scissors } from "lucide-react";
-import { useEffect, useReducer, useRef } from "react";
+import { useReducer, useRef } from "react";
 import { toast } from "sonner";
 import { Dropzone } from "#/components/dropzone.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
-import { CutterStage } from "#/components/video-cutter/cutter-stage.tsx";
+import { VideoClipStage } from "#/components/video-clip-stage.tsx";
 import {
 	cutterReducer,
 	initialCutterState,
@@ -13,17 +13,15 @@ import {
 import { TrimPanel } from "#/components/video-cutter/trim-panel.tsx";
 import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
+import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize } from "#/lib/video/limits.ts";
-import { generateThumbnails } from "#/lib/video/thumbnails.ts";
 import { inputExtension, parseVideoOutputFormat } from "#/lib/video/types.ts";
 
 export const Route = createFileRoute("/video-cutter")({
 	component: VideoCutterPage,
 });
-
-const SKIP_SECONDS = 5;
 
 // Static consent copy — hoisted to module scope so it isn't rebuilt each render
 // and doesn't force VideoEnginePanel to redraw.
@@ -59,82 +57,12 @@ function VideoCutterPage() {
 }
 
 function CutterShell() {
-	const videoRef = useRef<HTMLVideoElement>(null);
-	const objectUrlRef = useRef<string | null>(null);
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
+	const player = useClipPlayer();
+	const { file, duration, start, end } = player;
 
 	const [state, dispatch] = useReducer(cutterReducer, initialCutterState);
-	const {
-		file,
-		objectUrl,
-		duration,
-		start,
-		end,
-		currentTime,
-		isPlaying,
-		thumbnails,
-		trimming,
-		cancelling,
-		output,
-	} = state;
-
-	// Revoke the preview URL when the component unmounts. Reading
-	// objectUrlRef.current at unmount is intentional — it revokes whatever URL
-	// is current then; earlier URLs are already revoked on file-change and clear.
-	// react-doctor-disable-next-line react-doctor/exhaustive-deps
-	useEffect(() => {
-		return () => {
-			if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-		};
-	}, []);
-
-	// Drive the playhead from a continuous rAF that reads the <video> element
-	// directly, so it tracks smoothly during playback and stays correct on
-	// seek/pause — independent of how reliably play/pause events fire. When
-	// playback reaches the end of the selection we pause (no auto-loop) and clamp
-	// the playhead to the end.
-	useEffect(() => {
-		if (!objectUrl) return;
-		let raf = 0;
-		const tick = () => {
-			const v = videoRef.current;
-			if (v) {
-				if (!v.paused && v.currentTime >= end) {
-					v.pause();
-					v.currentTime = end;
-				}
-				dispatch({ type: "setCurrentTime", value: v.currentTime });
-			}
-			raf = requestAnimationFrame(tick);
-		};
-		raf = requestAnimationFrame(tick);
-		return () => cancelAnimationFrame(raf);
-	}, [objectUrl, end]);
-
-	// Build the filmstrip as soon as a file is picked. Failure is non-fatal:
-	// the timeline simply renders a plain track.
-	useEffect(() => {
-		if (!file) {
-			dispatch({ type: "setThumbnails", value: [] });
-			return;
-		}
-		let cancelled = false;
-		Effect.runPromiseExit(generateThumbnails(file)).then((exit) => {
-			if (cancelled) return;
-			if (Exit.isSuccess(exit))
-				dispatch({ type: "setThumbnails", value: [...exit.value] });
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [file]);
-
-	function openFile(f: File) {
-		if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-		const url = URL.createObjectURL(f);
-		objectUrlRef.current = url;
-		dispatch({ type: "openFile", file: f, objectUrl: url });
-	}
+	const { trimming, cancelling, output } = state;
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
@@ -163,60 +91,13 @@ function CutterShell() {
 			);
 		}
 
-		openFile(f);
-	}
-
-	function onLoadedMetadata() {
-		const v = videoRef.current;
-		if (!v) return;
-		const d = Number.isFinite(v.duration) ? v.duration : 0;
-		dispatch({ type: "loadedMetadata", duration: d });
-	}
-
-	function seekTo(sec: number) {
-		const v = videoRef.current;
-		if (!v) return;
-		// Keep the playhead inside the kept range so it can't sit in the dimmed regions.
-		const clamped = Math.min(Math.max(sec, start), end);
-		v.currentTime = clamped;
-		dispatch({ type: "setCurrentTime", value: clamped });
-	}
-
-	function restart() {
-		const v = videoRef.current;
-		if (!v) return;
-		v.currentTime = start;
-		dispatch({ type: "setCurrentTime", value: start });
-		void v.play();
-	}
-
-	function togglePlay() {
-		const v = videoRef.current;
-		if (!v) return;
-		if (v.paused) {
-			if (v.currentTime < start || v.currentTime >= end) v.currentTime = start;
-			void v.play();
-		} else {
-			v.pause();
-		}
-	}
-
-	function changeStart(sec: number) {
-		dispatch({ type: "setStart", value: sec });
-		if (currentTime < sec) seekTo(sec);
-	}
-
-	function changeEnd(sec: number) {
-		dispatch({ type: "setEnd", value: sec });
-		if (currentTime > sec) seekTo(sec);
+		player.openFile(f);
+		dispatch({ type: "clearOutput" });
 	}
 
 	function reset() {
-		if (objectUrlRef.current) {
-			URL.revokeObjectURL(objectUrlRef.current);
-			objectUrlRef.current = null;
-		}
-		dispatch({ type: "reset" });
+		player.reset();
+		dispatch({ type: "clearOutput" });
 	}
 
 	async function handleProceed() {
@@ -311,26 +192,10 @@ function CutterShell() {
 				// finishing a trim never shoves the player around. Mobile/tablet
 				// (≤768px) collapses to a single stacked column.
 				<div className="grid items-start gap-4 min-[769px]:grid-cols-[minmax(0,1fr)_22rem]">
-					<CutterStage
-						videoRef={videoRef}
-						objectUrl={objectUrl}
-						currentTime={currentTime}
-						duration={duration}
-						isPlaying={isPlaying}
-						start={start}
-						end={end}
-						thumbnails={thumbnails}
-						trimming={trimming}
-						onLoadedMetadata={onLoadedMetadata}
-						onPlay={() => dispatch({ type: "setPlaying", value: true })}
-						onPause={() => dispatch({ type: "setPlaying", value: false })}
-						onSeekBack={() => seekTo(currentTime - SKIP_SECONDS)}
-						onSeekForward={() => seekTo(currentTime + SKIP_SECONDS)}
-						onTogglePlay={togglePlay}
-						onRestart={restart}
-						onChangeStart={changeStart}
-						onChangeEnd={changeEnd}
-						onScrub={seekTo}
+					<VideoClipStage
+						player={player}
+						disabled={trimming}
+						note="Cuts snap to the nearest keyframe, so the clip may start up to a second or two before your selection."
 					/>
 
 					<TrimPanel

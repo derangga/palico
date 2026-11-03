@@ -40,6 +40,16 @@ export class VideoTrimError extends Schema.TaggedError<VideoTrimError>()(
 	},
 ) {}
 
+// The GIF tool re-encodes to a palette GIF; a distinct tag keeps its failures
+// apart from the converter's per-format VideoEncodeError.
+export class VideoGifError extends Schema.TaggedError<VideoGifError>()(
+	"VideoGifError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 // Surfaces from the engine loader (cache.ts / engine.ts). `stage` mirrors the
 // LoadPhase that was in flight when the failure landed, so the UI can keep
 // the user oriented even after a mid-flight error.
