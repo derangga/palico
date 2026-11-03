@@ -12,6 +12,7 @@ import { GifPanel } from "#/components/video-gif/gif-panel.tsx";
 import { gifReducer, initialGifState } from "#/components/video-gif/state.ts";
 import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	fitLongSide,
@@ -115,16 +116,18 @@ function GifShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { makeGif } = await import("#/lib/video/gif.ts");
 			const exit = await Effect.runPromiseExit(
-				makeGif(
-					{
-						file,
-						startSec: start,
-						endSec: end,
-						fps,
-						width: dimensions.width,
-						height: dimensions.height,
-					},
-					() => token.cancelled,
+				withBusy(
+					makeGif(
+						{
+							file,
+							startSec: start,
+							endSec: end,
+							fps,
+							width: dimensions.width,
+							height: dimensions.height,
+						},
+						() => token.cancelled,
+					),
 				),
 			);
 			if (token.cancelled) return;

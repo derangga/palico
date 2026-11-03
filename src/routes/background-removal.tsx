@@ -24,19 +24,28 @@ import {
 	EmptyTitle,
 } from "#/components/ui/empty.tsx";
 import {
+	isBackgroundModelCached,
 	isModelLoaded,
 	loadBackgroundModel,
 	removeBackground,
 } from "#/lib/image/background-removal.ts";
 import type { BackgroundRemovalError } from "#/lib/image/errors.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
+import type { StorageQuotaError } from "#/lib/offline/errors.ts";
+import { guardedEngineLoad } from "#/lib/offline/gate.ts";
+import { offlineRuntime } from "#/lib/offline/runtime.ts";
 
 // One-time download the consent gate negotiates before the model is fetched.
-const MODEL_SIZE_LABEL = "~180MB";
+// ~180 MB weights + ~21 MB ONNX Runtime.
+const MODEL_SIZE_LABEL = "~200MB";
 
-function userMessageFor(failure: BackgroundRemovalError | undefined): string {
+function userMessageFor(
+	failure: BackgroundRemovalError | StorageQuotaError | undefined,
+): string {
 	switch (failure?._tag) {
 		case "FileTooLargeError":
 		case "DimensionsTooLargeError":
+		case "StorageQuotaError":
 			return failure.message;
 		case "ModelLoadError":
 			return "Couldn't prepare the background tool. Check your connection and try again.";
@@ -83,12 +92,15 @@ function BackgroundRemovalPage() {
 
 	const startDownload = useCallback(async () => {
 		setGate({ kind: "downloading", percent: 0 });
-		const exit = await Effect.runPromiseExit(
-			loadBackgroundModel((p) => {
-				if (p.stage === "downloading") {
-					setGate({ kind: "downloading", percent: p.percent });
-				}
-			}),
+		const exit = await offlineRuntime.runPromiseExit(
+			guardedEngineLoad(
+				"bg-model",
+				loadBackgroundModel((p) => {
+					if (p.stage === "downloading") {
+						setGate({ kind: "downloading", percent: p.percent });
+					}
+				}),
+			),
 		);
 		if (exit._tag === "Success") {
 			setGate({ kind: "ready" });
@@ -103,20 +115,24 @@ function BackgroundRemovalPage() {
 	}, []);
 
 	// On mount: if the model is already in this session's module Ref (SPA
-	// re-navigation), skip straight to the tool. Otherwise front the download
-	// with the consent gate. We can't cheaply detect a prior visit's
-	// browser-cached model, so a full page reload shows the gate again.
+	// re-navigation), skip straight to the tool. If a past visit stored it in the
+	// Cache API, build it from there without asking again (no download happens).
+	// Otherwise front the download with the consent gate.
 	useEffect(() => {
 		let cancelled = false;
 		(async () => {
 			const loaded = await Effect.runPromise(isModelLoaded);
 			if (cancelled) return;
-			setGate(loaded ? { kind: "ready" } : { kind: "consent" });
+			if (loaded) return setGate({ kind: "ready" });
+			const cached = await Effect.runPromise(isBackgroundModelCached);
+			if (cancelled) return;
+			if (cached) return void startDownload();
+			setGate({ kind: "consent" });
 		})();
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [startDownload]);
 
 	const sourceUrl = useMemo(
 		() => (source ? URL.createObjectURL(source) : null),
@@ -167,7 +183,7 @@ function BackgroundRemovalPage() {
 		setStatus("processing");
 
 		const exit = await Effect.runPromiseExit(
-			removeBackground({ file: source }),
+			withBusy(removeBackground({ file: source })),
 		);
 
 		if (exit._tag === "Success") {
@@ -360,9 +376,9 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 				dialogDescription={
 					<>
 						Background removal runs entirely on your device, but it needs a
-						one-time {MODEL_SIZE_LABEL} AI model. Your browser caches it after
-						the first download, so future use is faster. Nothing leaves your
-						browser.
+						one-time {MODEL_SIZE_LABEL} AI model. Your browser keeps it after
+						the first download, so later visits work without a connection.
+						Nothing leaves your browser.
 					</>
 				}
 				onConfirm={onStart}

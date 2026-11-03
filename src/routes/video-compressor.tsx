@@ -14,6 +14,7 @@ import {
 import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { withBusy } from "#/lib/offline/busy.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkFileSize } from "#/lib/video/limits.ts";
 
@@ -103,12 +104,14 @@ function CompressShell() {
 			// react-doctor-disable-next-line react-doctor/async-defer-await
 			const { compressVideo } = await import("#/lib/video/compress.ts");
 			const exit = await Effect.runPromiseExit(
-				compressVideo(
-					{ file, mode, resolution: state.resolution },
-					() => token.cancelled,
-					(p) => {
-						if (!token.cancelled) dispatch({ type: "progress", percent: p });
-					},
+				withBusy(
+					compressVideo(
+						{ file, mode, resolution: state.resolution },
+						() => token.cancelled,
+						(p) => {
+							if (!token.cancelled) dispatch({ type: "progress", percent: p });
+						},
+					),
 				),
 			);
 			if (token.cancelled) return;

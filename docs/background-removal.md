@@ -43,8 +43,10 @@ closes with the real problems we hit while building it and how each was resolved
   is no server round-trip per image.
 - **One-time, consented download.** The model is ~180 MB. The route fronts it with
   the same `DownloadConsentDialog` the video engine uses, so the user opts in
-  before any bytes are fetched. After the first download the browser's HTTP cache
-  serves it, so subsequent sessions are faster.
+  before any bytes are fetched. After the first download the weights and the
+  ONNX Runtime files are stored in the Cache API (`palico-model-v1`, `palico-ort-v1`),
+  so later visits skip the consent gate and the tool works offline (see
+  [offline-pwa.md](./offline-pwa.md)).
 - **Single image at a time.** This is a focused single-file tool (pick → preview →
   proceed → result), not a batch queue. There is no `MAX_FILES`.
 - **Transparent PNG out.** The output is always a PNG with an alpha channel — the
@@ -167,9 +169,16 @@ The pipeline build lives in `buildPipeline(device, onEvent)`, wrapped in
 1. `await import("@huggingface/transformers")` — kept dynamic so transformers.js
    never lands in the route bundle.
 2. `env.allowLocalModels = false` — only the CDN model is used.
-3. `env.useBrowserCache = false` — the transformers.js Cache-API layer is unreliable
-   on iOS Safari; disabling it falls back to the browser's ordinary HTTP cache (see
-   [Problems we faced](#problems-we-faced)).
+3. `env.useCustomCache = true` with `env.customCache = modelCache`
+   (`src/lib/image/model-cache.ts`), a `{ match, put }` object over our own Cache API
+   bucket, so `isBackgroundModelCached` can answer "will this work offline?". The
+   default transformers.js cache was unreliable on iOS Safari, so the 180 MB write must
+   be checked on a real iPhone; if the browser does not keep it, the status shows "Not
+   saved on this device".
+3a. `env.backends.onnx.wasm.wasmPaths` points at same-origin ORT files
+   (`src/lib/image/ort-assets.ts`). The default is jsdelivr, which fails offline. The
+   consented download also stores them in `palico-ort-v1`, and the service worker serves
+   them from there.
 4. `pipeline("image-segmentation", "briaai/RMBG-1.4", { device, dtype: "fp32", progress_callback })`.
 
 The built pipeline is memoized in a module-level `Ref<Option<SegmentationModel>>`
@@ -375,13 +384,14 @@ cause the early spike.
 
 ### 2. The model wouldn't cache on iOS Safari
 
-transformers.js defaults to storing weights via the Cache API, which behaves
-unreliably inside iOS Safari (and in some embedded webviews) — downloads appeared
-to "re-fetch" every visit. Setting `env.useBrowserCache = false` disables that layer
-and lets the ordinary browser HTTP cache hold the weights, which is reliable
-cross-browser. The trade-off is that we can't *introspect* the cache to skip the
-consent gate on a cold page load, so a full reload re-shows the gate (an SPA
-re-navigation, however, reuses the in-memory `Ref`).
+transformers.js defaults to storing weights via the Cache API, which behaved
+unreliably inside iOS Safari (and in some embedded webviews): downloads appeared to
+"re-fetch" every visit. We first disabled that layer (`env.useBrowserCache = false`) and
+relied on the HTTP cache, but the HTTP cache cannot be queried, so the consent gate
+reappeared on every reload and the tool could not work offline. It now uses a custom
+cache over our own Cache API bucket (`src/lib/image/model-cache.ts`), the same mechanism
+as the ffmpeg and ZetaOffice engines. Whether iOS keeps a 180 MB write there is
+unverified on a device; see [offline-pwa.md](./offline-pwa.md#testing).
 
 ### 3. WebGPU isn't everywhere
 

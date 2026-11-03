@@ -1,7 +1,12 @@
 import { useRouterState } from "@tanstack/react-router";
 import type { ComponentProps, ReactNode } from "react";
 
-import { CATEGORY_STYLES, categoryOfPath } from "#/lib/tool-categories.ts";
+import { OfflineInfo } from "#/components/offline/offline-info.tsx";
+import {
+	CATEGORY_STYLES,
+	categoryOfPath,
+	TOOLS,
+} from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
 
 const WIDTHS = {
@@ -37,6 +42,7 @@ export function PageHeader({
 }) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const category = categoryOfPath(pathname);
+	const tool = TOOLS.find((t) => t.to === pathname);
 
 	return (
 		<div className="mb-6 flex items-start justify-between gap-4">
@@ -54,6 +60,7 @@ export function PageHeader({
 							{CATEGORY_STYLES[category].label}
 						</span>
 					)}
+					{tool && <OfflineInfo engine={tool.engine} />}
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">{children}</p>
 			</div>
