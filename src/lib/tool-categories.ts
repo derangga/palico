@@ -11,6 +11,7 @@ import {
 	Scaling,
 	Scissors,
 	ScrollText,
+	Shrink,
 	Star,
 } from "lucide-react";
 
@@ -49,6 +50,13 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		label: "Image Resizer",
 		blurb: "Resize by pixels or percentage.",
 		icon: Scaling,
+		category: "image",
+	},
+	{
+		to: "/compressor",
+		label: "Compress Image",
+		blurb: "Make images smaller without resizing.",
+		icon: Shrink,
 		category: "image",
 	},
 	{

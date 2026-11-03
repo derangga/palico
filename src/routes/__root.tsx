@@ -73,6 +73,7 @@ const PAGE_CRUMBS: Record<string, { group?: string; title: string }> = {
 	"/": { title: "Home" },
 	"/converter": { group: "Image", title: "Converter" },
 	"/resizer": { group: "Image", title: "Resizer" },
+	"/compressor": { group: "Image", title: "Compress" },
 	"/background-removal": { group: "Image", title: "Remove Background" },
 	"/favicon-generator": { group: "Image", title: "Favicon Generator" },
 	"/video-converter": { group: "Video", title: "Converter" },

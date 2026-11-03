@@ -20,6 +20,7 @@ import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
+import { Route as CompressorRouteImport } from './routes/compressor'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -78,6 +79,11 @@ const ConverterRoute = ConverterRouteImport.update({
   path: '/converter',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompressorRoute = CompressorRouteImport.update({
+  id: '/compressor',
+  path: '/compressor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BackgroundRemovalRoute = BackgroundRemovalRouteImport.update({
   id: '/background-removal',
   path: '/background-removal',
@@ -92,6 +98,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/background-removal'
+    | '/compressor'
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/background-removal'
+    | '/compressor'
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/background-removal'
+    | '/compressor'
     | '/converter'
     | '/diff-viewer'
     | '/favicon-generator'
@@ -186,6 +198,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackgroundRemovalRoute: typeof BackgroundRemovalRoute
+  CompressorRoute: typeof CompressorRoute
   ConverterRoute: typeof ConverterRoute
   DiffViewerRoute: typeof DiffViewerRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConverterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compressor': {
+      id: '/compressor'
+      path: '/compressor'
+      fullPath: '/compressor'
+      preLoaderRoute: typeof CompressorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/background-removal': {
       id: '/background-removal'
       path: '/background-removal'
@@ -298,6 +318,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackgroundRemovalRoute: BackgroundRemovalRoute,
+  CompressorRoute: CompressorRoute,
   ConverterRoute: ConverterRoute,
   DiffViewerRoute: DiffViewerRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,

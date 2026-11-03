@@ -28,8 +28,9 @@ Read the matching file before starting that kind of work.
   before any UI or copy change.
 - `DESIGN.md`: colour tokens, typography, components, motion. Read it before
   any UI work.
-- `docs/background-removal.md`, `docs/metadata-stripper.md`,
-  `docs/office-to-pdf.md`, `docs/video-converter.md`, `docs/video-cutter.md`:
+- `docs/background-removal.md`, `docs/image-compressor.md`,
+  `docs/metadata-stripper.md`, `docs/office-to-pdf.md`,
+  `docs/video-converter.md`, `docs/video-cutter.md`:
   how each tool works end to end and why it is built that way.
 - `docs/image-worker-crashed-debugging.md`: the checklist for an "Image worker
   crashed" error in production.

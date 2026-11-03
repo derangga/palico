@@ -64,6 +64,11 @@ export const WorkerRequest = Schema.Struct({
 	// dimensions (converter); when present, it is scaled to these (resizer).
 	targetWidth: Schema.optional(Schema.Number),
 	targetHeight: Schema.optional(Schema.Number),
+	// Compressor only. With targetBytes, `quality` is the ceiling of a search
+	// for the highest quality that fits (see quality-search.ts). fillWhite paints
+	// a white background first so transparent pixels don't encode as black JPEG.
+	targetBytes: Schema.optional(Schema.Number),
+	fillWhite: Schema.optional(Schema.Boolean),
 });
 export type WorkerRequest = Schema.Schema.Type<typeof WorkerRequest>;
 
@@ -75,6 +80,8 @@ export const WorkerResponse = Schema.Union(
 		width: Schema.Number,
 		height: Schema.Number,
 		size: Schema.Number,
+		quality: Schema.Number,
+		targetMet: Schema.Boolean,
 	}),
 	Schema.Struct({
 		id: Schema.String,

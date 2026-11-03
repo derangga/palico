@@ -55,7 +55,9 @@ export const ProgressUpdate = Schema.Union(
 );
 export type ProgressUpdate = Schema.Schema.Type<typeof ProgressUpdate>;
 
-const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
+export const validateSize = (
+	file: File,
+): Effect.Effect<void, FileTooLargeError> =>
 	file.size > MAX_FILE_BYTES
 		? Effect.fail(
 				new FileTooLargeError({

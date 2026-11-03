@@ -19,6 +19,8 @@ export const WorkerOutput = Schema.Struct({
 	width: Schema.Number,
 	height: Schema.Number,
 	size: Schema.Number,
+	quality: Schema.Number,
+	targetMet: Schema.Boolean,
 });
 export type WorkerOutput = Schema.Schema.Type<typeof WorkerOutput>;
 
@@ -36,6 +38,8 @@ export const runImageWorker = (params: {
 	readonly quality: number;
 	readonly targetWidth?: number;
 	readonly targetHeight?: number;
+	readonly targetBytes?: number;
+	readonly fillWhite?: boolean;
 }): Effect.Effect<WorkerOutput, ConvertError> =>
 	Effect.acquireUseRelease(
 		Effect.sync(
@@ -61,6 +65,8 @@ export const runImageWorker = (params: {
 								width: res.width,
 								height: res.height,
 								size: res.size,
+								quality: res.quality,
+								targetMet: res.targetMet,
 							}),
 						);
 						return;
@@ -121,6 +127,8 @@ export const runImageWorker = (params: {
 						maxDimension: MAX_DIMENSION,
 						targetWidth: params.targetWidth,
 						targetHeight: params.targetHeight,
+						targetBytes: params.targetBytes,
+						fillWhite: params.fillWhite,
 					},
 					[params.buffer],
 				);
