@@ -14,11 +14,18 @@ import {
 // too. The bundled asset keeps everything offline — nothing is fetched at runtime.
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
+import {
+	MAX_RASTER_TOTAL_PIXELS,
+	memberName,
+	RASTER_JPEG_QUALITY,
+	rasterSize,
+} from "#/lib/file/pdf-raster.ts";
 import type {
 	ExtractRequest,
 	MergeRequest,
 	PdfWorkerRequest,
 	PdfWorkerResponse,
+	RasterizeRequest,
 	ReadMetadataRequest,
 	RenderRequest,
 	SplitRequest,
@@ -262,6 +269,10 @@ async function extract(req: ExtractRequest): Promise<void> {
 		return;
 	}
 	const pages = await out.copyPages(src, [...req.pageIndices]);
+	if (req.rotations) {
+		const { applyRotations } = await import("#/lib/file/pdf-organize.ts");
+		applyRotations(pages, req.rotations);
+	}
 	for (const page of pages) out.addPage(page);
 	const bytes = await out.save();
 	// Hand back a standalone, exactly-sized ArrayBuffer we can transfer.
@@ -378,6 +389,126 @@ async function stripMetadata(req: StripMetadataRequest): Promise<void> {
 	post({ type: "stripped", id: req.id, bytes: buffer, after }, [buffer]);
 }
 
+// PDF to Images. Holds at most one page canvas and one encoded page at a time:
+// each page is rendered, encoded, added to a streaming zip, and every zip chunk
+// is transferred to the main thread as soon as fflate emits it.
+async function rasterize(req: RasterizeRequest): Promise<void> {
+	const { Zip, ZipPassThrough } = await import("fflate");
+	const loadingTask = getDocument({
+		data: new Uint8Array(req.buffer),
+		CanvasFactory: OffscreenCanvasFactory,
+		FilterFactory: NoopFilterFactory,
+	});
+	let doc: PDFDocumentProxy;
+	try {
+		doc = await loadingTask.promise;
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+		return;
+	}
+
+	try {
+		const pageCount = doc.numPages;
+		if (pageCount > req.maxPages) {
+			post({
+				type: "error",
+				id: req.id,
+				reason: "too-many-pages",
+				message: `This PDF has ${pageCount} pages, over the ${req.maxPages}-page limit.`,
+				pageCount,
+			});
+			return;
+		}
+
+		// Size every page first (no rendering) so an over-budget job fails
+		// before any work, not halfway through.
+		const sizes: ReturnType<typeof rasterSize>[] = [];
+		let totalPixels = 0;
+		for (let n = 1; n <= pageCount; n++) {
+			const page = await doc.getPage(n);
+			const base = page.getViewport({ scale: 1 });
+			const size = rasterSize(base.width, base.height, req.dpi);
+			sizes.push(size);
+			totalPixels += size.width * size.height;
+		}
+		if (totalPixels > MAX_RASTER_TOTAL_PIXELS) {
+			post({
+				type: "error",
+				id: req.id,
+				reason: "too-large",
+				message:
+					req.dpi > 72
+						? `This PDF is too big to turn into images at ${req.dpi} DPI in your browser. Try a lower DPI.`
+						: "This PDF is too big to turn into images in your browser.",
+			});
+			return;
+		}
+
+		const mime = req.format === "png" ? "image/png" : "image/jpeg";
+		const ext = req.format === "png" ? "png" : "jpg";
+		let pagesDone = 0;
+		let finish!: () => void;
+		let fail!: (err: Error) => void;
+		const finished = new Promise<void>((resolve, reject) => {
+			finish = resolve;
+			fail = reject;
+		});
+		const zip = new Zip((err, chunk, final) => {
+			if (err) {
+				fail(err);
+				return;
+			}
+			// Copy: a pass-through chunk can be a view of a larger buffer, and
+			// transferring that would detach bytes fflate still needs.
+			const bytes = chunk.slice().buffer as ArrayBuffer;
+			post({ type: "zip-chunk", id: req.id, bytes, pagesDone, pageCount }, [
+				bytes,
+			]);
+			if (final) finish();
+		});
+
+		for (let n = 1; n <= pageCount; n++) {
+			const { width, height, scale } = sizes[n - 1];
+			const page = await doc.getPage(n);
+			const viewport = page.getViewport({ scale });
+			const canvas = new OffscreenCanvas(width, height);
+			const ctx = canvas.getContext("2d");
+			if (!ctx) throw new Error("Could not get a 2D canvas context.");
+			// JPEG has no alpha, and a transparent PNG page looks broken in most
+			// viewers, so every page starts white.
+			ctx.fillStyle = "#fff";
+			ctx.fillRect(0, 0, width, height);
+			await page.render({
+				canvas: null,
+				canvasContext: ctx as unknown as CanvasRenderingContext2D,
+				viewport,
+			}).promise;
+			page.cleanup();
+			const blob = await canvas.convertToBlob({
+				type: mime,
+				quality: RASTER_JPEG_QUALITY,
+			});
+			// Free the backing store before the next page allocates its own.
+			canvas.width = 0;
+			canvas.height = 0;
+			const data = new Uint8Array(await blob.arrayBuffer());
+
+			pagesDone = n;
+			// Stored, not deflated: PNG and JPEG are already compressed.
+			const entry = new ZipPassThrough(
+				memberName(req.baseName, n - 1, pageCount, ext),
+			);
+			zip.add(entry);
+			entry.push(data, true);
+		}
+		zip.end();
+		await finished;
+		post({ type: "done", id: req.id });
+	} finally {
+		await loadingTask.destroy();
+	}
+}
+
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
 	const fail = (err: unknown) =>
@@ -400,5 +531,7 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 		readMetadata(req).catch(fail);
 	} else if (req.type === "strip-metadata") {
 		stripMetadata(req).catch(fail);
+	} else if (req.type === "rasterize") {
+		rasterize(req).catch(fail);
 	}
 });

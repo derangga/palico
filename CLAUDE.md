@@ -30,6 +30,7 @@ Read the matching file before starting that kind of work.
   any UI work.
 - `docs/background-removal.md`, `docs/image-compressor.md`,
   `docs/metadata-stripper.md`, `docs/office-to-pdf.md`,
+  `docs/pdf-organize.md`, `docs/pdf-to-images.md`,
   `docs/video-converter.md`, `docs/video-cutter.md`:
   how each tool works end to end and why it is built that way.
 - `docs/image-worker-crashed-debugging.md`: the checklist for an "Image worker

@@ -13,7 +13,9 @@ import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
 import { Route as ResizerRouteImport } from './routes/resizer'
+import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
+import { Route as PdfOrganizeRouteImport } from './routes/pdf-organize'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
@@ -44,9 +46,19 @@ const ResizerRoute = ResizerRouteImport.update({
   path: '/resizer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfToImagesRoute = PdfToImagesRouteImport.update({
+  id: '/pdf-to-images',
+  path: '/pdf-to-images',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfSplitRoute = PdfSplitRouteImport.update({
   id: '/pdf-split',
   path: '/pdf-split',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfOrganizeRoute = PdfOrganizeRouteImport.update({
+  id: '/pdf-organize',
+  path: '/pdf-organize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfMergeRoute = PdfMergeRouteImport.update({
@@ -105,7 +117,9 @@ export interface FileRoutesByFullPath {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
+  '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
+  '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
@@ -121,7 +135,9 @@ export interface FileRoutesByTo {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
+  '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
+  '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
@@ -138,7 +154,9 @@ export interface FileRoutesById {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/pdf-merge': typeof PdfMergeRoute
+  '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
+  '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-converter': typeof VideoConverterRoute
@@ -156,7 +174,9 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/pdf-merge'
+    | '/pdf-organize'
     | '/pdf-split'
+    | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
     | '/video-converter'
@@ -172,7 +192,9 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/pdf-merge'
+    | '/pdf-organize'
     | '/pdf-split'
+    | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
     | '/video-converter'
@@ -188,7 +210,9 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/pdf-merge'
+    | '/pdf-organize'
     | '/pdf-split'
+    | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
     | '/video-converter'
@@ -205,7 +229,9 @@ export interface RootRouteChildren {
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
   PdfMergeRoute: typeof PdfMergeRoute
+  PdfOrganizeRoute: typeof PdfOrganizeRoute
   PdfSplitRoute: typeof PdfSplitRoute
+  PdfToImagesRoute: typeof PdfToImagesRoute
   ResizerRoute: typeof ResizerRoute
   StripMetadataRoute: typeof StripMetadataRoute
   VideoConverterRoute: typeof VideoConverterRoute
@@ -242,11 +268,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResizerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf-to-images': {
+      id: '/pdf-to-images'
+      path: '/pdf-to-images'
+      fullPath: '/pdf-to-images'
+      preLoaderRoute: typeof PdfToImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf-split': {
       id: '/pdf-split'
       path: '/pdf-split'
       fullPath: '/pdf-split'
       preLoaderRoute: typeof PdfSplitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-organize': {
+      id: '/pdf-organize'
+      path: '/pdf-organize'
+      fullPath: '/pdf-organize'
+      preLoaderRoute: typeof PdfOrganizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf-merge': {
@@ -325,7 +365,9 @@ const rootRouteChildren: RootRouteChildren = {
   MarkdownPreviewRoute: MarkdownPreviewRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,
   PdfMergeRoute: PdfMergeRoute,
+  PdfOrganizeRoute: PdfOrganizeRoute,
   PdfSplitRoute: PdfSplitRoute,
+  PdfToImagesRoute: PdfToImagesRoute,
   ResizerRoute: ResizerRoute,
   StripMetadataRoute: StripMetadataRoute,
   VideoConverterRoute: VideoConverterRoute,

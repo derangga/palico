@@ -43,12 +43,19 @@ export const RenderRequest = Schema.Struct({
 });
 export type RenderRequest = Schema.Schema.Type<typeof RenderRequest>;
 
+export const Rotation = Schema.Literal(0, 90, 180, 270);
+export type Rotation = Schema.Schema.Type<typeof Rotation>;
+
 // Copy the given 0-based page indices (in the order provided) into a new PDF.
+// Split extracts with it; Organize PDF also passes `rotations`.
 export const ExtractRequest = Schema.Struct({
 	type: Schema.Literal("extract"),
 	id: Schema.String,
 	buffer: Schema.instanceOf(ArrayBuffer),
 	pageIndices: Schema.Array(Schema.Number),
+	// Degrees to ADD to each output page's stored /Rotate, same length and
+	// order as pageIndices. Omitted => no rotation.
+	rotations: Schema.optional(Schema.Array(Rotation)),
 });
 export type ExtractRequest = Schema.Schema.Type<typeof ExtractRequest>;
 
@@ -97,6 +104,25 @@ export type StripMetadataRequest = Schema.Schema.Type<
 	typeof StripMetadataRequest
 >;
 
+// PDF to Images: render every page to PNG or JPEG and stream them into a zip.
+export const RasterFormat = Schema.Literal("png", "jpeg");
+export type RasterFormat = Schema.Schema.Type<typeof RasterFormat>;
+
+export const RasterDpi = Schema.Literal(72, 150, 300);
+export type RasterDpi = Schema.Schema.Type<typeof RasterDpi>;
+
+export const RasterizeRequest = Schema.Struct({
+	type: Schema.Literal("rasterize"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+	maxPages: Schema.Number,
+	format: RasterFormat,
+	dpi: RasterDpi,
+	// Zip member names: "<baseName>_page_07.png".
+	baseName: Schema.String,
+});
+export type RasterizeRequest = Schema.Schema.Type<typeof RasterizeRequest>;
+
 export const PdfWorkerRequest = Schema.Union(
 	RenderRequest,
 	ExtractRequest,
@@ -104,6 +130,7 @@ export const PdfWorkerRequest = Schema.Union(
 	MergeRequest,
 	ReadMetadataRequest,
 	StripMetadataRequest,
+	RasterizeRequest,
 );
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
 
@@ -111,6 +138,8 @@ export const PdfWorkerErrorReason = Schema.Literal(
 	"invalid",
 	"encrypted",
 	"too-many-pages",
+	// Rasterize: the whole job would exceed MAX_RASTER_TOTAL_PIXELS.
+	"too-large",
 	"worker",
 );
 export type PdfWorkerErrorReason = Schema.Schema.Type<
@@ -162,6 +191,14 @@ export const PdfWorkerResponse = Schema.Union(
 		id: Schema.String,
 		bytes: Schema.instanceOf(ArrayBuffer),
 		after: MetadataReport,
+	}),
+	// Rasterize streams the zip as fflate emits it, then sends "done".
+	Schema.Struct({
+		type: Schema.Literal("zip-chunk"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
+		pagesDone: Schema.Number,
+		pageCount: Schema.Number,
 	}),
 	Schema.Struct({
 		type: Schema.Literal("error"),
