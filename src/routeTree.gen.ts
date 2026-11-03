@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as VideoToGifRouteImport } from './routes/video-to-gif'
 import { Route as VideoCutterRouteImport } from './routes/video-cutter'
 import { Route as VideoConverterRouteImport } from './routes/video-converter'
+import { Route as VideoCompressorRouteImport } from './routes/video-compressor'
 import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
@@ -41,6 +42,11 @@ const VideoCutterRoute = VideoCutterRouteImport.update({
 const VideoConverterRoute = VideoConverterRouteImport.update({
   id: '/video-converter',
   path: '/video-converter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VideoCompressorRoute = VideoCompressorRouteImport.update({
+  id: '/video-compressor',
+  path: '/video-compressor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StripMetadataRoute = StripMetadataRouteImport.update({
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
+  '/video-compressor': typeof VideoCompressorRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
   '/video-to-gif': typeof VideoToGifRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
+  '/video-compressor': typeof VideoCompressorRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
   '/video-to-gif': typeof VideoToGifRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/pdf-to-images': typeof PdfToImagesRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
+  '/video-compressor': typeof VideoCompressorRoute
   '/video-converter': typeof VideoConverterRoute
   '/video-cutter': typeof VideoCutterRoute
   '/video-to-gif': typeof VideoToGifRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
+    | '/video-compressor'
     | '/video-converter'
     | '/video-cutter'
     | '/video-to-gif'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
+    | '/video-compressor'
     | '/video-converter'
     | '/video-cutter'
     | '/video-to-gif'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/pdf-to-images'
     | '/resizer'
     | '/strip-metadata'
+    | '/video-compressor'
     | '/video-converter'
     | '/video-cutter'
     | '/video-to-gif'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   PdfToImagesRoute: typeof PdfToImagesRoute
   ResizerRoute: typeof ResizerRoute
   StripMetadataRoute: typeof StripMetadataRoute
+  VideoCompressorRoute: typeof VideoCompressorRoute
   VideoConverterRoute: typeof VideoConverterRoute
   VideoCutterRoute: typeof VideoCutterRoute
   VideoToGifRoute: typeof VideoToGifRoute
@@ -285,6 +298,13 @@ declare module '@tanstack/react-router' {
       path: '/video-converter'
       fullPath: '/video-converter'
       preLoaderRoute: typeof VideoConverterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/video-compressor': {
+      id: '/video-compressor'
+      path: '/video-compressor'
+      fullPath: '/video-compressor'
+      preLoaderRoute: typeof VideoCompressorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/strip-metadata': {
@@ -411,6 +431,7 @@ const rootRouteChildren: RootRouteChildren = {
   PdfToImagesRoute: PdfToImagesRoute,
   ResizerRoute: ResizerRoute,
   StripMetadataRoute: StripMetadataRoute,
+  VideoCompressorRoute: VideoCompressorRoute,
   VideoConverterRoute: VideoConverterRoute,
   VideoCutterRoute: VideoCutterRoute,
   VideoToGifRoute: VideoToGifRoute,

@@ -12,6 +12,7 @@ import {
 	Images,
 	LayoutGrid,
 	type LucideIcon,
+	Minimize2,
 	Scaling,
 	Scissors,
 	ScrollText,
@@ -89,6 +90,13 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		label: "Video Cutter",
 		blurb: "Trim a clip out of any video.",
 		icon: Scissors,
+		category: "video",
+	},
+	{
+		to: "/video-compressor",
+		label: "Compress Video",
+		blurb: "Shrink a video to fit an upload limit.",
+		icon: Minimize2,
 		category: "video",
 	},
 	{

@@ -70,6 +70,29 @@ export class NoAudioTrackError extends Schema.TaggedError<NoAudioTrackError>()(
 	},
 ) {}
 
+// Compress Video failures: reading or probing the file, encoding (including
+// OOM), or reading the output back.
+export class VideoCompressError extends Schema.TaggedError<VideoCompressError>()(
+	"VideoCompressError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
+// The chosen size is too small for the video's length. Raised after the probe,
+// before any encode. `minMB` is the smallest size that works, so the page can
+// show it next to the size field.
+export class TargetTooSmallError extends Schema.TaggedError<TargetTooSmallError>()(
+	"TargetTooSmallError",
+	{
+		fileName: Schema.String,
+		targetMB: Schema.Number,
+		minMB: Schema.Number,
+		message: Schema.String,
+	},
+) {}
+
 // Surfaces from the engine loader (cache.ts / engine.ts). `stage` mirrors the
 // LoadPhase that was in flight when the failure landed, so the UI can keep
 // the user oriented even after a mid-flight error.
