@@ -25,8 +25,12 @@ import {
 	outputFileName,
 	sourceFormatMeta,
 } from "#/lib/image/types.ts";
+import { seoHead } from "#/lib/seo.ts";
 
-export const Route = createFileRoute("/resizer")({ component: ResizerPage });
+export const Route = createFileRoute("/resizer")({
+	head: () => seoHead("/resizer"),
+	component: ResizerPage,
+});
 
 const MB = 1024 * 1024;
 

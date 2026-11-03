@@ -25,8 +25,10 @@ import {
 	loadPdf,
 	splitPdf,
 } from "#/lib/file/pdf.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/pdf-split")({
+	head: () => seoHead("/pdf-split"),
 	component: PdfSplitPage,
 });
 

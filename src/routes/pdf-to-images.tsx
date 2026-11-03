@@ -25,8 +25,10 @@ import {
 	RasterFormat,
 } from "#/lib/file/pdf-types.ts";
 import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/pdf-to-images")({
+	head: () => seoHead("/pdf-to-images"),
 	component: PdfToImagesPage,
 });
 

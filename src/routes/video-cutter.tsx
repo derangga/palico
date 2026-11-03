@@ -17,11 +17,13 @@ import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize } from "#/lib/video/limits.ts";
 import { inputExtension, parseVideoOutputFormat } from "#/lib/video/types.ts";
 
 export const Route = createFileRoute("/video-cutter")({
+	head: () => seoHead("/video-cutter"),
 	component: VideoCutterPage,
 });
 

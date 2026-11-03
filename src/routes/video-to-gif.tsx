@@ -14,6 +14,7 @@ import { gifReducer, initialGifState } from "#/components/video-gif/state.ts";
 import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	fitLongSide,
@@ -23,6 +24,7 @@ import {
 import { checkFileSize } from "#/lib/video/limits.ts";
 
 export const Route = createFileRoute("/video-to-gif")({
+	head: () => seoHead("/video-to-gif"),
 	component: VideoToGifPage,
 });
 

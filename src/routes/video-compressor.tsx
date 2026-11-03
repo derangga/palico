@@ -16,11 +16,13 @@ import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { CompressMode, CompressOutput } from "#/lib/video/compress-options.ts";
 import { checkFileSize } from "#/lib/video/limits.ts";
 
 export const Route = createFileRoute("/video-compressor")({
+	head: () => seoHead("/video-compressor"),
 	component: VideoCompressorPage,
 });
 

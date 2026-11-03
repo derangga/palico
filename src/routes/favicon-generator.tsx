@@ -20,8 +20,10 @@ import {
 	type FaviconAsset,
 	generateFavicons,
 } from "#/lib/image/favicon.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 export const Route = createFileRoute("/favicon-generator")({
+	head: () => seoHead("/favicon-generator"),
 	component: FaviconGeneratorPage,
 });
 

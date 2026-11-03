@@ -15,10 +15,12 @@ import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize } from "#/lib/video/limits.ts";
 
 export const Route = createFileRoute("/extract-audio")({
+	head: () => seoHead("/extract-audio"),
 	component: ExtractAudioPage,
 });
 

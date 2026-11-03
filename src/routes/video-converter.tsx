@@ -22,6 +22,7 @@ import {
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	checkFileSize,
@@ -35,6 +36,7 @@ import {
 import { VIDEO_OUTPUT_FORMATS } from "#/lib/video/types.ts";
 
 export const Route = createFileRoute("/video-converter")({
+	head: () => seoHead("/video-converter"),
 	component: VideoConverterPage,
 });
 

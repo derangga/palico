@@ -26,24 +26,13 @@ import { cn } from "#/lib/utils.ts";
 
 import appCss from "../styles.css?url";
 
-const SITE_TITLE = "Palico: Free, private, offline file tools. No sign-up.";
-
-const SITE_DESCRIPTION =
-	"Palico is a free, offline-first toolkit for images, video, PDFs, and files: convert, resize, remove backgrounds, split PDFs, and more. Everything runs entirely in your browser: no uploads, no tracking, no account required. Your files never leave your device.";
-
 export const Route = createRootRoute({
+	// Title, description and social tags come from each route (src/lib/seo.ts):
+	// a root head runs once and is not re-run when the URL changes.
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			{ title: SITE_TITLE },
-			{ name: "description", content: SITE_DESCRIPTION },
-			{ property: "og:title", content: SITE_TITLE },
-			{ property: "og:description", content: SITE_DESCRIPTION },
-			{ property: "og:type", content: "website" },
-			{ property: "og:image", content: "/og-image.png" },
-			{ name: "twitter:card", content: "summary_large_image" },
-			{ name: "twitter:image", content: "/og-image.png" },
 		],
 		links: [
 			{ rel: "stylesheet", href: appCss },

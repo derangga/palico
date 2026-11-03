@@ -35,6 +35,7 @@ import { withBusy } from "#/lib/offline/busy.ts";
 import type { StorageQuotaError } from "#/lib/offline/errors.ts";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
+import { seoHead } from "#/lib/seo.ts";
 
 // One-time download the consent gate negotiates before the model is fetched.
 // ~180 MB weights + ~21 MB ONNX Runtime.
@@ -61,6 +62,7 @@ function userMessageFor(
 }
 
 export const Route = createFileRoute("/background-removal")({
+	head: () => seoHead("/background-removal"),
 	component: BackgroundRemovalPage,
 });
 
