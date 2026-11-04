@@ -15,6 +15,8 @@ import { Route as VideoConverterRouteImport } from './routes/video-converter'
 import { Route as VideoCompressorRouteImport } from './routes/video-compressor'
 import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
 import { Route as ResizerRouteImport } from './routes/resizer'
+import { Route as QrReaderRouteImport } from './routes/qr-reader'
+import { Route as QrGeneratorRouteImport } from './routes/qr-generator'
 import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfOrganizeRouteImport } from './routes/pdf-organize'
@@ -57,6 +59,16 @@ const StripMetadataRoute = StripMetadataRouteImport.update({
 const ResizerRoute = ResizerRouteImport.update({
   id: '/resizer',
   path: '/resizer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QrReaderRoute = QrReaderRouteImport.update({
+  id: '/qr-reader',
+  path: '/qr-reader',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QrGeneratorRoute = QrGeneratorRouteImport.update({
+  id: '/qr-generator',
+  path: '/qr-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfToImagesRoute = PdfToImagesRouteImport.update({
@@ -139,6 +151,8 @@ export interface FileRoutesByFullPath {
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/qr-generator': typeof QrGeneratorRoute
+  '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-compressor': typeof VideoCompressorRoute
@@ -160,6 +174,8 @@ export interface FileRoutesByTo {
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/qr-generator': typeof QrGeneratorRoute
+  '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-compressor': typeof VideoCompressorRoute
@@ -182,6 +198,8 @@ export interface FileRoutesById {
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/qr-generator': typeof QrGeneratorRoute
+  '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
   '/strip-metadata': typeof StripMetadataRoute
   '/video-compressor': typeof VideoCompressorRoute
@@ -205,6 +223,8 @@ export interface FileRouteTypes {
     | '/pdf-organize'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/qr-generator'
+    | '/qr-reader'
     | '/resizer'
     | '/strip-metadata'
     | '/video-compressor'
@@ -226,6 +246,8 @@ export interface FileRouteTypes {
     | '/pdf-organize'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/qr-generator'
+    | '/qr-reader'
     | '/resizer'
     | '/strip-metadata'
     | '/video-compressor'
@@ -247,6 +269,8 @@ export interface FileRouteTypes {
     | '/pdf-organize'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/qr-generator'
+    | '/qr-reader'
     | '/resizer'
     | '/strip-metadata'
     | '/video-compressor'
@@ -269,6 +293,8 @@ export interface RootRouteChildren {
   PdfOrganizeRoute: typeof PdfOrganizeRoute
   PdfSplitRoute: typeof PdfSplitRoute
   PdfToImagesRoute: typeof PdfToImagesRoute
+  QrGeneratorRoute: typeof QrGeneratorRoute
+  QrReaderRoute: typeof QrReaderRoute
   ResizerRoute: typeof ResizerRoute
   StripMetadataRoute: typeof StripMetadataRoute
   VideoCompressorRoute: typeof VideoCompressorRoute
@@ -319,6 +345,20 @@ declare module '@tanstack/react-router' {
       path: '/resizer'
       fullPath: '/resizer'
       preLoaderRoute: typeof ResizerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qr-reader': {
+      id: '/qr-reader'
+      path: '/qr-reader'
+      fullPath: '/qr-reader'
+      preLoaderRoute: typeof QrReaderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/qr-generator': {
+      id: '/qr-generator'
+      path: '/qr-generator'
+      fullPath: '/qr-generator'
+      preLoaderRoute: typeof QrGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf-to-images': {
@@ -429,6 +469,8 @@ const rootRouteChildren: RootRouteChildren = {
   PdfOrganizeRoute: PdfOrganizeRoute,
   PdfSplitRoute: PdfSplitRoute,
   PdfToImagesRoute: PdfToImagesRoute,
+  QrGeneratorRoute: QrGeneratorRoute,
+  QrReaderRoute: QrReaderRoute,
   ResizerRoute: ResizerRoute,
   StripMetadataRoute: StripMetadataRoute,
   VideoCompressorRoute: VideoCompressorRoute,

@@ -13,7 +13,9 @@ import {
 	LayoutGrid,
 	type LucideIcon,
 	Minimize2,
+	QrCode,
 	Scaling,
+	ScanQrCode,
 	Scissors,
 	ScrollText,
 	Shrink,
@@ -235,6 +237,26 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		seoDescription:
 			"See the hidden data in your photos and PDFs, such as GPS location and camera details, then remove it. Runs on your device.",
 		icon: EyeOff,
+		category: "file",
+	},
+	{
+		to: "/qr-generator",
+		label: "QR Code Generator",
+		blurb: "Make a QR code from a link or text.",
+		seoTitle: "Free QR Code Generator (PNG, SVG)",
+		seoDescription:
+			"Make a QR code from any link or text and save it as PNG or SVG. It is made in your browser, so nothing is uploaded, and it works offline.",
+		icon: QrCode,
+		category: "file",
+	},
+	{
+		to: "/qr-reader",
+		label: "QR Code Reader",
+		blurb: "Read the text inside a QR code image.",
+		seoTitle: "QR Code Reader from Image or Camera",
+		seoDescription:
+			"Read a QR code from a photo, a screenshot or your camera. It is decoded in your browser and never uploaded, and it works offline.",
+		icon: ScanQrCode,
 		category: "file",
 	},
 ];
