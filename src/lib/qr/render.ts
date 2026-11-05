@@ -147,14 +147,3 @@ export const copyPng = (blob: Blob): Effect.Effect<void, ClipboardWriteError> =>
 					"Couldn't copy the image. Your browser may block it. Save the PNG instead.",
 			}),
 	});
-
-export const copyText = (
-	text: string,
-): Effect.Effect<void, ClipboardWriteError> =>
-	Effect.tryPromise({
-		try: () => navigator.clipboard.writeText(text),
-		catch: () =>
-			new ClipboardWriteError({
-				message: "Couldn't copy the text. Select it and copy it by hand.",
-			}),
-	});

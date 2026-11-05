@@ -87,6 +87,7 @@ const PAGE_CRUMBS = new Map<
 	["/office-to-pdf", { group: "File", title: "Word to PDF" }],
 	["/qr-generator", { group: "File", title: "QR Generator" }],
 	["/qr-reader", { group: "File", title: "QR Reader" }],
+	["/palette-extractor", { group: "Color", title: "Palette Extractor" }],
 ]);
 
 function RootLayout() {

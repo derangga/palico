@@ -21,6 +21,7 @@ import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfOrganizeRouteImport } from './routes/pdf-organize'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
+import { Route as PaletteExtractorRouteImport } from './routes/palette-extractor'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
@@ -91,6 +92,11 @@ const PdfMergeRoute = PdfMergeRouteImport.update({
   path: '/pdf-merge',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaletteExtractorRoute = PaletteExtractorRouteImport.update({
+  id: '/palette-extractor',
+  path: '/palette-extractor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfficeToPdfRoute = OfficeToPdfRouteImport.update({
   id: '/office-to-pdf',
   path: '/office-to-pdf',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
+  '/palette-extractor': typeof PaletteExtractorRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
+  '/palette-extractor': typeof PaletteExtractorRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
+  '/palette-extractor': typeof PaletteExtractorRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
+    | '/palette-extractor'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
+    | '/palette-extractor'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/favicon-generator'
     | '/markdown-preview'
     | '/office-to-pdf'
+    | '/palette-extractor'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -289,6 +301,7 @@ export interface RootRouteChildren {
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
+  PaletteExtractorRoute: typeof PaletteExtractorRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfOrganizeRoute: typeof PdfOrganizeRoute
   PdfSplitRoute: typeof PdfSplitRoute
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PdfMergeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/palette-extractor': {
+      id: '/palette-extractor'
+      path: '/palette-extractor'
+      fullPath: '/palette-extractor'
+      preLoaderRoute: typeof PaletteExtractorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/office-to-pdf': {
       id: '/office-to-pdf'
       path: '/office-to-pdf'
@@ -465,6 +485,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   MarkdownPreviewRoute: MarkdownPreviewRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,
+  PaletteExtractorRoute: PaletteExtractorRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfOrganizeRoute: PdfOrganizeRoute,
   PdfSplitRoute: PdfSplitRoute,

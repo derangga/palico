@@ -121,8 +121,8 @@ switched with a toggle in the header. Surfaces are calm and slightly cool
 (Latte Base `#eff1f5`, Mocha Base `#1e1e2e`). Colour lives in small, repeated
 spots: tool chips and tiles, status pills, progress bars, underlines and hover
 edges. Mauve is the single primary action colour. Each tool category has its
-own accent pair so people can tell Image, Video and File tools apart at a
-glance. Typography stays one voice, Nunito Variable, with weight and scale
+own accent pair so people can tell Image, Video, File and Color tools apart at
+a glance. Typography stays one voice, Nunito Variable, with weight and scale
 carrying hierarchy.
 
 The mascot, **Palico** (a chibi cat adventurer with a hammer), carries the
@@ -232,6 +232,12 @@ tile and icon fill; the second is the tint or secondary detail.
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
 | Video | Peach + Yellow | Video converter, video cutter |
 | File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, diff viewer, Markdown preview, QR code generator, QR code reader |
+| Color | Blue + Sapphire | Palette extractor |
+
+Color tools read or help you choose colors. A tool that takes an image and
+returns a changed image (grayscale, make a color transparent) stays in Image.
+Blue is a fill and tint here like every other accent. Latte lets large Blue
+carry text, but the category chip keeps a `text` label for consistency.
 
 Category colour appears on the home tile, the sidebar icon, the page-header
 chip, the progress fill and the dropzone drag-over state. It never appears on

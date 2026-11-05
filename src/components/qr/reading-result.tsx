@@ -20,6 +20,7 @@ import { Button, buttonVariants } from "#/components/ui/button.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { useFlash } from "#/hooks/use-flash.ts";
 import { useObjectUrl } from "#/hooks/use-object-url.ts";
+import { copyText } from "#/lib/clipboard.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import {
 	type Content,
@@ -27,7 +28,6 @@ import {
 	type WifiDetails,
 } from "#/lib/qr/content.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
-import { copyText } from "#/lib/qr/render.ts";
 import { cn } from "#/lib/utils.ts";
 
 export type ResultView =
