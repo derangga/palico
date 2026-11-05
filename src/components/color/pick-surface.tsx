@@ -229,7 +229,7 @@ export function PickSurface({
 			)}
 
 			{/* Always mounted, because the loader draws into it. Hidden until it has an image. */}
-			<div className={image ? "flex flex-col gap-4 sm:flex-row" : "hidden"}>
+			<div className={image ? "flex flex-col gap-4" : "hidden"}>
 				<div
 					className="relative min-w-0 self-start overflow-hidden rounded-md border border-input"
 					style={{ width: frameWidth }}
@@ -325,7 +325,7 @@ export function PickSurface({
 						// The ring is dark and light at once, so it shows on any image.
 						<span
 							aria-hidden
-							className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background ring-2 ring-foreground"
+							className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background ring-2 ring-foreground"
 							style={{
 								left: `${((probe.point.x + 0.5) / image.width) * 100}%`,
 								top: `${((probe.point.y + 0.5) / image.height) * 100}%`,
@@ -334,29 +334,29 @@ export function PickSurface({
 					)}
 				</div>
 
-				<div className="flex flex-row items-start gap-3 sm:flex-col">
+				<div className="flex items-start gap-3">
 					<PixelReadout canvasRef={readoutRef} />
-					<p className="text-xs text-muted-foreground">
-						{probe
-							? `x ${probe.point.x}, y ${probe.point.y}`
-							: "Hover the image"}
-						<br />
-						{probe &&
-							(probe.rgb ? (
-								<span className="font-mono">{toHex(probe.rgb)}</span>
-							) : (
-								"Transparent here"
-							))}
-					</p>
+					<div className="flex min-w-0 flex-col gap-2 text-xs text-muted-foreground">
+						<p>
+							{probe
+								? `x ${probe.point.x}, y ${probe.point.y}`
+								: "Hover the image"}
+							<br />
+							{probe &&
+								(probe.rgb ? (
+									<span className="font-mono">{toHex(probe.rgb)}</span>
+								) : (
+									"Transparent here"
+								))}
+						</p>
+						<p id={CANVAS_HELP_ID}>
+							Click or drag to pick. With the keyboard, Tab to the image, use
+							the arrow keys (Shift for 10 pixels) and press Enter to keep the
+							color.
+						</p>
+					</div>
 				</div>
 			</div>
-
-			{image && (
-				<p id={CANVAS_HELP_ID} className="text-xs text-muted-foreground">
-					Click or drag to pick. With the keyboard, Tab to the image, use the
-					arrow keys (Shift for 10 pixels) and press Enter to keep the color.
-				</p>
-			)}
 
 			{/* The pixel under the cursor after a keyboard move, for screen readers. */}
 			<output className="sr-only">{announcement}</output>

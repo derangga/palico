@@ -31,7 +31,7 @@ export function PickedTray({
 	return (
 		<section
 			aria-label="Picked colors"
-			className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
+			className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm"
 		>
 			<h2 className="text-sm font-medium">Picked colors</h2>
 
@@ -65,6 +65,7 @@ export function PickedTray({
 
 					<ChoiceGroup
 						legend="CSS format"
+						columns="grid-cols-2"
 						name="picked-format"
 						choices={FORMAT_CHOICES}
 						value={format}

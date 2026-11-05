@@ -1,8 +1,7 @@
 # Color picker
 
 `/color-picker` holds one current color and shows it as HEX, RGB, HSL and OKLCH.
-Three things set that color: a click on an image, the browser's EyeDropper
-(a button, shown only where it exists), and typing a value into the box. Click a
+Two things set that color: a click on an image and typing a value into the box. Click a
 row to copy that format. The colors a person settles on collect in a tray, which
 copies them all as CSS variables. It runs on the device and works offline. There
 is no color dependency.
@@ -43,9 +42,6 @@ in this image". The picker answers "what is this exact color".
      into a small canvas that CSS scales up with `image-rendering: pixelated`, so
      one cell is one pixel of the image. The middle cell is the cursor pixel.
      A window that hangs over an edge comes back transparent there.
-5. **Screen.** `pickFromScreen` (`src/lib/color/eye-dropper.ts`) wraps the
-   EyeDropper. Pressing Esc is a cancel, not an error. Any other failure is a
-   tagged `ScreenPickError` shown as a toast.
 
 ## Why the picker reads pixels on the main thread
 
@@ -103,9 +99,16 @@ refusal message lists one example for each format.
 - The markers on the image and in the readout are a light ring inside a dark ring
   (`background` and `foreground` tokens), so they show on any color in both
   themes.
-- The readout is a fixed block beside the image, not a loupe that follows the
-  pointer. A finger would cover a floating one, and a fixed one needs no motion.
-  On a narrow screen it sits below the image.
+- The readout (96 px) is a fixed block under the image, not a loupe that follows
+  the pointer. A finger would cover a floating one, and a fixed one needs no
+  motion. The marker ring on the image is 12 px.
+- From 1280 px wide the page is two columns: the image on the left, the result
+  panel and the tray on the right, sticky (and scrollable if they are taller
+  than the screen), so a pick on a tall image never scrolls them out of view.
+  Below that they stack under the image. The panel shows the
+  swatch, HEX as the headline (click to copy), the other formats as rows, and the
+  box to type a color. The swatch has no color transition, so it never lags the
+  pointer.
 - Copying shows "Copied" for 1.8 seconds in a fixed-width slot, so the value does
   not move, and announces it to screen readers. A failed copy shows an error
   toast.
@@ -131,8 +134,10 @@ refusal message lists one example for each format.
 
 - The browser must decode the file. HEIC and other unsupported formats fail with
   "Couldn't open this file as an image." An animated GIF uses its first frame.
-- EyeDropper is Chromium only. Elsewhere the button is absent and the other two
-  ways still work.
+- There is no "pick from screen". The browser's EyeDropper draws a magnifier of a
+  fixed size that a page cannot change, and a screen capture needs a share prompt
+  and loses exact colors, so neither is offered. Take a screenshot and drop or
+  paste it.
 - Wide-gamut colors are converted to sRGB when read.
 - Not built: alpha, named colors, nudging lightness or chroma, and reading a
   color pasted as text outside the box.
@@ -150,11 +155,8 @@ every edge, pixel reads and the opacity cut-off, and the readout window.
 checks order, repeats and the limit. `paint-image.test.ts` stubs
 `createImageBitmap` to check the size limit, decode failure, that the bitmap is
 closed when drawing fails, the shrink, and a browser that ignores it.
-`eye-dropper.test.ts` stubs `window.EyeDropper` to check a pick, Esc (no error),
-and failures.
 
 The tests do not cover the page or the canvas, which need a browser. Before
 relying on a change to either, in a real browser: drop a PNG, a transparent PNG,
 a large JPG (over 4,096 px) and a pasted screenshot. Click, drag and use the
-arrow keys, and compare the picked HEX with the image in a design tool. Try
-EyeDropper in Chrome. Check the Blue + Sapphire chip next to Teal in Mocha.
+arrow keys, and compare the picked HEX with the image in a design tool. Check the Blue + Sapphire chip next to Teal in Mocha.

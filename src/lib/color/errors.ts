@@ -35,11 +35,3 @@ export class ColorImageError extends Schema.TaggedError<ColorImageError>()(
 		message: Schema.String,
 	},
 ) {}
-
-// The browser's EyeDropper failed for a reason other than the person pressing Esc.
-export class ScreenPickError extends Schema.TaggedError<ScreenPickError>()(
-	"ScreenPickError",
-	{
-		message: Schema.String,
-	},
-) {}

@@ -278,7 +278,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		blurb: "Pick a color from an image or type one in.",
 		seoTitle: "Color Picker: HEX, RGB, HSL, OKLCH",
 		seoDescription:
-			"Pick a color from an image or your screen, or type one in, and get it as HEX, RGB, HSL or OKLCH. Runs in your browser, so nothing is uploaded.",
+			"Pick a color from an image, or type one in, and get it as HEX, RGB, HSL or OKLCH. Runs in your browser, so nothing is uploaded.",
 		icon: Pipette,
 		category: "color",
 	},

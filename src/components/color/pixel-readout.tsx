@@ -17,7 +17,7 @@ export function PixelReadout({
 	return (
 		<div
 			aria-hidden
-			className="relative size-36 shrink-0 overflow-hidden rounded-md border border-input bg-muted"
+			className="relative size-24 shrink-0 overflow-hidden rounded-md border border-input bg-muted"
 		>
 			<canvas
 				ref={canvasRef}

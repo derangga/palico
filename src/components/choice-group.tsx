@@ -35,7 +35,7 @@ export function ChoiceGroup<T extends string>({
 				{choices.map((choice) => (
 					<label
 						key={choice.value}
-						className="relative flex cursor-pointer flex-col rounded-md border border-input bg-background px-3 py-2 text-sm transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out select-none hover:bg-muted active:scale-[0.97] has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 motion-reduce:active:scale-100"
+						className="relative flex cursor-pointer flex-col rounded-md border border-input bg-background py-2 pr-8 pl-3 text-sm transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out select-none hover:bg-muted active:scale-[0.97] has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 motion-reduce:active:scale-100"
 					>
 						<input
 							type="radio"
@@ -45,10 +45,10 @@ export function ChoiceGroup<T extends string>({
 							onChange={() => onChange(choice.value)}
 							className="peer sr-only"
 						/>
-						{/* A mark as well as a color, so the choice never rests on color alone. */}
+						{/* A mark as well as a color, so the choice never rests on color alone. The label keeps room on the right for it. */}
 						<Check
 							aria-hidden
-							className="absolute top-2 right-2 hidden size-3.5 text-primary peer-checked:block"
+							className="absolute top-1/2 right-3 hidden size-3.5 -translate-y-1/2 text-primary peer-checked:block"
 						/>
 						<span className="font-medium">{choice.label}</span>
 						{choice.detail && (

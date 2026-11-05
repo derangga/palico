@@ -65,31 +65,36 @@ export function ColorPicker() {
 	}
 
 	return (
-		<PageShell>
+		<PageShell width="wide">
 			<PageHeader title="Color Picker">
-				Pick a color from an image or your screen, or type one in. Get it as
-				HEX, RGB, HSL or OKLCH. Everything happens on your device.
+				Pick a color from an image, or type one in. Get it as HEX, RGB, HSL or
+				OKLCH. Everything happens on your device.
 			</PageHeader>
 
 			<div className="flex flex-col gap-6">
-				<ColorCard
-					color={color}
-					text={text}
-					invalid={invalid}
-					onTextChange={changeText}
-					onTextCommit={commitText}
-					onScreenPick={chooseAndKeep}
-				/>
+				{/* Image first. On a wide screen the result and the picked colors sit beside it, so a tall image never pushes them away. */}
+				<div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+					<ImagePicker onPick={choose} onCommit={chooseAndKeep} />
 
-				<ImagePicker onPick={choose} onCommit={chooseAndKeep} />
+					{/* The padding and negative margin keep shadows and focus rings from being clipped by the scroll. */}
+					<div className="-m-1 flex flex-col gap-6 p-1 xl:sticky xl:top-20 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto">
+						<ColorCard
+							color={color}
+							text={text}
+							invalid={invalid}
+							onTextChange={changeText}
+							onTextCommit={commitText}
+						/>
 
-				<PickedTray
-					picked={picked}
-					current={color}
-					format={cssFormat}
-					onFormatChange={setCssFormat}
-					onUse={choose}
-				/>
+						<PickedTray
+							picked={picked}
+							current={color}
+							format={cssFormat}
+							onFormatChange={setCssFormat}
+							onUse={choose}
+						/>
+					</div>
+				</div>
 			</div>
 		</PageShell>
 	);
