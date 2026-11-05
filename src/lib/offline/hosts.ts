@@ -2,7 +2,7 @@
 // real ones wrap navigator.serviceWorker, CacheStorage and navigator.storage; tests
 // provide fakes, so the same graph runs in node.
 
-import { Context, Effect, Layer, Queue, Stream } from "effect";
+import { Context, Effect, Layer, Option, Queue, Schema, Stream } from "effect";
 
 import {
 	OfflineCacheError,
@@ -24,10 +24,15 @@ export interface SwHandle {
 	readonly events: Stream.Stream<SwEvent>;
 	readonly update: Effect.Effect<void, SwUpdateError>;
 	readonly activateWaiting: Effect.Effect<void, SwUpdateError>;
+	// The build ID of the waiting worker. None when nothing waits, the worker does
+	// not answer in time, or it predates the GET_BUILD message.
+	readonly waitingBuild: Effect.Effect<Option.Option<string>>;
 }
 
 export interface ServiceWorkerHostApi {
 	readonly supported: boolean;
+	// The build ID compiled into this page (see vite.config.ts).
+	readonly pageBuild: string;
 	readonly windowLoaded: Effect.Effect<void>;
 	readonly register: (
 		url: string,
@@ -99,11 +104,37 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 				? Effect.sync(() => reg.waiting?.postMessage({ type: "SKIP_WAITING" }))
 				: Effect.fail(new SwUpdateError({ message: "No update is waiting." })),
 		),
+		waitingBuild: askBuild(reg),
 	};
 };
 
+// A worker's reply to GET_BUILD; anything but a string means "unknown build".
+const decodeBuild = Schema.decodeUnknownOption(Schema.String);
+
+// Asks the waiting worker for its build ID over a MessageChannel.
+const askBuild = (reg: ServiceWorkerRegistration) =>
+	Effect.callback<Option.Option<string>>((resume) => {
+		const worker = reg.waiting;
+
+		if (!worker) return resume(Effect.succeed(Option.none()));
+		const channel = new MessageChannel();
+
+		channel.port1.onmessage = (event) =>
+			resume(Effect.succeed(decodeBuild(event.data)));
+		worker.postMessage({ type: "GET_BUILD" }, [channel.port2]);
+
+		return Effect.sync(() => channel.port1.close());
+	}).pipe(
+		Effect.timeoutOrElse({
+			duration: "2 seconds",
+			orElse: () => Effect.succeed(Option.none<string>()),
+		}),
+	);
+
 export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 	supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
+	pageBuild:
+		typeof __PALICO_BUILD_ID__ === "undefined" ? "dev" : __PALICO_BUILD_ID__,
 	windowLoaded: Effect.callback<void>((resume) => {
 		if (document.readyState === "complete") return resume(Effect.void);
 		const done = () => resume(Effect.void);

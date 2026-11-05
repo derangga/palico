@@ -7,7 +7,10 @@
 //   touched here; engines stay in their page-managed Cache API buckets.
 // - Every response served from the precache is re-stamped with COOP/COEP/CORP, so
 //   isolation does not depend on what was stored (see isolation-headers.ts).
-// - No skipWaiting on install. A new version waits until the page posts SKIP_WAITING.
+// - Navigations are network first, so a reload after a deploy gets the new build at
+//   once. The precached shell is the fallback when offline or slow.
+// - No skipWaiting on install. A new version waits until the page posts SKIP_WAITING
+//   (the page does that without asking when it already runs this build).
 //
 // This file is thin Workbox glue with no Effect error channel; failures surface
 // through the registration state in the page (src/lib/offline/register.ts).
@@ -20,7 +23,7 @@ import {
 	precacheAndRoute,
 } from "workbox-precaching";
 import { NavigationRoute, registerRoute } from "workbox-routing";
-import { CacheFirst } from "workbox-strategies";
+import { CacheFirst, NetworkOnly } from "workbox-strategies";
 
 import { ORT_CACHE_NAME } from "#/lib/offline/cache-names.ts";
 import { stampIsolationHeaders } from "#/lib/offline/isolation-headers.ts";
@@ -52,13 +55,29 @@ registerRoute(
 	}),
 );
 
-// Any navigation (deep link, hard reload) gets the precached SPA shell. URLs that
-// end in a file extension are excluded so a missing asset 404s instead of
-// returning HTML with status 200.
+// Navigations (deep link, reload) try the network first, so a reload after a
+// deploy shows the new build without waiting for this worker's replacement to
+// precache it. The new page's chunks are not precached here yet, so they go to
+// the network too. Offline, a slow network or a server error get the precached
+// SPA shell. URLs that end in a file extension are excluded so a missing asset
+// 404s instead of returning HTML with status 200.
+const NETWORK_TIMEOUT_SECONDS = 3;
+
+const network = new NetworkOnly({
+	networkTimeoutSeconds: NETWORK_TIMEOUT_SECONDS,
+});
+
+const shell = createHandlerBoundToURL("/index.html");
+
 registerRoute(
-	new NavigationRoute(createHandlerBoundToURL("/index.html"), {
-		denylist: [/\/[^/?]+\.[^/]+$/],
-	}),
+	new NavigationRoute(
+		async (options) => {
+			const response = await network.handle(options).catch(() => undefined);
+
+			return response?.ok ? response : shell(options);
+		},
+		{ denylist: [/\/[^/?]+\.[^/]+$/] },
+	),
 );
 
 // First install: take control of the open page so it works offline without a
@@ -67,6 +86,20 @@ clientsClaim();
 
 self.addEventListener("message", (event) => {
 	if (event.data?.type === "SKIP_WAITING") void self.skipWaiting();
+
+	// The page asks a waiting worker which build it holds (src/lib/offline/hosts.ts).
+	if (event.data?.type === "GET_BUILD") {
+		event.ports[0]?.postMessage(__PALICO_BUILD_ID__);
+	}
+});
+
+// Navigation preload starts the page request while the worker boots, so network
+// first adds almost no delay. NetworkOnly picks up event.preloadResponse itself.
+self.addEventListener("activate", (event) => {
+	event.waitUntil(
+		self.registration.navigationPreload?.enable().catch(() => undefined) ??
+			Promise.resolve(),
+	);
 });
 
 // Kill switch: a bad release can be disabled by deploying

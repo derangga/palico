@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -47,6 +47,28 @@ const serveVendorStatic = (): Plugin => {
 	};
 };
 
+// One ID per build, compiled into the app as __PALICO_BUILD_ID__ and written to
+// dist/build-id so scripts/build-sw.ts compiles the same value into sw.js. The
+// page compares it with a waiting worker's ID: a match means the page already
+// runs that build, so the worker can take over without an update prompt.
+// Kept in process.env because one `vite build` loads this config more than once
+// (the SPA prerender step loads it again), and every load must agree.
+process.env.PALICO_BUILD_ID ??= Date.now().toString(36);
+
+const BUILD_ID = process.env.PALICO_BUILD_ID;
+
+const buildId = (): Plugin => ({
+	name: "palico-build-id",
+	config: () => ({
+		define: { __PALICO_BUILD_ID__: JSON.stringify(BUILD_ID) },
+	}),
+	async writeBundle() {
+		if (this.environment.name !== "client") return;
+		await mkdir("dist", { recursive: true });
+		await writeFile("dist/build-id", BUILD_ID);
+	},
+});
+
 // COOP/COEP make the document cross-origin isolated so multi-threaded
 // ffmpeg-core can use SharedArrayBuffer. src/server.ts sets these on the
 // SSR/worker responses, but Vite's dev & preview middleware serves
@@ -64,6 +86,7 @@ const config = defineConfig({
 	preview: { headers: crossOriginIsolation },
 	plugins: [
 		serveVendorStatic(),
+		buildId(),
 		devtools(),
 		cloudflare({ viteEnvironment: { name: "ssr" } }),
 		tailwindcss(),

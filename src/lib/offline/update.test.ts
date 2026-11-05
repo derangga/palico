@@ -27,6 +27,7 @@ const setup = (sw: ReturnType<typeof makeFakeSw>) =>
 				hasWaiting: true,
 				events: Stream.empty,
 				update: Effect.void,
+				waitingBuild: Effect.succeed(Option.none()),
 				activateWaiting: Effect.sync(() => {
 					sw.calls.activate++;
 				}),
@@ -66,6 +67,7 @@ describe("applyUpdate", () => {
 						hasWaiting: true,
 						events: Stream.empty,
 						update: Effect.void,
+						waitingBuild: Effect.succeed(Option.none()),
 						// Real behavior: posting SKIP_WAITING leads to controllerchange.
 						activateWaiting: Effect.sync(() => {
 							sw.calls.activate++;

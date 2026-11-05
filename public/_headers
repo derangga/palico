@@ -14,8 +14,12 @@
 # COMBINES matching rules — a second COEP line yields "require-corp, require-corp",
 # an invalid multi-item value that Chrome rejects, so the worker gets blocked
 # ("COEP-framed resource needs COEP header"). CORP only.
+# Every file here has a content hash in its name, so it can be cached forever.
+# The service worker's install then reuses chunks the page already fetched
+# (dontCacheBustURLsMatching in scripts/build-sw.ts).
 /assets/*
   Cross-Origin-Resource-Policy: same-origin
+  Cache-Control: public, max-age=31536000, immutable
 
 # The vendored ZetaOffice runtime (Office → PDF) is served from /vendor/* and
 # loaded as ES modules on the main thread and inside LibreOffice's pthread

@@ -70,10 +70,20 @@ gains per-environment support.
 
 Behavior:
 
-- `precacheAndRoute` plus a navigation route that serves the precached
-  `/index.html` for every route, so deep links and hard reloads work offline. URLs
-  ending in a file extension are excluded so a missing asset 404s instead of
-  returning HTML.
+- `precacheAndRoute` plus a network-first navigation route. Every navigation asks
+  the server first (3 second timeout, with navigation preload on), so a reload after
+  a deploy shows the new build at once. The new build's chunks are not in the old
+  precache, so they go to the network too. Offline, on timeout or on a non-2xx
+  response the route serves the precached `/index.html`, so deep links and hard
+  reloads still work offline. URLs ending in a file extension are excluded so a
+  missing asset 404s instead of returning HTML.
+- Why network first: with a cache-first shell, a reload after a deploy showed the
+  old build. The new worker then had to precache about 500 files (about 5 MB) before
+  the update toast appeared, and the user still had to click Update.
+- `/assets/*` is served `immutable` and precached without a cache-bust parameter
+  (`dontCacheBustURLsMatching`), so the install reuses chunks the page already
+  fetched instead of downloading them twice. This relies on every file in
+  `assets/` having a content hash in its name.
 - Same-origin GET only. jsdelivr, `cdn.zetaoffice.net` and huggingface.co are never
   intercepted.
 - `/assets/ort-wasm*` is served cache-first from `palico-ort-v1`. The 21 MB wasm is not
@@ -81,6 +91,9 @@ Behavior:
 - `clientsClaim()` so the first visit is controlled without a second load.
 - No `skipWaiting` on install. A new version waits for the page to post
   `SKIP_WAITING`.
+- The worker answers `GET_BUILD` (on a `MessageChannel`) with its build ID. The ID
+  comes from the `palico-build-id` plugin in `vite.config.ts`, which compiles it into
+  the app and writes `dist/build-id` for `scripts/build-sw.ts`.
 - Kill switch: set `public/sw-killswitch.json` to `{ "disabled": true }` and deploy.
   On activation the worker deletes its precache and unregisters. For a worker that
   never activates, deploy a `sw.js` that calls `registration.unregister()`.
@@ -122,13 +135,19 @@ saturated colour (`DESIGN.md`).
 
 ## Update flow
 
-1. A new `sw.js` installs and waits. `startOffline` sees the waiting worker and sets
-   the update state.
-2. `UpdatePrompt` shows a toast, "A new version is ready". While any job is running
+1. A new `sw.js` installs and waits. `startOffline` sees the waiting worker and asks
+   it for its build ID (2 second timeout).
+2. Same ID as the page: the page already runs that build (the usual case after a
+   reload, because navigations are network first). The page posts `SKIP_WAITING`
+   with no toast and no reload, and ignores the `controllerchange` that follows.
+   This is safe while a job runs: the page's own chunks are all in the new precache.
+3. Different ID or no answer (the page came from the offline shell, a deploy landed
+   while the tab was open, or the worker predates `GET_BUILD`): the update state is
+   set and `UpdatePrompt` shows a toast, "A new version is ready". While any job is running
    (`withBusy` count above zero) the Update action is hidden and the toast says to wait.
-3. On Update, `applyUpdate` arms the `controllerchange` listener, posts
+4. On Update, `applyUpdate` arms the `controllerchange` listener, posts
    `SKIP_WAITING`, waits up to 5 seconds, and reloads once. Nothing reloads by itself.
-4. Another tab that updated leaves this tab's lazy chunks missing. A
+5. Another tab that updated leaves this tab's lazy chunks missing. A
    `controllerchange` (when this tab had a controller) or a `vite:preloadError` shows
    "Reload to continue".
 
@@ -180,7 +199,8 @@ The offline logic follows the design pass in the plan. Shapes: `EngineId`,
 ## Testing
 
 - `bun run test`: unit tests for the header table and parity with `public/_headers`,
-  status table, busy counter, update flow, registration events, hourly update poll,
+  status table, busy counter, update flow, registration events, silent adoption of a
+  same-build worker (and the prompt when builds differ), hourly update poll,
   storage pre-check, verify-after-download and stale bucket cleanup.
 Offline isolation is not covered by an automated browser test (we dropped Playwright
 to avoid a heavy dev dependency for one spec). It is a manual check, below. The unit
@@ -199,6 +219,16 @@ Manual check of the shell, with the real `_headers` and SPA fallback:
    a file (this starts a built dedicated worker, which needs COEP on its script).
 4. The tool header pill should read "Works offline" on `/converter` and "Needs a ~31 MB
    download" on `/video-converter`.
+
+Manual check of the update path:
+
+1. With build A running in `wrangler dev`, make any visible change, `bun run build` and
+   restart wrangler (build B).
+2. Reload once. Build B must show right away with no "A new version is ready" toast.
+   In Application > Service workers the new `sw.js` installs and then activates
+   without a click.
+3. In an extra tab still on build A, the "Reload to continue" toast must appear once B
+   activates.
 
 Manual checklist, because engine downloads (31 to 200 MB from external CDNs) do not run
 in CI:
@@ -220,6 +250,13 @@ in CI:
    jsdelivr unless `wasmPaths` is set, and the weights lived in the HTTP cache, which
    code cannot query. Fixed by self-hosting ORT (the hashed wasm already shipped in
    `dist`) and a custom Cache API bucket (`src/lib/image/model-cache.ts`).
+3. Updates were slow to reach users. The navigation route served the precached shell,
+   so a reload after a deploy showed the old build while the new worker precached
+   about 5 MB, and then the user had to click Update. Fixed by network-first
+   navigations, silent adoption of a same-build worker, and `immutable` assets that
+   the install does not download twice. The build ID lives in `process.env` because
+   `vite build` loads the config more than once; a per-load `Date.now()` gave the app
+   and `sw.js` different IDs.
 
 ## Known limits
 
@@ -235,9 +272,10 @@ in CI:
 
 | File | Responsibility |
 | --- | --- |
-| `src/sw.ts` | Service worker: precache, navigation fallback, ORT route, header stamping, kill switch |
-| `scripts/build-sw.ts` | Bundle the worker and inject the precache manifest |
-| `public/_headers` | COOP/COEP/CORP, `/sw.js` no-cache |
+| `src/sw.ts` | Service worker: precache, network-first navigation with shell fallback, ORT route, header stamping, `GET_BUILD`, kill switch |
+| `scripts/build-sw.ts` | Bundle the worker with the build ID and inject the precache manifest |
+| `vite.config.ts` (`palico-build-id`) | Build ID for the app and `dist/build-id` |
+| `public/_headers` | COOP/COEP/CORP, `immutable` `/assets/*`, `/sw.js` no-cache |
 | `public/sw-killswitch.json` | Emergency off switch |
 | `src/lib/offline/*` | Offline logic (see module map) |
 | `src/lib/image/model-cache.ts`, `ort-assets.ts` | Background removal storage and ORT URLs |
