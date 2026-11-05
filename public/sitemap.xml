@@ -57,4 +57,10 @@
   <url>
     <loc>https://palico.rangga.site/strip-metadata</loc>
   </url>
+  <url>
+    <loc>https://palico.rangga.site/qr-generator</loc>
+  </url>
+  <url>
+    <loc>https://palico.rangga.site/qr-reader</loc>
+  </url>
 </urlset>
