@@ -72,6 +72,55 @@ describe("startOffline", () => {
 		);
 	});
 
+	it("activates a waiting worker of this page's build without a prompt", async () => {
+		const sw = makeFakeSw({ pageBuild: "b", waitingBuild: "b" });
+		await run(
+			sw,
+			Effect.gen(function* () {
+				sw.emit("update-waiting");
+				yield* settle;
+				expect(sw.calls.activate).toBe(1);
+				expect(get(updateRef)).toBe("idle");
+				// The takeover that follows is ours, not another tab's.
+				sw.emit("controller-changed");
+				yield* settle;
+				expect(get(reloadNeededRef)).toBe(false);
+				expect(sw.calls.reload).toBe(0);
+			}),
+		);
+	});
+
+	it("adopts a matching worker already waiting at registration", async () => {
+		const sw = makeFakeSw({
+			hasWaiting: true,
+			pageBuild: "b",
+			waitingBuild: "b",
+		});
+		await run(sw, Effect.void);
+		expect(sw.calls.activate).toBe(1);
+		expect(get(updateRef)).toBe("idle");
+	});
+
+	it("prompts when the waiting worker holds another build", async () => {
+		const sw = makeFakeSw({ pageBuild: "a", waitingBuild: "b" });
+		await run(
+			sw,
+			Effect.gen(function* () {
+				sw.emit("update-waiting");
+				yield* settle;
+				expect(sw.calls.activate).toBe(0);
+				expect(get(updateRef)).toBe("waiting");
+			}),
+		);
+	});
+
+	it("prompts when the waiting worker does not report a build", async () => {
+		const sw = makeFakeSw({ hasWaiting: true, pageBuild: "b" });
+		await run(sw, Effect.void);
+		expect(sw.calls.activate).toBe(0);
+		expect(get(updateRef)).toBe("waiting");
+	});
+
 	it("asks this tab to reload when another tab updated", async () => {
 		const sw = makeFakeSw({ hadController: true });
 		await run(

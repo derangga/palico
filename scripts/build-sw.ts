@@ -4,11 +4,17 @@
 // (outDir dist/server, ssr=true) and skips generating the worker. injectManifest
 // does not bundle imports, so we bundle first.
 
+import { readFile } from "node:fs/promises";
+
 import { build } from "vite";
 import { injectManifest } from "workbox-build";
 
 const OUT_DIR = "dist/client";
 const SW = `${OUT_DIR}/sw.js`;
+
+// Written by the palico-build-id plugin during `vite build`. The worker reports
+// it so the page can tell whether a waiting worker matches the code it runs.
+const BUILD_ID = (await readFile("dist/build-id", "utf8")).trim();
 
 // Bundle with Vite itself (no extra dependency, honours the #/ alias). IIFE keeps
 // the worker a classic script, which every browser accepts for registration.
@@ -17,7 +23,10 @@ await build({
 	publicDir: false,
 	logLevel: "warn",
 	resolve: { tsconfigPaths: true },
-	define: { "process.env.NODE_ENV": '"production"' },
+	define: {
+		"process.env.NODE_ENV": '"production"',
+		__PALICO_BUILD_ID__: JSON.stringify(BUILD_ID),
+	},
 	build: {
 		outDir: OUT_DIR,
 		emptyOutDir: false,
@@ -48,11 +57,15 @@ const { count, size, warnings } = await injectManifest({
 	],
 	// The 21 MB ORT wasm is fetched on the consented model download, not at install.
 	globIgnores: ["**/*.wasm", "**/*.map"],
+	// Every file in assets/ has a content hash in its name. Skipping the cache-bust
+	// lets the install reuse files the page already fetched into the HTTP cache
+	// (served `immutable`, see public/_headers) instead of downloading them again.
+	dontCacheBustURLsMatching: /^assets\//,
 	maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
 });
 
 for (const w of warnings) console.warn(w);
 
 console.log(
-	`sw.js: precaching ${count} files, ${(size / 1024 / 1024).toFixed(1)} MB`,
+	`sw.js (build ${BUILD_ID}): precaching ${count} files, ${(size / 1024 / 1024).toFixed(1)} MB`,
 );

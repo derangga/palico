@@ -1,5 +1,5 @@
 // Test doubles for the three host services. Not imported by app code.
-import { Effect, Layer, Queue, Stream } from "effect";
+import { Effect, Layer, Option, Queue, Stream } from "effect";
 
 import { StorageUnavailableError } from "./errors.ts";
 import {
@@ -17,6 +17,9 @@ export const makeFakeSw = (
 		hadController?: boolean;
 		hasWaiting?: boolean;
 		controllerChangeOnActivate?: boolean;
+		pageBuild?: string;
+		// What the waiting worker answers to GET_BUILD; undefined means no answer.
+		waitingBuild?: string;
 	} = {},
 ) => {
 	const calls = { register: 0, update: 0, activate: 0, reload: 0 };
@@ -32,6 +35,7 @@ export const makeFakeSw = (
 		update: Effect.sync(() => {
 			calls.update++;
 		}),
+		waitingBuild: Effect.succeed(Option.fromUndefinedOr(opts.waitingBuild)),
 		activateWaiting: Effect.suspend(() => {
 			calls.activate++;
 
@@ -43,6 +47,7 @@ export const makeFakeSw = (
 
 	const layer = Layer.succeed(ServiceWorkerHost, {
 		supported: opts.supported ?? true,
+		pageBuild: opts.pageBuild ?? "build-a",
 		windowLoaded: Effect.void,
 		register: () =>
 			Effect.sync(() => {

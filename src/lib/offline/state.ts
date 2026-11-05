@@ -15,6 +15,10 @@ export const updateRef = make<UpdateState>("idle");
 // Another tab let a newer worker take over; this tab's chunks may be gone.
 export const reloadNeededRef = make(false);
 
+// True while this page hands control to a waiting worker of its own build, so the
+// controllerchange that follows is not mistaken for an update from another tab.
+export const adoptingRef = Ref.makeUnsafe(false);
+
 // Number of running jobs (see busy.ts).
 export const busyRef = make(0);
 
@@ -29,6 +33,7 @@ export const resetOfflineState = Effect.all([
 	SubscriptionRef.set(shellRef, ShellState.cases.Unsupported.make({})),
 	SubscriptionRef.set(updateRef, "idle"),
 	SubscriptionRef.set(reloadNeededRef, false),
+	Ref.set(adoptingRef, false),
 	SubscriptionRef.set(busyRef, 0),
 	SubscriptionRef.set(notSavedRef, new Set()),
 	SubscriptionRef.set(refreshRef, 0),
