@@ -88,7 +88,7 @@ flowchart TD
 
 The same "static import safe" versus "dynamic import only" split as the converter
 applies. The new modules are `trim.ts` (the stream-copy pipeline — dynamic import
-only, because it statically imports `@ffmpeg/util`), `thumbnails.ts` (filmstrip
+only, because it statically imports the engine), `thumbnails.ts` (filmstrip
 extraction — pure DOM, no FFmpeg, so it is safe to static import and runs the
 moment a file is picked), and the `video-trim-timeline.tsx` component. Everything
 under `cache.ts`, `engine.ts`, and the bulk of `limits.ts` / `types.ts` /
@@ -434,7 +434,7 @@ codec, so every await is timeout-guarded and failure degrades to a plain track.
 
 ### 5. Keeping the engine out of the route bundle (again)
 
-The same discipline as the converter: `trim.ts` statically imports `@ffmpeg/util`,
+The same discipline as the converter: `trim.ts` statically imports the engine,
 so it is reached only through `await import("#/lib/video/trim.ts")` inside the
 Proceed handler. `thumbnails.ts` has no FFmpeg dependency, so it is a normal static
 import. The production build confirms `trim` and `engine` land in their own chunks,

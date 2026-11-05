@@ -1,7 +1,7 @@
 // Video trim pipeline — cut a single clip out of one video by STREAM COPY.
 //
-// CRITICAL: statically imports @ffmpeg/util. Like engine.ts / converter.ts,
-// this module must only be reached via a dynamic import("#/lib/video/trim.ts")
+// CRITICAL: statically imports engine.ts (and so @ffmpeg/ffmpeg). Like
+// converter.ts, this module must only be reached via a dynamic import("#/lib/video/trim.ts")
 // so the engine stays out of the initial route bundle (palico-rpj contract).
 //
 // Method is `-c copy`: no re-encode, so it's near-instant, lossless, and light

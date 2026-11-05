@@ -131,9 +131,8 @@ the worker, like the other video tools.
 ## Tests
 
 `compress.test.ts` covers the pure helpers and runs `compressOne` against a
-fake `EngineHandle` (an in-memory file map). It uses
-`// @vitest-environment jsdom` because `fetchFile` needs `FileReader`, which
-node lacks. The fake-engine cases check that a too-small target and an
+fake `EngineHandle` (an in-memory file map). It runs
+in the default node environment. The fake-engine cases check that a too-small target and an
 unreadable length fail before any encode, that all virtual files are deleted,
 that a bigger output keeps the original, and that an overshoot is flagged.
 
