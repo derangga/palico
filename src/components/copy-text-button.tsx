@@ -17,12 +17,14 @@ export function CopyTextButton({
 	getText,
 	copiedMessage,
 	failureMessage,
+	className,
 }: {
 	readonly label: string;
 	readonly getText: () => string;
 	/** Spoken to screen readers once the text is copied. */
 	readonly copiedMessage: string;
 	readonly failureMessage: string;
+	readonly className?: string;
 }) {
 	const [copied, flash] = useFlash(FLASH_MS);
 
@@ -34,7 +36,7 @@ export function CopyTextButton({
 
 	return (
 		<>
-			<Button onClick={copy}>
+			<Button onClick={copy} className={className}>
 				{copied ? <Check /> : <Copy />}
 				{copied ? "Copied" : label}
 			</Button>

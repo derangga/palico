@@ -35,7 +35,7 @@ const weekdayName = (n: number) => WEEKDAY_NAMES[n % 7] ?? String(n);
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-function ordinal(n: number): string {
+export function ordinal(n: number): string {
 	const rest = n % 100;
 
 	if (rest >= 11 && rest <= 13) return `${n}th`;
