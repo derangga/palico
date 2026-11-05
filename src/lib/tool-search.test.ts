@@ -87,6 +87,12 @@ describe("searchTools", () => {
 		expect(searchTools("pdf, merge")[0]?.label).toBe("Merge PDFs");
 	});
 
+	it("finds the cron generator by its common names", () => {
+		for (const query of ["cron", "crontab", "cron job", "schedule"]) {
+			expect(searchTools(query)[0]?.label).toBe("Cron Generator");
+		}
+	});
+
 	it("puts each tool first when searching for its own label", () => {
 		for (const tool of TOOLS) {
 			expect(searchTools(tool.label)[0]).toBe(tool);

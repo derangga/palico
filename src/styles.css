@@ -72,6 +72,8 @@
   --cat-file-2: var(--catppuccin-color-green);
   --cat-color: var(--catppuccin-color-blue);
   --cat-color-2: var(--catppuccin-color-sapphire);
+  --cat-developer: var(--catppuccin-color-lavender);
+  --cat-developer-2: var(--catppuccin-color-flamingo);
 
   /* Syntax highlighting. Latte uses the 900 shades of each hue so tokens reach
      4.5:1 on the code background; Mocha accents pass as they are. */
@@ -191,6 +193,8 @@
   --color-cat-file-2: var(--cat-file-2);
   --color-cat-color: var(--cat-color);
   --color-cat-color-2: var(--cat-color-2);
+  --color-cat-developer: var(--cat-developer);
+  --color-cat-developer-2: var(--cat-developer-2);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
