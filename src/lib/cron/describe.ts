@@ -130,10 +130,12 @@ function clockTimes(minute: CronField, hour: CronField): string | undefined {
 	return `At ${joinList(times)}`;
 }
 
-function timeText(schedule: CronSchedule): {
+interface TimeText {
 	readonly text: string;
 	readonly isClock: boolean;
-} {
+}
+
+function timeText(schedule: CronSchedule): TimeText {
 	const { minute, hour } = schedule;
 
 	if (minute.isAll && hour.isAll)

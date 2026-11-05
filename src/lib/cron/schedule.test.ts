@@ -8,6 +8,7 @@ const parse = (expression: string) => Effect.runSync(parseCron(expression));
 
 const failure = (expression: string): CronSyntaxError => {
 	const exit = Effect.runSyncExit(parseCron(expression));
+
 	const error = Exit.isFailure(exit)
 		? Option.getOrUndefined(Cause.findErrorOption(exit.cause))
 		: undefined;

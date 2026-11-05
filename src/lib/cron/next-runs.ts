@@ -16,6 +16,7 @@ interface Fields {
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
+
 // Feb 29 on a century that skips its leap day is 8 years away. This clears it.
 const HORIZON_YEARS = 9;
 const MAX_STEPS = 50_000;
@@ -80,6 +81,7 @@ export function nextRun(
 	zone: CronZone,
 ): Date | undefined {
 	const lastYear = fieldsOf(after, zone).year + HORIZON_YEARS;
+
 	let time = new Date(
 		Math.floor(after.getTime() / MINUTE_MS) * MINUTE_MS + MINUTE_MS,
 	);

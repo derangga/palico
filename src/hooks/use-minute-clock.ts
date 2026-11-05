@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 const MINUTE_MS = 60_000;
+
 // Checked twice a minute. The snapshot only changes when the minute does, so
 // the page re-renders once a minute.
 const CHECK_MS = 30_000;

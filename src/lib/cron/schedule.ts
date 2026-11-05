@@ -95,15 +95,15 @@ export interface CronSchedule {
 	readonly sets: Record<CronFieldName, ReadonlySet<number>>;
 }
 
-export const MACROS: Readonly<Record<string, string>> = {
-	"@yearly": "0 0 1 1 *",
-	"@annually": "0 0 1 1 *",
-	"@monthly": "0 0 1 * *",
-	"@weekly": "0 0 * * 0",
-	"@daily": "0 0 * * *",
-	"@midnight": "0 0 * * *",
-	"@hourly": "0 * * * *",
-};
+const MACROS = new Map([
+	["@yearly", "0 0 1 1 *"],
+	["@annually", "0 0 1 1 *"],
+	["@monthly", "0 0 1 * *"],
+	["@weekly", "0 0 * * 0"],
+	["@daily", "0 0 * * *"],
+	["@midnight", "0 0 * * *"],
+	["@hourly", "0 * * * *"],
+]);
 
 const fail = (message: string, field?: CronFieldName) =>
 	Effect.fail(new CronSyntaxError({ message, field }));
@@ -210,9 +210,11 @@ const readField = (
 ): Effect.Effect<CronField, CronSyntaxError> =>
 	Effect.gen(function* () {
 		const spec = FIELD_SPECS[name];
+
 		const parts = yield* Effect.forEach(text.split(","), (piece) =>
 			readPart(piece, name, spec),
 		);
+
 		const values = new Set<number>();
 
 		for (const { from, to, step } of parts) {
@@ -235,7 +237,7 @@ const readField = (
 
 /** Expands `@daily` and friends. Anything else comes back as it was. */
 export function expandMacro(expression: string): string {
-	return MACROS[expression.trim().toLowerCase()] ?? expression;
+	return MACROS.get(expression.trim().toLowerCase()) ?? expression;
 }
 
 export const parseCron = (
@@ -271,6 +273,7 @@ export const parseCron = (
 			monthText = "",
 			weekdayText = "",
 		] = tokens;
+
 		const minute = yield* readField(minuteText, "minute");
 		const hour = yield* readField(hourText, "hour");
 		const dayOfMonth = yield* readField(dayText, "dayOfMonth");

@@ -86,11 +86,13 @@ export function CronGenerator() {
 	const [fields, setFields] = useState<ReadonlyArray<string>>(() =>
 		splitFields(FIRST_PRESET?.expression ?? "* * * * *"),
 	);
+
 	// What the person typed in the whole-expression box. Null means the box
 	// shows the five fields joined, so typing there never rewrites itself.
 	const [draft, setDraft] = useState<string | null>(null);
 	const [zone, setZone] = useState<CronZone>("local");
 	const clock = useMinuteClock();
+
 	const now = useMemo(
 		() => (clock === undefined ? undefined : new Date(clock)),
 		[clock],
@@ -98,6 +100,7 @@ export function CronGenerator() {
 
 	const expression = draft ?? fields.join(" ");
 	const { schedule, error } = useMemo(() => parse(expression), [expression]);
+
 	const sentence = useMemo(
 		() => (schedule ? describeSchedule(schedule) : undefined),
 		[schedule],

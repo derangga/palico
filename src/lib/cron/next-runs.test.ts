@@ -5,8 +5,10 @@ import { nextRun, nextRuns } from "./next-runs.ts";
 import { parseCron } from "./schedule.ts";
 
 const schedule = (expression: string) => Effect.runSync(parseCron(expression));
+
 const iso = (dates: ReadonlyArray<Date | undefined>) =>
 	dates.map((date) => date?.toISOString());
+
 const at = (text: string) => new Date(text);
 
 describe("nextRun", () => {
