@@ -30,6 +30,13 @@ interface Probe {
 
 const BIG_STEP = 10;
 
+// The text of the button that leaves this image. While reading it stops the work.
+const RESET_LABELS: Record<SurfaceView["phase"], string> = {
+	reading: "Cancel",
+	ready: "Use another image",
+	failed: "Try another image",
+};
+
 const CANVAS_HELP_ID = "pick-surface-help";
 
 /** Only a known non-image stops here. An empty type goes to the decoder, which accepts or refuses it. */
@@ -361,11 +368,7 @@ export function PickSurface({
 					onClick={onReset}
 				>
 					{view.phase === "reading" ? <X /> : <RotateCcw />}
-					{view.phase === "reading"
-						? "Cancel"
-						: view.phase === "failed"
-							? "Try another image"
-							: "Use another image"}
+					{RESET_LABELS[view.phase]}
 				</Button>
 			</div>
 		</section>

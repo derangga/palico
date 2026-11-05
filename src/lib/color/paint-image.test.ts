@@ -10,9 +10,9 @@ interface FakeContext {
 	drawImage(): void;
 }
 
-// SAFETY: paintImage reads a canvas only through width, height and getContext,
-// and node has no canvas to construct, so a stand-in with those three stands in.
 function fakeCanvas(context: FakeContext | null): HTMLCanvasElement {
+	// SAFETY: paintImage reads a canvas only through width, height and getContext,
+	// and node has no canvas to construct, so a stand-in with those three stands in.
 	// oxlint-disable-next-line anti-slop/no-chained-type-assertions -- the stand-in has none of the canvas's other 300 members, so TypeScript needs the hop through unknown.
 	return {
 		width: 0,
@@ -87,7 +87,7 @@ describe("paintImage", () => {
 		vi.stubGlobal(
 			"createImageBitmap",
 			async (
-				_source: unknown,
+				_source: Blob,
 				options?: { resizeWidth?: number; resizeHeight?: number },
 			) =>
 				options
