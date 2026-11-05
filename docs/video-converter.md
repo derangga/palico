@@ -219,7 +219,7 @@ sequenceDiagram
 
 Per file work happens in `convertOne`:
 
-1. Read the `File` into bytes with `fetchFile` from `@ffmpeg/util`.
+1. Read the `File` into bytes with `file.arrayBuffer()`.
 2. Write the bytes to the FFmpeg virtual filesystem as `input.<ext>`.
 3. Subscribe to the `progress` and `log` events for the lifetime of this exec.
    This is wrapped in `Effect.acquireUseRelease` so both listeners are always

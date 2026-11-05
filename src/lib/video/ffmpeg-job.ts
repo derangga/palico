@@ -1,9 +1,8 @@
 // Shared ffmpeg exec pipeline for the converter and cutter.
 //
-// CRITICAL: statically imports @ffmpeg/util (and engine.ts, which imports
-// @ffmpeg/ffmpeg). Like engine.ts, this module must only be reached via a
-// dynamic import so the engine stays out of the initial route bundle
-// (palico-rpj contract).
+// CRITICAL: statically imports engine.ts, which imports @ffmpeg/ffmpeg. Like
+// engine.ts, this module must only be reached via a dynamic import so the
+// engine stays out of the initial route bundle (palico-rpj contract).
 //
 // One job = read source bytes → stage into the virtual FS → exec with the
 // last 64 stderr lines captured → read the output → best-effort cleanup.
@@ -11,7 +10,6 @@
 // OOM/abort additionally disposes the bricked wasm singleton so the next run
 // re-inits a fresh worker instead of the tool staying dead until a reload.
 
-import { fetchFile } from "@ffmpeg/util";
 import { Effect, Predicate, Result } from "effect";
 
 import { disposeEngine, type EngineHandle } from "./engine.ts";
@@ -47,7 +45,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 		const { ffmpeg } = opts;
 
 		const bytes = yield* Effect.tryPromise({
-			try: () => fetchFile(opts.file),
+			try: async () => new Uint8Array(await opts.file.arrayBuffer()),
 			catch: (cause) =>
 				opts.readError(
 					cause instanceof Error ? cause.message : "Could not read file bytes.",

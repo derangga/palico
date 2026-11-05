@@ -1,6 +1,3 @@
-// @vitest-environment jsdom
-// jsdom gives fetchFile (inside runFfmpegJob) the FileReader that node lacks.
-
 import { Effect, Exit, Result } from "effect";
 import { describe, expect, it } from "vitest";
 
