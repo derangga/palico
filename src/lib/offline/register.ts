@@ -54,6 +54,7 @@ const onEvent =
 				return handle.hadController
 					? Effect.gen(function* () {
 							if (yield* Ref.getAndSet(adoptingRef, false)) return;
+
 							if ((yield* SubscriptionRef.get(updateRef)) === "applying")
 								return;
 							yield* SubscriptionRef.set(reloadNeededRef, true);

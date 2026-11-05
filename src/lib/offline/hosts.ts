@@ -2,7 +2,7 @@
 // real ones wrap navigator.serviceWorker, CacheStorage and navigator.storage; tests
 // provide fakes, so the same graph runs in node.
 
-import { Context, Effect, Layer, Option, Queue, Stream } from "effect";
+import { Context, Effect, Layer, Option, Queue, Schema, Stream } from "effect";
 
 import {
 	OfflineCacheError,
@@ -108,6 +108,9 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 	};
 };
 
+// A worker's reply to GET_BUILD; anything but a string means "unknown build".
+const decodeBuild = Schema.decodeUnknownOption(Schema.String);
+
 // Asks the waiting worker for its build ID over a MessageChannel.
 const askBuild = (reg: ServiceWorkerRegistration) =>
 	Effect.callback<Option.Option<string>>((resume) => {
@@ -116,14 +119,8 @@ const askBuild = (reg: ServiceWorkerRegistration) =>
 		if (!worker) return resume(Effect.succeed(Option.none()));
 		const channel = new MessageChannel();
 
-		channel.port1.onmessage = (event: MessageEvent<unknown>) =>
-			resume(
-				Effect.succeed(
-					typeof event.data === "string"
-						? Option.some(event.data)
-						: Option.none(),
-				),
-			);
+		channel.port1.onmessage = (event) =>
+			resume(Effect.succeed(decodeBuild(event.data)));
 		worker.postMessage({ type: "GET_BUILD" }, [channel.port2]);
 
 		return Effect.sync(() => channel.port1.close());
@@ -137,7 +134,7 @@ const askBuild = (reg: ServiceWorkerRegistration) =>
 export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 	supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
 	pageBuild:
-		typeof __PALICO_BUILD_ID__ === "string" ? __PALICO_BUILD_ID__ : "dev",
+		typeof __PALICO_BUILD_ID__ === "undefined" ? "dev" : __PALICO_BUILD_ID__,
 	windowLoaded: Effect.callback<void>((resume) => {
 		if (document.readyState === "complete") return resume(Effect.void);
 		const done = () => resume(Effect.void);

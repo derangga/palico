@@ -96,6 +96,7 @@ describe("startOffline", () => {
 			pageBuild: "b",
 			waitingBuild: "b",
 		});
+
 		await run(sw, Effect.void);
 		expect(sw.calls.activate).toBe(1);
 		expect(get(updateRef)).toBe("idle");

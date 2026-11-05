@@ -54,6 +54,7 @@ const serveVendorStatic = (): Plugin => {
 // Kept in process.env because one `vite build` loads this config more than once
 // (the SPA prerender step loads it again), and every load must agree.
 process.env.PALICO_BUILD_ID ??= Date.now().toString(36);
+
 const BUILD_ID = process.env.PALICO_BUILD_ID;
 
 const buildId = (): Plugin => ({
