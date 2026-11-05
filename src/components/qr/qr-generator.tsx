@@ -12,8 +12,8 @@ import {
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { ChoiceGroup } from "#/components/choice-group.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
-import { ChoiceGroup } from "#/components/qr/choice-group.tsx";
 import { AdviceList, ScanTips } from "#/components/qr/guidance-panels.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {

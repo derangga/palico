@@ -13,6 +13,7 @@ import {
 	LayoutGrid,
 	type LucideIcon,
 	Minimize2,
+	Palette,
 	QrCode,
 	Scaling,
 	ScanQrCode,
@@ -28,9 +29,9 @@ import type { EngineId } from "#/lib/offline/shapes.ts";
  * The one registry of tools. The home grid and the sidebar both read it, and
  * `categoryOfPath` lets any page find its category from the URL.
  * Grouping follows DESIGN.md: Image (Mauve + Pink), Video (Peach + Yellow),
- * File (Teal + Green).
+ * File (Teal + Green), Color (Blue + Sapphire).
  */
-export type ToolCategory = "image" | "video" | "file";
+export type ToolCategory = "image" | "video" | "file" | "color";
 
 export type Tool = {
 	to: string;
@@ -49,6 +50,7 @@ export const CATEGORIES: ReadonlyArray<{ id: ToolCategory; label: string }> = [
 	{ id: "image", label: "Image" },
 	{ id: "video", label: "Video" },
 	{ id: "file", label: "File" },
+	{ id: "color", label: "Color" },
 ];
 
 export const TOOLS: ReadonlyArray<Tool> = [
@@ -259,6 +261,16 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		icon: ScanQrCode,
 		category: "file",
 	},
+	{
+		to: "/palette-extractor",
+		label: "Palette Extractor",
+		blurb: "Pull the main colors out of any image.",
+		seoTitle: "Extract a Color Palette from Any Image",
+		seoDescription:
+			"Get the main colors of any image as HEX, RGB, HSL or OKLCH, or as CSS variables. Runs in your browser, so the image is never uploaded, and it works offline.",
+		icon: Palette,
+		category: "color",
+	},
 ];
 
 export const toolGroups = CATEGORIES.map((category) => ({
@@ -315,5 +327,13 @@ export const CATEGORY_STYLES: Record<
 		tint: "bg-cat-file-2/15",
 		ink: "text-[color-mix(in_oklab,var(--cat-file),var(--foreground)_30%)] dark:text-cat-file",
 		vars: "[--tile-edge:var(--cat-file)] [--tile-tint:var(--cat-file-2)]",
+	},
+	color: {
+		label: "Color",
+		fill: "bg-cat-color",
+		chip: "bg-cat-color/20",
+		tint: "bg-cat-color-2/15",
+		ink: "text-[color-mix(in_oklab,var(--cat-color),var(--foreground)_30%)] dark:text-cat-color",
+		vars: "[--tile-edge:var(--cat-color)] [--tile-tint:var(--cat-color-2)]",
 	},
 };
