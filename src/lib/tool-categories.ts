@@ -14,6 +14,7 @@ import {
 	type LucideIcon,
 	Minimize2,
 	Palette,
+	Pipette,
 	QrCode,
 	Scaling,
 	ScanQrCode,
@@ -269,6 +270,16 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		seoDescription:
 			"Get the main colors of any image as HEX, RGB, HSL or OKLCH, or as CSS variables. Runs in your browser, so the image is never uploaded, and it works offline.",
 		icon: Palette,
+		category: "color",
+	},
+	{
+		to: "/color-picker",
+		label: "Color Picker",
+		blurb: "Pick a color from an image or type one in.",
+		seoTitle: "Color Picker: HEX, RGB, HSL, OKLCH",
+		seoDescription:
+			"Pick a color from an image or your screen, or type one in, and get it as HEX, RGB, HSL or OKLCH. Runs in your browser, so nothing is uploaded.",
+		icon: Pipette,
 		category: "color",
 	},
 ];

@@ -88,6 +88,7 @@ const PAGE_CRUMBS = new Map<
 	["/qr-generator", { group: "File", title: "QR Generator" }],
 	["/qr-reader", { group: "File", title: "QR Reader" }],
 	["/palette-extractor", { group: "Color", title: "Palette Extractor" }],
+	["/color-picker", { group: "Color", title: "Color Picker" }],
 ]);
 
 function RootLayout() {

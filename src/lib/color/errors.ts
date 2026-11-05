@@ -25,3 +25,21 @@ export class PaletteWorkerError extends Schema.TaggedError<PaletteWorkerError>()
 		message: Schema.String,
 	},
 ) {}
+
+// The picker could not turn the file into pixels on its canvas (not an image,
+// corrupt, or a format the browser cannot decode).
+export class ColorImageError extends Schema.TaggedError<ColorImageError>()(
+	"ColorImageError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
+// The browser's EyeDropper failed for a reason other than the person pressing Esc.
+export class ScreenPickError extends Schema.TaggedError<ScreenPickError>()(
+	"ScreenPickError",
+	{
+		message: Schema.String,
+	},
+) {}

@@ -33,7 +33,7 @@ Read the matching file before starting that kind of work.
   `docs/pdf-organize.md`, `docs/pdf-to-images.md`,
   `docs/video-converter.md`, `docs/video-cutter.md`, `docs/video-to-gif.md`,
   `docs/extract-audio.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
-  `docs/palette-extractor.md`:
+  `docs/palette-extractor.md`, `docs/color-picker.md`:
   how each tool works end to end and why it is built that way.
 - `docs/offline-pwa.md`: the service worker, offline status pills, update flow and
   storage handling. Read it before touching `src/sw.ts`, `public/_headers`,

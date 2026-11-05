@@ -4,6 +4,7 @@ import {
 	oklabDistance,
 	oklabToOklch,
 	oklabToRgb,
+	oklchToOklab,
 	type Rgb,
 	rgbToOklab,
 } from "./oklab.ts";
@@ -89,5 +90,35 @@ describe("oklabDistance", () => {
 
 		expect(oklabDistance(red, red)).toBe(0);
 		expect(oklabDistance(red, pink)).toBeLessThan(oklabDistance(red, blue));
+	});
+});
+
+describe("oklchToOklab", () => {
+	it("undoes oklabToOklch", () => {
+		const colors: ReadonlyArray<Rgb> = [
+			{ r: 255, g: 0, b: 0 },
+			{ r: 30, g: 144, b: 255 },
+			{ r: 136, g: 57, b: 239 },
+			{ r: 223, g: 142, b: 29 },
+		];
+
+		for (const color of colors) {
+			const lab = rgbToOklab(color);
+			const back = oklchToOklab(oklabToOklch(lab));
+
+			expect(back.L).toBeCloseTo(lab.L, 9);
+			expect(back.a).toBeCloseTo(lab.a, 9);
+			expect(back.b).toBeCloseTo(lab.b, 9);
+		}
+	});
+
+	it("puts a hue of 0 on the positive a axis and 90 on the positive b axis", () => {
+		const east = oklchToOklab({ L: 0.5, C: 0.1, h: 0 });
+		const north = oklchToOklab({ L: 0.5, C: 0.1, h: 90 });
+
+		expect(east.a).toBeCloseTo(0.1, 9);
+		expect(east.b).toBeCloseTo(0, 9);
+		expect(north.a).toBeCloseTo(0, 9);
+		expect(north.b).toBeCloseTo(0.1, 9);
 	});
 });
