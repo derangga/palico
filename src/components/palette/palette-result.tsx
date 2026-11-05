@@ -1,8 +1,9 @@
 import { Effect, Option } from "effect";
-import { Check, CircleAlert, Copy, ImageOff, RotateCcw, X } from "lucide-react";
+import { Check, CircleAlert, ImageOff, RotateCcw, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { ChoiceGroup } from "#/components/choice-group.tsx";
+import { CopyTextButton } from "#/components/copy-text-button.tsx";
 import { useJustDone } from "#/components/done-burst.tsx";
 import { type PillState, StatusPill } from "#/components/status-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
@@ -151,29 +152,18 @@ function CopyCssButton({
 	readonly colors: ReadonlyArray<PaletteColor>;
 	readonly format: ColorFormat;
 }) {
-	const [copied, flash] = useFlash(FLASH_MS);
-
-	async function copy() {
-		const css = toCssVariables(
-			colors.map((color) => color.rgb),
-			format,
-		);
-
-		const exit = await Effect.runPromiseExit(copyText(css));
-
-		if (Option.isSome(toastOnExit(exit, "Couldn't copy the CSS."))) flash();
-	}
-
 	return (
-		<>
-			<Button onClick={copy}>
-				{copied ? <Check /> : <Copy />}
-				{copied ? "Copied" : "Copy as CSS variables"}
-			</Button>
-			<output className="sr-only">
-				{copied ? "Copied the CSS variables." : ""}
-			</output>
-		</>
+		<CopyTextButton
+			label="Copy as CSS variables"
+			getText={() =>
+				toCssVariables(
+					colors.map((color) => color.rgb),
+					format,
+				)
+			}
+			copiedMessage="Copied the CSS variables."
+			failureMessage="Couldn't copy the CSS."
+		/>
 	);
 }
 

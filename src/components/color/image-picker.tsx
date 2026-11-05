@@ -1,0 +1,91 @@
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+
+import { PickSurface } from "#/components/color/pick-surface.tsx";
+import { Dropzone } from "#/components/dropzone.tsx";
+import type { Rgb } from "#/lib/color/oklab.ts";
+
+/**
+ * Pick a color from an image: drop one, choose one, or paste one anywhere on the
+ * page. Waiting shows the dropzone; an image shows its surface.
+ */
+export function ImagePicker({
+	onPick,
+	onCommit,
+}: {
+	readonly onPick: (color: Rgb) => void;
+	readonly onCommit: (color: Rgb) => void;
+}) {
+	const [file, setFile] = useState<File | null>(null);
+	const idleRef = useRef<HTMLElement>(null);
+	// Set when the section returns to waiting, so focus follows the person there.
+	const refocusIdle = useRef(false);
+
+	// An effect event always sees the latest handler, so the paste listener is
+	// added once instead of on every render.
+	const readPasted = useEffectEvent((pasted: File) => setFile(pasted));
+
+	useEffect(() => {
+		const onPaste = (event: ClipboardEvent) => {
+			const image = Array.from(event.clipboardData?.files ?? []).find(
+				(candidate) => candidate.type.startsWith("image/"),
+			);
+
+			if (!image) return;
+
+			event.preventDefault();
+			readPasted(image);
+		};
+
+		document.addEventListener("paste", onPaste);
+
+		return () => document.removeEventListener("paste", onPaste);
+	}, []);
+
+	useEffect(() => {
+		if (refocusIdle.current && !file) {
+			refocusIdle.current = false;
+			idleRef.current?.focus();
+		}
+	});
+
+	if (file) {
+		return (
+			<PickSurface
+				// A new image is a new surface, so it loads, focuses and animates again.
+				key={`${file.name}-${file.lastModified}-${file.size}`}
+				file={file}
+				onPick={onPick}
+				onCommit={onCommit}
+				onReset={() => {
+					refocusIdle.current = true;
+					setFile(null);
+				}}
+			/>
+		);
+	}
+
+	return (
+		<section
+			ref={idleRef}
+			tabIndex={-1}
+			aria-label="Choose an image to pick from"
+			className="flex flex-col gap-4 outline-none"
+		>
+			<Dropzone
+				label="Drag & drop an image here, or"
+				actionLabel="Choose image"
+				hint="PNG, JPG, WebP or GIF, up to 25 MB"
+				accept="image/*"
+				ariaLabel="Choose an image to pick a color from"
+				onFiles={(files) => {
+					const chosen = files?.[0];
+
+					if (chosen) setFile(chosen);
+				}}
+			/>
+			<p className="text-xs text-muted-foreground">
+				You can also paste an image with Ctrl+V or ⌘+V.
+			</p>
+		</section>
+	);
+}

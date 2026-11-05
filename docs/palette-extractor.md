@@ -95,7 +95,8 @@ lightness, `oklch(0.628 0.258 29.2)`; a gray gets hue 0. The CSS export is a
 - Shrinking a large photo straight to 200 px can alias thin detail. That is fine
   for color statistics, but a one-pixel line may not count.
 - Ranking is by area, so a large flat background comes first.
-- Not yet built: picking a single color from the image, and CSS color names.
+- Not built: CSS color names. Picking a single color from an image is the
+  [color picker](color-picker.md).
 
 ## Tests
 

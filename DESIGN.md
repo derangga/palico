@@ -232,7 +232,7 @@ tile and icon fill; the second is the tint or secondary detail.
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
 | Video | Peach + Yellow | Video converter, video cutter |
 | File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, diff viewer, Markdown preview, QR code generator, QR code reader |
-| Color | Blue + Sapphire | Palette extractor |
+| Color | Blue + Sapphire | Palette extractor, color picker |
 
 Color tools read or help you choose colors. A tool that takes an image and
 returns a changed image (grayscale, make a color transparent) stays in Image.

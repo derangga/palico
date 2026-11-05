@@ -96,6 +96,13 @@ export function oklabToOklch({ L, a, b }: Oklab): Oklch {
 	return { L, C, h: degrees < 0 ? degrees + 360 : degrees };
 }
 
+/** The inverse of `oklabToOklch`. The hue is in degrees. */
+export function oklchToOklab({ L, C, h }: Oklch): Oklab {
+	const radians = (h * Math.PI) / 180;
+
+	return { L, a: C * Math.cos(radians), b: C * Math.sin(radians) };
+}
+
 /** Straight-line distance in OKLab. About 0.02 is the smallest difference people notice. */
 export const oklabDistance = (x: Oklab, y: Oklab): number =>
 	Math.hypot(x.L - y.L, x.a - y.a, x.b - y.b);

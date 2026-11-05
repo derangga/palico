@@ -29,6 +29,7 @@ import { Route as ExtractAudioRouteImport } from './routes/extract-audio'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
 import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as CompressorRouteImport } from './routes/compressor'
+import { Route as ColorPickerRouteImport } from './routes/color-picker'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -132,6 +133,11 @@ const CompressorRoute = CompressorRouteImport.update({
   path: '/compressor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ColorPickerRoute = ColorPickerRouteImport.update({
+  id: '/color-picker',
+  path: '/color-picker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BackgroundRemovalRoute = BackgroundRemovalRouteImport.update({
   id: '/background-removal',
   path: '/background-removal',
@@ -146,6 +152,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/background-removal': typeof BackgroundRemovalRoute
+  '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
   '/diff-viewer': typeof DiffViewerRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/background-removal'
+    | '/color-picker'
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/background-removal'
+    | '/color-picker'
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/background-removal'
+    | '/color-picker'
     | '/compressor'
     | '/converter'
     | '/diff-viewer'
@@ -294,6 +306,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BackgroundRemovalRoute: typeof BackgroundRemovalRoute
+  ColorPickerRoute: typeof ColorPickerRoute
   CompressorRoute: typeof CompressorRoute
   ConverterRoute: typeof ConverterRoute
   DiffViewerRoute: typeof DiffViewerRoute
@@ -458,6 +471,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompressorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/color-picker': {
+      id: '/color-picker'
+      path: '/color-picker'
+      fullPath: '/color-picker'
+      preLoaderRoute: typeof ColorPickerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/background-removal': {
       id: '/background-removal'
       path: '/background-removal'
@@ -478,6 +498,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BackgroundRemovalRoute: BackgroundRemovalRoute,
+  ColorPickerRoute: ColorPickerRoute,
   CompressorRoute: CompressorRoute,
   ConverterRoute: ConverterRoute,
   DiffViewerRoute: DiffViewerRoute,
