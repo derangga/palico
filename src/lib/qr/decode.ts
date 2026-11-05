@@ -35,6 +35,7 @@ function readGrid(grid: BitGrid): QrReading | undefined {
 	for (const triple of pickTriples(findFinders(grid))) {
 		for (const version of versionGuesses(triple)) {
 			const dim = sizeOfVersion(version);
+
 			const transforms = [
 				homographyWithAlignment(grid, triple, dim),
 				homographyFromFinders(triple, dim),
@@ -61,10 +62,12 @@ export function decodeFrame(
 	effort: Effort = "thorough",
 ): QrReading | undefined {
 	const gray = toGray(frame);
+
 	const base = Math.max(
 		1,
 		Math.ceil(Math.max(frame.width, frame.height) / MAX_SIDE),
 	);
+
 	// Shrinking helps on big photos but can alias thin modules away (3 px modules
 	// halved to 1.5 px), so a thorough pass also tries the original pixels,
 	// after the faster shrunken copies.
@@ -89,6 +92,7 @@ export function decodeFrame(
 
 		for (const makeGrid of grids) {
 			const grid = makeGrid();
+
 			const reading =
 				readGrid(grid) ??
 				(effort === "thorough" ? readGrid(invertBits(grid)) : undefined);

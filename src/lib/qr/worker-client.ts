@@ -121,6 +121,13 @@ export interface FrameReader {
 	readonly close: () => void;
 }
 
+// Shared by the message handlers and the read function of one frame reader.
+interface ReaderState {
+	nextId: number;
+	failure?: QrWorkerError;
+	closed: boolean;
+}
+
 type Resume = (
 	effect: Effect.Effect<QrReading | undefined, QrWorkerError>,
 ) => void;
@@ -130,12 +137,9 @@ export const openFrameReader = (): Effect.Effect<FrameReader, QrWorkerError> =>
 		try: () => {
 			const worker = spawn();
 			const pending = new Map<number, Resume>();
+
 			// Once the worker has failed or closed, no later read may wait on it.
-			const state: {
-				nextId: number;
-				failure?: QrWorkerError;
-				closed: boolean;
-			} = { nextId: 1, closed: false };
+			const state: ReaderState = { nextId: 1, closed: false };
 
 			const failAll = (error: QrWorkerError) => {
 				state.failure = error;

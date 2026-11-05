@@ -56,6 +56,7 @@ export function toSvg(qr: QrCode, style: QrStyle, pixels = 512): string {
 	const total = qr.size + QUIET_ZONE_MODULES * 2;
 	const foreground = safeColor(style.foreground, "#000000");
 	const background = safeColor(style.background, "#ffffff");
+
 	const path = darkRuns(qr)
 		.map(
 			([x, y, length]) =>

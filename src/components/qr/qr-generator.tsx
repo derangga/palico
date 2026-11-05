@@ -184,17 +184,22 @@ export function QrGenerator() {
 				: Effect.runSyncExit(encodeQr(deferredText, ecc)),
 		[deferredText, ecc],
 	);
+
 	const qr = result && Exit.isSuccess(result) ? result.value : undefined;
+
 	const style = useMemo(
 		() => ({ foreground, background }),
 		[foreground, background],
 	);
+
 	const svg = useMemo(() => (qr ? toSvg(qr, style) : undefined), [qr, style]);
 	const plan = planFor(text, ecc);
 	const advice = adviseOn({ text, ecc, foreground, background });
 	const tooLong = text !== "" && plan.version === undefined;
+
 	const colorsChanged =
 		foreground !== DEFAULT_FOREGROUND || background !== DEFAULT_BACKGROUND;
+
 	const eccOption = ECC_OPTIONS.find((option) => option.level === ecc);
 	const fill = plan.limit === 0 ? 0 : Math.min(1, plan.length / plan.limit);
 

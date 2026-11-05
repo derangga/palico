@@ -33,6 +33,7 @@ describe("decodeFrame on clean images", () => {
 		it(`reads every text at level ${ecc}`, () => {
 			for (const text of texts) {
 				const qr = make(text, ecc);
+
 				const reading = decodeFrame(
 					renderFrame(qr, { scale: qr.size > 70 ? 3 : 5 }),
 				);
@@ -135,6 +136,7 @@ describe("decodeFrame on photo-like damage", () => {
 
 	it("reads a code photographed at an angle", () => {
 		const code = renderFrame(make(URL_TEXT), { scale: 8 });
+
 		const frame = perspective(code, 700, 600, [
 			[90, 60],
 			[610, 110],
@@ -148,6 +150,7 @@ describe("decodeFrame on photo-like damage", () => {
 	it("reads a large code at a steeper angle using its alignment pattern", () => {
 		const text = "https://example.com/a/long/path/".repeat(8);
 		const code = renderFrame(make(text, "L"), { scale: 6 });
+
 		const frame = perspective(code, 1100, 1000, [
 			[140, 90],
 			[960, 190],
@@ -164,6 +167,7 @@ describe("decodeFrame on photo-like damage", () => {
 			dark: 70,
 			light: 210,
 		});
+
 		const frame = addNoise(rotate(base, 1), 25, seeded(3));
 
 		expect(decodeFrame(frame)?.text).toBe(URL_TEXT);
@@ -180,6 +184,7 @@ describe("decodeFrame on images without a code", () => {
 			0,
 			0,
 		);
+
 		const blank = {
 			...frame,
 			data: new Uint8ClampedArray(frame.data.length).fill(255),
@@ -209,6 +214,7 @@ describe("decodeFrame on images without a code", () => {
 			// Leave the corner squares, scramble the rest.
 			const x = i % qr.size;
 			const y = Math.floor(i / qr.size);
+
 			const corner =
 				(x < 9 && y < 9) ||
 				(x > qr.size - 9 && y < 9) ||

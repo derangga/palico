@@ -19,6 +19,7 @@ describe("reed-solomon", () => {
 	const data = [
 		32, 91, 11, 120, 209, 114, 220, 77, 67, 64, 236, 17, 236, 17, 236, 17,
 	];
+
 	const check = [196, 35, 39, 119, 235, 215, 231, 226, 93, 23];
 
 	it("produces the known check bytes", () => {

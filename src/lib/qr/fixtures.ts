@@ -25,8 +25,10 @@ export function renderFrame(qr: QrCode, options: RenderOptions = {}): Frame {
 			const mx = Math.floor(x / scale) - border;
 			const my = Math.floor(y / scale) - border;
 			const inside = mx >= 0 && my >= 0 && mx < qr.size && my < qr.size;
+
 			const value =
 				inside && qr.modules[my * qr.size + mx] === 1 ? dark : light;
+
 			const o = (y * width + x) * 4;
 
 			data[o] = data[o + 1] = data[o + 2] = value;
@@ -146,8 +148,10 @@ export function placeOnCanvas(
 		for (let x = 0; x < canvasWidth; x++) {
 			const sx = x - left;
 			const sy = y - top;
+
 			const inside =
 				sx >= 0 && sy >= 0 && sx < frame.width && sy < frame.height;
+
 			const base = inside ? gray(frame, sx, sy) : 235;
 			const light = 1 - shade * (x / canvasWidth);
 
@@ -175,6 +179,7 @@ export function perspective(
 		[frame.width, frame.height],
 		[0, frame.height],
 	];
+
 	const inverse = solveHomography(quad, source);
 
 	if (!inverse) throw new Error("degenerate quad");
@@ -193,6 +198,7 @@ export function perspective(
 			const fx = sx - x0;
 			const fy = sy - y0;
 			const top = gray(frame, x0, y0) * (1 - fx) + gray(frame, x0 + 1, y0) * fx;
+
 			const bottom =
 				gray(frame, x0, y0 + 1) * (1 - fx) + gray(frame, x0 + 1, y0 + 1) * fx;
 

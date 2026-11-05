@@ -32,11 +32,13 @@ const numeric = (count: number) =>
 		[1, 4],
 		[count, 10],
 	] as const;
+
 const alphanumeric = (count: number) =>
 	[
 		[2, 4],
 		[count, 9],
 	] as const;
+
 const bytes = (count: number) =>
 	[
 		[4, 4],

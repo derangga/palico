@@ -119,8 +119,10 @@ function crossCheck(
 
 export function findFinders(grid: BitGrid): Finder[] {
 	const { width, height, bits } = grid;
+
 	const found: Array<{ x: number; y: number; size: number; count: number }> =
 		[];
+
 	const rowStep = height > 1500 ? 2 : 1;
 	const runs = [0, 0, 0, 0, 0];
 
@@ -130,6 +132,7 @@ export function findFinders(grid: BitGrid): Finder[] {
 		const total = runs.reduce((sum, run) => sum + run, 0);
 		const guessX = endX - runs[4]! - runs[3]! - runs[2]! / 2;
 		const column = Math.min(width - 1, Math.max(0, Math.floor(guessX)));
+
 		const vertical = crossCheck(
 			(i) => bits[i * width + column]!,
 			height,
@@ -140,6 +143,7 @@ export function findFinders(grid: BitGrid): Finder[] {
 		if (!vertical) return false;
 
 		const row = Math.min(height - 1, Math.max(0, Math.floor(vertical.center)));
+
 		const horizontal = crossCheck(
 			(i) => bits[row * width + i]!,
 			width,
@@ -152,6 +156,7 @@ export function findFinders(grid: BitGrid): Finder[] {
 		const x = horizontal.center;
 		const cy = vertical.center;
 		const size = (horizontal.total + vertical.total) / 14;
+
 		const match = found.find(
 			(f) =>
 				Math.abs(f.x - x) <= f.size * 1.5 &&
@@ -231,11 +236,13 @@ export function pickTriples(finders: ReadonlyArray<Finder>): Triple[] {
 		for (let j = i + 1; j < finders.length; j++) {
 			for (let k = j + 1; k < finders.length; k++) {
 				const trio = [finders[i]!, finders[j]!, finders[k]!];
+
 				const sides = [
 					distance(trio[1]!, trio[2]!),
 					distance(trio[0]!, trio[2]!),
 					distance(trio[0]!, trio[1]!),
 				];
+
 				// The corner opposite the longest side is the right angle.
 				const cornerIndex = sides.indexOf(Math.max(...sides));
 				const corner = trio[cornerIndex]!;
@@ -244,10 +251,12 @@ export function pickTriples(finders: ReadonlyArray<Finder>): Triple[] {
 				const b = others[1]!;
 				const da = distance(corner, a);
 				const db = distance(corner, b);
+
 				const cosine =
 					((a.x - corner.x) * (b.x - corner.x) +
 						(a.y - corner.y) * (b.y - corner.y)) /
 					(da * db);
+
 				const sideRatio = Math.min(da, db) / Math.max(da, db);
 				const sizes = trio.map((f) => f.size);
 				const sizeRatio = Math.min(...sizes) / Math.max(...sizes);
@@ -263,6 +272,7 @@ export function pickTriples(finders: ReadonlyArray<Finder>): Triple[] {
 				const cross =
 					(a.x - corner.x) * (b.y - corner.y) -
 					(a.y - corner.y) * (b.x - corner.x);
+
 				const [topRight, bottomLeft] = cross > 0 ? [a, b] : [b, a];
 
 				scored.push({

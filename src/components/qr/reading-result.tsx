@@ -114,6 +114,7 @@ function CopyButton({
 
 function WifiRows({ wifi }: { readonly wifi: WifiDetails }) {
 	const [shown, setShown] = useState(false);
+
 	const rows = [
 		{ label: "Network", value: wifi.ssid },
 		{ label: "Security", value: wifi.security },
@@ -230,9 +231,12 @@ export function ReadingResult({
 }) {
 	const justFound = useJustDone(view.phase === "found");
 	const phase = PHASES[view.phase];
+
 	const content =
 		view.phase === "found" ? describeContent(view.reading.text) : undefined;
+
 	const headingRef = useRef<HTMLHeadingElement>(null);
+
 	const title = Match.value(source).pipe(
 		Match.when({ kind: "image" }, (image) => image.file.name),
 		Match.when({ kind: "other" }, (other) => other.name),

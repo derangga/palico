@@ -53,6 +53,7 @@ export function AdviceList({
 					"flex gap-2.5 rounded-md px-3 py-2.5 text-sm text-foreground",
 					LOOK[item.severity],
 				);
+
 				const body = (
 					<>
 						<AdviceIcon severity={item.severity} />

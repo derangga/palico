@@ -228,12 +228,14 @@ export function homographyWithAlignment(
 export function versionGuesses(triple: Triple): number[] {
 	const { topLeft: tl, topRight: tr, bottomLeft: bl } = triple;
 	const unit = (tl.size + tr.size + bl.size) / 3;
+
 	const modulesAcross =
 		(Math.hypot(tr.x - tl.x, tr.y - tl.y) +
 			Math.hypot(bl.x - tl.x, bl.y - tl.y)) /
 			2 /
 			unit +
 		7;
+
 	const estimate = Math.round((modulesAcross - 17) / 4);
 	const guesses: number[] = [];
 

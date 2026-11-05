@@ -29,8 +29,10 @@ export function toGray(frame: Frame): Gray {
 
 	for (let i = 0; i < gray.length; i++) {
 		const o = i * 4;
+
 		const luma =
 			(data[o]! * 299 + data[o + 1]! * 587 + data[o + 2]! * 114) / 1000;
+
 		const alpha = data[o + 3]! / 255;
 
 		gray[i] = luma * alpha + 255 * (1 - alpha);
@@ -94,11 +96,13 @@ export function adaptiveBits(gray: Gray, divisor: number): BitGrid {
 		for (let x = 0; x < width; x++) {
 			const x0 = Math.max(0, x - half);
 			const x1 = Math.min(width, x + half + 1);
+
 			const sum =
 				integral[y1 * stride + x1]! -
 				integral[y0 * stride + x1]! -
 				integral[y1 * stride + x0]! +
 				integral[y0 * stride + x0]!;
+
 			const mean = sum / ((x1 - x0) * (y1 - y0));
 
 			bits[y * width + x] = data[y * width + x]! * 100 < mean * 85 ? 1 : 0;
@@ -137,6 +141,7 @@ export function otsuBits(gray: Gray): BitGrid {
 
 		const backgroundMean = backgroundSum / backgroundWeight;
 		const foregroundMean = (weightedTotal - backgroundSum) / foregroundWeight;
+
 		const variance =
 			backgroundWeight *
 			foregroundWeight *

@@ -53,11 +53,13 @@ const bitCount = (value: number): number => {
 // valid word, and give up beyond 3 flips (the code's own limit is 3).
 function readFormat(modules: Uint8Array, size: number): FormatInfo | undefined {
 	const [first, second] = formatPositions(size);
+
 	const readCopy = (positions: ReadonlyArray<readonly [number, number]>) =>
 		positions.reduce(
 			(word, [x, y], bit) => word | (modules[y * size + x]! << bit),
 			0,
 		);
+
 	const copies = [readCopy(first), readCopy(second)];
 
 	let best: FormatInfo | undefined;
@@ -88,13 +90,16 @@ function correctBlocks(
 	const total = rawCodewords(version);
 	const shortBlocks = blocks - (total % blocks);
 	const shortLength = Math.floor(total / blocks);
+
 	const dataLengths = Array.from(
 		{ length: blocks },
 		(_, i) => shortLength - eccLength + (i < shortBlocks ? 0 : 1),
 	);
+
 	const buffers = dataLengths.map(
 		(length) => new Uint8Array(length + eccLength),
 	);
+
 	let position = 0;
 
 	for (let i = 0; i < shortLength - eccLength + 1; i++) {
@@ -216,8 +221,10 @@ export function parseSegments(
 					text += String(value).padStart(digits, "0");
 					count -= digits;
 				}
+
 				break;
 			}
+
 			case 2: {
 				let count = reader.read(countBits("alphanumeric", version));
 
@@ -244,8 +251,10 @@ export function parseSegments(
 						count -= 1;
 					}
 				}
+
 				break;
 			}
+
 			case 4: {
 				const count = reader.read(countBits("byte", version));
 
@@ -255,6 +264,7 @@ export function parseSegments(
 
 				break;
 			}
+
 			case 8: {
 				// Kanji: 13 bits per Shift JIS character. Counts have their own widths.
 				const count = reader.read(version <= 9 ? 8 : version <= 26 ? 10 : 12);
@@ -266,6 +276,7 @@ export function parseSegments(
 				for (let i = 0; i < count; i++) {
 					const value = reader.read(13);
 					const assembled = (Math.floor(value / 0xc0) << 8) | (value % 0xc0);
+
 					const code =
 						assembled + (assembled + 0x8140 <= 0x9ffc ? 0x8140 : 0xc140);
 
@@ -276,6 +287,7 @@ export function parseSegments(
 				text += decodeBytes(bytes, "shift_jis");
 				break;
 			}
+
 			case 7: {
 				// ECI designators are 1 to 3 bytes; the leading bits give the length.
 				const first = reader.read(8);
@@ -290,6 +302,7 @@ export function parseSegments(
 				charset = charsetForEci(designator);
 				break;
 			}
+
 			case 3:
 				// Structured append: parity and position of this symbol in a set.
 				reader.read(16);
@@ -327,6 +340,7 @@ export function readSymbol(
 
 	for (let i = 0; i < stream.length * 8; i++) {
 		const index = order[i]!;
+
 		const bit =
 			modules[index]! ^
 			(maskFlips(format.mask, index % size, Math.floor(index / size)) ? 1 : 0);

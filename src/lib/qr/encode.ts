@@ -82,6 +82,7 @@ function writePayload(buffer: BitBuffer, text: string, payload: Payload) {
 
 				buffer.append(Number(chunk), chunk.length * 3 + 1);
 			}
+
 			break;
 		case "alphanumeric":
 			for (let i = 0; i < text.length; i += 2) {
@@ -96,6 +97,7 @@ function writePayload(buffer: BitBuffer, text: string, payload: Payload) {
 					buffer.append(first, 6);
 				}
 			}
+
 			break;
 		case "byte":
 			for (const byte of payload.bytes) buffer.append(byte, 8);
@@ -240,11 +242,13 @@ function build(
 ): QrCode {
 	const layout = createLayout(version);
 	const { size, isFunction } = layout;
+
 	const codewords = interleave(
 		toCodewords(text, payload, version, ecc),
 		version,
 		ecc,
 	);
+
 	const order = dataModuleOrder(layout);
 	const base = layout.modules.slice();
 

@@ -11,6 +11,12 @@ export type CameraStatus = "idle" | "starting" | "scanning" | "error";
 const FRAME_WIDTH = 960;
 const FRAME_GAP_MS = 120;
 
+// Shared by the stop function and the frame loop of one camera session.
+interface FrameLoop {
+	active: boolean;
+	timer: number | undefined;
+}
+
 interface Session {
 	readonly stop: () => void;
 }
@@ -70,6 +76,7 @@ export function useQrCamera() {
 			const opened = await Effect.runPromiseExit(
 				Effect.gen(function* () {
 					const camera = yield* openCamera();
+
 					const frameReader = yield* openFrameReader().pipe(
 						// The camera is already on; do not leave it running without a reader.
 						Effect.tapError(() =>
@@ -117,10 +124,11 @@ export function useQrCamera() {
 			}
 
 			// One object, so the stop function and the frame loop share it.
-			const loop: { active: boolean; timer: number | undefined } = {
+			const loop: FrameLoop = {
 				active: true,
 				timer: undefined,
 			};
+
 			const canvas = document.createElement("canvas");
 			const context = canvas.getContext("2d", { willReadFrequently: true });
 
@@ -169,6 +177,7 @@ export function useQrCamera() {
 
 				if (context && video.readyState >= 2 && video.videoWidth > 0) {
 					const width = Math.min(FRAME_WIDTH, video.videoWidth);
+
 					const height = Math.round(
 						(video.videoHeight / video.videoWidth) * width,
 					);

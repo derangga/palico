@@ -87,8 +87,10 @@ export function alignmentPositions(version: number): ReadonlyArray<number> {
 
 	const count = Math.floor(version / 7) + 2;
 	const size = sizeOfVersion(version);
+
 	const step =
 		version === 32 ? 26 : Math.ceil((version * 4 + 4) / (count * 2 - 2)) * 2;
+
 	const positions = [6];
 
 	for (let pos = size - 7; positions.length < count; pos -= step) {
@@ -169,6 +171,7 @@ export function maxCharacters(
 
 			return Math.floor(bits / 10) * 3 + (rest >= 7 ? 2 : rest >= 4 ? 1 : 0);
 		}
+
 		case "alphanumeric":
 			return Math.floor(bits / 11) * 2 + (bits % 11 >= 6 ? 1 : 0);
 		case "byte":
