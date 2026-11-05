@@ -52,13 +52,17 @@ interface Cluster {
 	weight: number;
 }
 
+// The bins of one image: a weighted point per non-empty bin, and how many
+// visible pixels there were in all.
+interface Buckets {
+	readonly points: ReadonlyArray<Point>;
+	readonly total: number;
+}
+
 const squaredDistance = (x: Oklab, y: Oklab): number =>
 	(x.L - y.L) ** 2 + (x.a - y.a) ** 2 + (x.b - y.b) ** 2;
 
-function bucket(pixels: Uint8ClampedArray): {
-	readonly points: ReadonlyArray<Point>;
-	readonly total: number;
-} {
+function bucket(pixels: Uint8ClampedArray): Buckets {
 	const counts = new Float64Array(BIN_COUNT);
 	const reds = new Float64Array(BIN_COUNT);
 	const greens = new Float64Array(BIN_COUNT);
