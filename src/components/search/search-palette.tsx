@@ -57,7 +57,7 @@ function ToolRow({
 				</span>
 			</span>
 			{tool.engine && offline && !OfflineStatus.guards.Unavailable(offline) && (
-				<OfflineDot status={offline} className="max-sm:hidden" />
+				<OfflineDot status={offline} compact />
 			)}
 		</Autocomplete.Item>
 	);
@@ -163,16 +163,19 @@ export function SearchPalette({
 						value={query}
 						onValueChange={setQuery}
 					>
-						<div className="flex items-center gap-2 border-b border-border px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-inset focus-within:ring-ring/50">
-							<SearchIcon
-								className="size-4 shrink-0 text-muted-foreground"
-								aria-hidden
-							/>
-							<Autocomplete.Input
-								aria-label="Search tools"
-								placeholder="Search tools, like gif or pdf"
-								className="h-12 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-muted-foreground md:text-sm"
-							/>
+						<div className="border-b border-border p-2">
+							<div className="relative">
+								<SearchIcon
+									className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+									aria-hidden
+								/>
+								<Autocomplete.Input
+									aria-label="Search tools"
+									placeholder="Search tools, like gif or pdf"
+									// Same field as ui/input.tsx, so the focus ring is the standard one.
+									className="h-10 w-full min-w-0 rounded-md border border-input bg-background pr-3 pl-9 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+								/>
+							</div>
 						</div>
 						<Autocomplete.List className="min-h-0 flex-1 overflow-y-auto p-2">
 							{(section: Section) => (

@@ -39,12 +39,16 @@ export function OfflinePill({ status }: { status: OfflineStatus }) {
 export function OfflineDot({
 	status,
 	className,
+	compact = false,
 }: {
 	status: OfflineStatus;
 	className?: string;
+	/** Dot only. The label stays for screen readers and as the tooltip. */
+	compact?: boolean;
 }) {
 	return (
 		<span
+			title={compact ? offlineLabel(status) : undefined}
 			className={cn(
 				"inline-flex items-center gap-1.5 text-xs text-muted-foreground",
 				className,
@@ -57,7 +61,7 @@ export function OfflineDot({
 					OFFLINE_DOT[status._tag],
 				)}
 			/>
-			{offlineLabel(status)}
+			<span className={cn(compact && "sr-only")}>{offlineLabel(status)}</span>
 		</span>
 	);
 }

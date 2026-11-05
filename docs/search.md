@@ -27,8 +27,11 @@ search dependency.
    `Autocomplete.Item` fires `onClick` for both. Escape closes and returns focus
    to where it was. The query is cleared once the palette has closed, so the list
    does not jump while closing.
-6. A tool with an `engine` shows `OfflineDot` in its row, with the same guard as
-   the home tile (hidden when the status is `Unavailable`). The offline runtime
+6. A tool with an `engine` shows a compact `OfflineDot` in its row, with the same
+   guard as the home tile (hidden when the status is `Unavailable`). Compact means
+   the dot only, like the sidebar. The full text ("Needs a ~31 MB download") is
+   the tooltip and stays in the row for screen readers. The long text used to sit
+   beside the dot, and it pushed the blurbs into truncation. The offline runtime
    only starts in production builds, so the dots show there and not in `vite dev`.
 
 ## Matching
@@ -97,8 +100,11 @@ labelled "Results" for screen readers only when searching.
 - The palette does not animate. DESIGN.md says not to animate keyboard-driven
   actions, and Cmd/Ctrl+K is one. The overlay copies the sheet's colours and blur
   but has no transition, so it opens and closes at once.
-- The input row shows a 3px inset Mauve ring on focus (DESIGN.md's focus ring),
-  not just a border colour change. It is inset because the popup clips overflow.
+- The search box is a rounded field with the same classes as `ui/input.tsx`, so
+  it gets the standard 3px Mauve focus ring. It sits inside 8px of padding in the
+  popup, which gives the ring room, because the popup clips overflow. An earlier
+  version put an inset ring on a full-width band, and it looked heavy against the
+  rounded corners.
 - The shortcut matches the K key by its letter. When the layout has no Latin K
   (Russian, Greek) it falls back to the physical position (`event.code`). A Latin
   layout such as Dvorak keeps its own letter, so Ctrl+K stays where it prints.
