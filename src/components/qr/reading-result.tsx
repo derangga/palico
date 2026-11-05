@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Match, Option } from "effect";
 import {
 	Camera,
 	Check,
@@ -7,20 +7,25 @@ import {
 	ExternalLink,
 	Eye,
 	EyeOff,
+	ImageOff,
 	RotateCcw,
 	TriangleAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useJustDone } from "#/components/done-burst.tsx";
-import { StatusPill } from "#/components/status-pill.tsx";
+import { type PillState, StatusPill } from "#/components/status-pill.tsx";
 import { Button, buttonVariants } from "#/components/ui/button.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { useFlash } from "#/hooks/use-flash.ts";
 import { useObjectUrl } from "#/hooks/use-object-url.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
-import { describeContent, type WifiDetails } from "#/lib/qr/content.ts";
+import {
+	type Content,
+	describeContent,
+	type WifiDetails,
+} from "#/lib/qr/content.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { copyText } from "#/lib/qr/render.ts";
 import { cn } from "#/lib/utils.ts";
@@ -30,7 +35,27 @@ export type ResultView =
 	| { readonly phase: "found"; readonly reading: QrReading }
 	| { readonly phase: "failed"; readonly message: string };
 
+/** Where the thing being read came from. */
+export type ResultSource =
+	| { readonly kind: "camera" }
+	| { readonly kind: "image"; readonly file: File }
+	| { readonly kind: "other"; readonly name: string };
+
 const FLASH_MS = 1800;
+
+// What each phase says on the card. A lookup keeps the three phases in one place.
+const PHASES: Record<
+	ResultView["phase"],
+	{ readonly detail: string; readonly pill: PillState; readonly label: string }
+> = {
+	reading: {
+		detail: "Looking for a QR code…",
+		pill: "working",
+		label: "Reading",
+	},
+	found: { detail: "Read on your device", pill: "done", label: "Found" },
+	failed: { detail: "Nothing was read", pill: "failed", label: "Not read" },
+};
 
 const READ_TIPS = [
 	"Crop closer, so the code fills most of the picture.",
@@ -38,6 +63,14 @@ const READ_TIPS = [
 	"Avoid glare and shadows across the code.",
 	"If it is on a screen, take a screenshot instead of a photo.",
 ] as const;
+
+function IconTile({ children }: { readonly children: React.ReactNode }) {
+	return (
+		<div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-cat-file/20">
+			{children}
+		</div>
+	);
+}
 
 function FileThumb({ file }: { readonly file: File }) {
 	const url = useObjectUrl(file);
@@ -65,7 +98,7 @@ function CopyButton({
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(text));
 
-		if (toastOnExit(exit, "Couldn't copy the text.")._tag === "Some") {
+		if (Option.isSome(toastOnExit(exit, "Couldn't copy the text."))) {
 			flash();
 			toast.success("Copied.");
 		}
@@ -122,9 +155,13 @@ function WifiRows({ wifi }: { readonly wifi: WifiDetails }) {
 	);
 }
 
-function FoundBody({ reading }: { readonly reading: QrReading }) {
-	const content = describeContent(reading.text);
-
+function FoundBody({
+	reading,
+	content,
+}: {
+	readonly reading: QrReading;
+	readonly content: Content;
+}) {
 	return (
 		<div className="flex flex-col gap-4">
 			<span className="w-fit rounded-full bg-cat-file/20 px-2.5 py-0.5 text-xs font-semibold text-foreground">
@@ -163,10 +200,14 @@ function FoundBody({ reading }: { readonly reading: QrReading }) {
 						href={content.href}
 						target="_blank"
 						rel="noopener noreferrer"
-						className={buttonVariants({ variant: "outline" })}
+						title={content.href}
+						className={cn(
+							buttonVariants({ variant: "outline" }),
+							"max-w-full min-w-0",
+						)}
 					>
 						<ExternalLink />
-						Open {content.host}
+						<span className="truncate">Open {content.host}</span>
 					</a>
 				)}
 			</div>
@@ -180,15 +221,29 @@ function FoundBody({ reading }: { readonly reading: QrReading }) {
  */
 export function ReadingResult({
 	view,
-	file,
+	source,
 	onReset,
 }: {
 	readonly view: ResultView;
-	/** The image that was read. Absent for a camera scan. */
-	readonly file?: File;
+	readonly source: ResultSource;
 	readonly onReset: () => void;
 }) {
 	const justFound = useJustDone(view.phase === "found");
+	const phase = PHASES[view.phase];
+	const content =
+		view.phase === "found" ? describeContent(view.reading.text) : undefined;
+	const headingRef = useRef<HTMLHeadingElement>(null);
+	const title = Match.value(source).pipe(
+		Match.when({ kind: "image" }, (image) => image.file.name),
+		Match.when({ kind: "other" }, (other) => other.name),
+		Match.orElse(() => "Camera scan"),
+	);
+
+	// A new result is a new place on the page. Put focus on its title so a
+	// keyboard or screen-reader user lands where the news is.
+	useEffect(() => {
+		headingRef.current?.focus();
+	}, []);
 
 	return (
 		<section
@@ -197,53 +252,56 @@ export function ReadingResult({
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
 		>
 			<div className="flex items-center gap-3">
-				{file ? (
-					<FileThumb file={file} />
-				) : (
-					<div className="flex size-14 shrink-0 items-center justify-center rounded-md bg-cat-file/20">
-						<Camera aria-hidden className="size-6" />
-					</div>
+				{Match.value(source).pipe(
+					Match.when({ kind: "image" }, (image) => (
+						<FileThumb file={image.file} />
+					)),
+					Match.when({ kind: "other" }, () => (
+						<IconTile>
+							<ImageOff aria-hidden className="size-6" />
+						</IconTile>
+					)),
+					Match.orElse(() => (
+						<IconTile>
+							<Camera aria-hidden className="size-6" />
+						</IconTile>
+					)),
 				)}
 				<div className="min-w-0 flex-1">
-					<p className="truncate text-sm font-medium">
-						{file ? file.name : "Camera scan"}
-					</p>
-					<p className="text-xs text-muted-foreground">
-						{view.phase === "reading"
-							? "Looking for a QR code…"
-							: view.phase === "found"
-								? "Read on your device"
-								: "Nothing was read"}
-					</p>
+					<h2
+						ref={headingRef}
+						tabIndex={-1}
+						className="truncate text-sm font-medium outline-none"
+					>
+						{title}
+					</h2>
+					<p className="text-xs text-muted-foreground">{phase.detail}</p>
 				</div>
 				<StatusPill
-					state={
-						view.phase === "reading"
-							? "working"
-							: view.phase === "found"
-								? "done"
-								: "failed"
-					}
-					label={
-						view.phase === "reading"
-							? "Reading"
-							: view.phase === "found"
-								? "Found"
-								: "Not read"
-					}
+					state={phase.pill}
+					label={phase.label}
 					celebrate={justFound}
 				/>
 			</div>
 
+			{/* Always mounted, so a screen reader hears each change. Failures are
+			    announced by their own alert below. */}
+			<output className="sr-only">
+				{view.phase === "reading" && "Reading the image."}
+				{content && `QR code found. ${content.label}.`}
+			</output>
+
 			{view.phase === "reading" && (
-				<output className="flex flex-col gap-2" aria-label="Reading the image">
+				<div aria-hidden className="flex flex-col gap-2">
 					<Skeleton className="h-4 w-24" />
 					<Skeleton className="h-16 w-full" />
 					<Skeleton className="h-9 w-32" />
-				</output>
+				</div>
 			)}
 
-			{view.phase === "found" && <FoundBody reading={view.reading} />}
+			{view.phase === "found" && content && (
+				<FoundBody reading={view.reading} content={content} />
+			)}
 
 			{view.phase === "failed" && (
 				<div role="alert" className="flex flex-col gap-3">

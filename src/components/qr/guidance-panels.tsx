@@ -46,19 +46,32 @@ export function AdviceList({
 
 	return (
 		<ul className="flex flex-col gap-2">
-			{advice.map((item) => (
-				<li
-					key={item.kind}
-					role={item.severity === "error" ? "alert" : "status"}
-					className={cn(
-						"flex animate-pop-in gap-2.5 rounded-md px-3 py-2.5 text-sm text-foreground",
-						LOOK[item.severity],
-					)}
-				>
-					<AdviceIcon severity={item.severity} />
-					<span>{item.message}</span>
-				</li>
-			))}
+			{advice.map((item) => {
+				// The live role sits on an inner element, so the <li> keeps its list
+				// semantics. No entrance animation: these change as the person types.
+				const className = cn(
+					"flex gap-2.5 rounded-md px-3 py-2.5 text-sm text-foreground",
+					LOOK[item.severity],
+				);
+				const body = (
+					<>
+						<AdviceIcon severity={item.severity} />
+						<span>{item.message}</span>
+					</>
+				);
+
+				return (
+					<li key={item.kind}>
+						{item.severity === "error" ? (
+							<div role="alert" className={className}>
+								{body}
+							</div>
+						) : (
+							<output className={className}>{body}</output>
+						)}
+					</li>
+				);
+			})}
 		</ul>
 	);
 }
@@ -66,15 +79,15 @@ export function AdviceList({
 /** The static "how to make a code that scans" checklist, collapsed by default. */
 export function ScanTips() {
 	return (
-		<details className="group rounded-md border bg-background">
-			<summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium outline-none select-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+		<details className="group border-t pt-2">
+			<summary className="flex cursor-pointer list-none items-center gap-2 rounded-md px-1 py-2 text-sm font-medium outline-none select-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
 				<ChevronRight
 					aria-hidden
 					className="size-4 text-muted-foreground transition-transform duration-150 ease-out group-open:rotate-90 motion-reduce:transition-none"
 				/>
 				Making it scannable
 			</summary>
-			<ol className="flex flex-col gap-3 px-3 pt-1 pb-3 text-sm">
+			<ol className="flex flex-col gap-3 px-1 pt-1 pb-2 text-sm">
 				{SCAN_TIPS.map((tip, index) => (
 					<li key={tip.title} className="flex gap-3">
 						<span

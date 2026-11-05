@@ -70,6 +70,13 @@ export const MODE_INDICATOR: Record<QrMode, number> = {
 	byte: 4,
 };
 
+/** What `length` counts in each mode, for messages. */
+export const MODE_UNIT: Record<QrMode, "digits" | "characters" | "bytes"> = {
+	numeric: "digits",
+	alphanumeric: "characters",
+	byte: "bytes",
+};
+
 export const sizeOfVersion = (version: number): number => version * 4 + 17;
 
 export const versionOfSize = (size: number): number => (size - 17) / 4;

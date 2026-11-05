@@ -65,7 +65,11 @@ export function decodeFrame(
 		1,
 		Math.ceil(Math.max(frame.width, frame.height) / MAX_SIDE),
 	);
-	const factors = effort === "quick" ? [base] : [base, base * 2, base * 4];
+	// Shrinking helps on big photos but can alias thin modules away (3 px modules
+	// halved to 1.5 px), so a thorough pass also tries the original pixels,
+	// after the faster shrunken copies.
+	const factors =
+		effort === "quick" ? [base] : [...new Set([base, 1, base * 2, base * 4])];
 
 	for (const factor of factors) {
 		const scaled = shrink(gray, factor);

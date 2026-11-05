@@ -1,12 +1,13 @@
 import { Camera, CameraOff, Loader2, X } from "lucide-react";
-import { type RefObject, useEffect } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import type { CameraStatus } from "#/hooks/use-qr-camera.ts";
 
 /**
  * The live scanner. The <video> stays mounted from "starting" on so the hook
- * can attach the stream the moment the camera opens. Escape stops the camera.
+ * can attach the stream the moment the camera opens. Escape stops the camera,
+ * and focus moves to the main control of each state.
  */
 export function CameraPanel({
 	videoRef,
@@ -23,6 +24,13 @@ export function CameraPanel({
 	readonly onRetry: () => void;
 	readonly onChooseImage: () => void;
 }) {
+	// Whichever button is the main control right now: Cancel, Stop or Try again.
+	const primaryRef = useRef<HTMLButtonElement>(null);
+
+	useEffect(() => {
+		primaryRef.current?.focus();
+	}, [status]);
+
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key === "Escape") onStop();
@@ -38,7 +46,7 @@ export function CameraPanel({
 			<section
 				aria-label="Camera"
 				role="alert"
-				className="animate-pop-in flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center shadow-sm"
+				className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center shadow-sm"
 			>
 				<div className="flex size-12 items-center justify-center rounded-full bg-destructive/15 text-destructive">
 					<CameraOff aria-hidden className="size-6" />
@@ -50,7 +58,7 @@ export function CameraPanel({
 					</p>
 				</div>
 				<div className="flex flex-wrap justify-center gap-2">
-					<Button onClick={onRetry}>
+					<Button ref={primaryRef} onClick={onRetry}>
 						<Camera />
 						Try again
 					</Button>
@@ -62,56 +70,53 @@ export function CameraPanel({
 		);
 	}
 
+	const starting = status === "starting";
+
 	return (
 		<section
 			aria-label="Camera scanner"
-			className="animate-pop-in relative overflow-hidden rounded-xl border bg-secondary shadow-sm"
+			className="animate-pop-in overflow-hidden rounded-xl border bg-card shadow-sm"
 		>
-			<video
-				ref={videoRef}
-				playsInline
-				muted
-				aria-label="Camera preview"
-				className="aspect-[4/3] max-h-[70vh] w-full object-cover"
-			/>
+			<div className="relative bg-secondary">
+				<video
+					ref={videoRef}
+					playsInline
+					muted
+					aria-label="Camera preview"
+					className="aspect-[4/3] max-h-[70vh] w-full object-cover"
+				/>
 
-			{status === "starting" ? (
-				<output className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-secondary text-sm">
-					<Loader2
+				{starting ? (
+					<div
 						aria-hidden
-						className="size-6 animate-spin text-muted-foreground"
-					/>
-					Starting the camera…
-					<span className="max-w-xs px-4 text-center text-xs text-muted-foreground">
-						Your browser may ask for permission. The video stays on your device.
-					</span>
-				</output>
-			) : (
-				<>
+						className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-secondary px-4 text-center"
+					>
+						<Loader2 className="size-6 animate-spin text-muted-foreground" />
+						<span className="max-w-xs text-xs text-muted-foreground">
+							Your browser may ask for permission. The video stays on your
+							device.
+						</span>
+					</div>
+				) : (
+					// Decoration only: the reader looks at the whole frame, not this square.
 					<div
 						aria-hidden
 						className="pointer-events-none absolute inset-[14%] rounded-2xl border-2 border-primary"
 					/>
-					<div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-background/80 px-4 py-3 backdrop-blur-sm">
-						<output className="text-sm">
-							Point the camera at a QR code. It reads by itself.
-						</output>
-						<Button variant="secondary" size="sm" onClick={onStop}>
-							<X />
-							Stop
-						</Button>
-					</div>
-				</>
-			)}
+				)}
+			</div>
 
-			{status === "starting" && (
-				<div className="absolute right-3 bottom-3">
-					<Button variant="secondary" size="sm" onClick={onStop}>
-						<X />
-						Cancel
-					</Button>
-				</div>
-			)}
+			<div className="flex items-center justify-between gap-3 px-4 py-3">
+				<output className="text-sm">
+					{starting
+						? "Starting the camera…"
+						: "Point the camera at a QR code. It reads by itself."}
+				</output>
+				<Button ref={primaryRef} variant="secondary" size="sm" onClick={onStop}>
+					<X />
+					{starting ? "Cancel" : "Stop"}
+				</Button>
+			</div>
 		</section>
 	);
 }

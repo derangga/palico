@@ -148,12 +148,15 @@ class BitReader {
 	}
 }
 
+// ignoreBOM keeps a leading U+FEFF, which is part of the text, not a marker.
 function decodeBytes(bytes: Uint8Array, charset: string): string {
 	try {
-		return new TextDecoder(charset, { fatal: true }).decode(bytes);
+		return new TextDecoder(charset, { fatal: true, ignoreBOM: true }).decode(
+			bytes,
+		);
 	} catch {
 		// Many encoders write Latin-1 bytes without an ECI marker.
-		return new TextDecoder("windows-1252").decode(bytes);
+		return new TextDecoder("windows-1252", { ignoreBOM: true }).decode(bytes);
 	}
 }
 
@@ -169,15 +172,31 @@ function charsetForEci(designator: number): string {
 	}
 }
 
-function parseSegments(data: Uint8Array, version: number): string | undefined {
+/** Reads the segments in a corrected data stream. Undefined when the stream is invalid. */
+export function parseSegments(
+	data: Uint8Array,
+	version: number,
+): string | undefined {
 	const reader = new BitReader(data);
 	let text = "";
 	let charset = "utf-8";
+	// Byte segments back to back are one run of text: a UTF-8 character may
+	// straddle two of them, so they are decoded together.
+	const pending: number[] = [];
+
+	const flush = () => {
+		if (pending.length === 0) return;
+
+		text += decodeBytes(Uint8Array.from(pending), charset);
+		pending.length = 0;
+	};
 
 	while (reader.remaining >= 4) {
 		const mode = reader.read(4);
 
 		if (mode === 0) break;
+
+		if (mode !== 4) flush();
 
 		switch (mode) {
 			case 1: {
@@ -189,7 +208,12 @@ function parseSegments(data: Uint8Array, version: number): string | undefined {
 
 					if (reader.remaining < bits) return undefined;
 
-					text += String(reader.read(bits)).padStart(digits, "0");
+					const value = reader.read(bits);
+
+					// Three digits fit in 10 bits, which also holds 1000 to 1023.
+					if (value >= 10 ** digits) return undefined;
+
+					text += String(value).padStart(digits, "0");
 					count -= digits;
 				}
 				break;
@@ -203,13 +227,20 @@ function parseSegments(data: Uint8Array, version: number): string | undefined {
 
 						const pair = reader.read(11);
 
+						// 11 bits also hold 2025 to 2047, which name no character pair.
+						if (pair >= 45 * 45) return undefined;
+
 						text += ALPHANUMERIC_CHARS[Math.floor(pair / 45)] ?? "";
 						text += ALPHANUMERIC_CHARS[pair % 45] ?? "";
 						count -= 2;
 					} else {
 						if (reader.remaining < 6) return undefined;
 
-						text += ALPHANUMERIC_CHARS[reader.read(6)] ?? "";
+						const single = reader.read(6);
+
+						if (single >= 45) return undefined;
+
+						text += ALPHANUMERIC_CHARS[single] ?? "";
 						count -= 1;
 					}
 				}
@@ -220,11 +251,8 @@ function parseSegments(data: Uint8Array, version: number): string | undefined {
 
 				if (reader.remaining < count * 8) return undefined;
 
-				const bytes = new Uint8Array(count);
+				for (let i = 0; i < count; i++) pending.push(reader.read(8));
 
-				for (let i = 0; i < count; i++) bytes[i] = reader.read(8);
-
-				text += decodeBytes(bytes, charset);
 				break;
 			}
 			case 8: {
@@ -277,6 +305,8 @@ function parseSegments(data: Uint8Array, version: number): string | undefined {
 				return undefined;
 		}
 	}
+
+	flush();
 
 	return text;
 }

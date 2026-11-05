@@ -144,9 +144,11 @@ function ExportButton({
 	return (
 		<Button
 			variant={variant}
-			disabled={busy !== null}
+			// aria-disabled, not disabled: a disabled button drops keyboard focus
+			// the moment it is pressed. The handler ignores clicks while busy.
+			aria-disabled={busy !== null || undefined}
 			onClick={() => onClick(kind)}
-			className="min-w-0 flex-1 basis-full sm:basis-0"
+			className="min-w-0 flex-1 basis-full aria-disabled:pointer-events-none aria-disabled:opacity-50 sm:basis-0"
 		>
 			{working ? (
 				<Loader2 className="animate-spin" />
@@ -199,7 +201,7 @@ export function QrGenerator() {
 	useEffect(() => () => window.clearTimeout(flashTimer.current), []);
 
 	async function exportAs(kind: ExportKind) {
-		if (!qr) return;
+		if (!qr || busy !== null) return;
 
 		setBusy(kind);
 		setDone(null);
@@ -340,7 +342,7 @@ export function QrGenerator() {
 					className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6 lg:sticky lg:top-20"
 				>
 					{qr && svg ? (
-						<div className="animate-pop-in flex flex-col gap-4">
+						<div className="flex flex-col gap-4">
 							<div
 								className={cn(
 									"mx-auto aspect-square w-full max-w-72 overflow-hidden rounded-lg border transition-opacity duration-150 ease-out",
@@ -401,7 +403,7 @@ export function QrGenerator() {
 							</div>
 						</div>
 					) : failure ? (
-						<Empty role="alert" className="border-0 p-2">
+						<Empty className="border-0 p-2">
 							<EmptyHeader>
 								<EmptyMedia
 									variant="icon"

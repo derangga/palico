@@ -7,6 +7,7 @@ import {
 	type EccLevel,
 	maxCharacters,
 	MAX_VERSION,
+	MODE_UNIT,
 	type QrMode,
 	sizeOfVersion,
 	smallestVersion,
@@ -65,12 +66,6 @@ export interface Plan {
 	readonly density: Density | undefined;
 }
 
-const UNITS: Record<QrMode, Plan["unit"]> = {
-	numeric: "digits",
-	alphanumeric: "characters",
-	byte: "bytes",
-};
-
 export function densityOf(version: number): Density {
 	if (version <= 5) return "light";
 
@@ -87,7 +82,7 @@ export function planFor(text: string, ecc: EccLevel): Plan {
 		version,
 		modules: version === undefined ? undefined : sizeOfVersion(version),
 		limit: maxCharacters(payload.mode, MAX_VERSION, ecc),
-		unit: UNITS[payload.mode],
+		unit: MODE_UNIT[payload.mode],
 		density: version === undefined ? undefined : densityOf(version),
 	};
 }
@@ -136,7 +131,36 @@ export interface Advice {
 }
 
 // A domain or path without a scheme: phones read it as plain text, not a link.
-const BARE_LINK = /^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i;
+// The last label must be letters (so "3.14" is not a link), and common file
+// extensions are excluded (so "notes.txt" is not either).
+const BARE_LINK = /^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.([a-z]{2,})(\/\S*)?$/i;
+
+const FILE_EXTENSIONS = new Set([
+	"txt",
+	"md",
+	"pdf",
+	"doc",
+	"docx",
+	"csv",
+	"png",
+	"jpg",
+	"jpeg",
+	"gif",
+	"zip",
+	"json",
+	"html",
+]);
+
+function looksLikeBareLink(text: string): boolean {
+	const match = BARE_LINK.exec(text);
+
+	if (!match) return false;
+
+	// A path after the domain means it is a link even if the domain ends like a file.
+	return (
+		match[4] !== undefined || !FILE_EXTENSIONS.has(match[3]!.toLowerCase())
+	);
+}
 
 export interface AdviceInput {
 	readonly text: string;
@@ -154,7 +178,9 @@ export function adviseOn(input: AdviceInput): Advice[] {
 		advice.push({
 			kind: "too-long",
 			severity: "error",
-			message: `This is ${plan.length.toLocaleString("en-US")} ${plan.unit}, and a code holds at most ${plan.limit.toLocaleString("en-US")} at this level. Shorten the text, or use a lower error correction level.`,
+			// No live count here: this text sits in an alert region, and a changing
+			// number would be announced again on every keystroke.
+			message: `This is too long for a code at this level, which holds at most ${plan.limit.toLocaleString("en-US")} ${plan.unit}. Shorten the text, or use a lower error correction level.`,
 		});
 	}
 
@@ -177,7 +203,7 @@ export function adviseOn(input: AdviceInput): Advice[] {
 		}
 	}
 
-	if (BARE_LINK.test(text.trim())) {
+	if (looksLikeBareLink(text.trim())) {
 		advice.push({
 			kind: "bare-link",
 			severity: "tip",

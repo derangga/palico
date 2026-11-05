@@ -103,6 +103,20 @@ describe("decodeFrame on photo-like damage", () => {
 		expect(decodeFrame(frame)?.text).toBe(URL_TEXT);
 	});
 
+	it("reads thin modules in an image wider than 2000 px", () => {
+		// Shrinking this by 2 halves 3 px modules to 1.5 px, which aliases. The
+		// decoder has to fall back to the original pixels.
+		for (const [width, height] of [
+			[2100, 1181],
+			[3840, 2160],
+		] as const) {
+			const code = renderFrame(make(URL_TEXT), { scale: 3 });
+			const frame = placeOnCanvas(code, width, height, 700, 300, 0.3);
+
+			expect(decodeFrame(frame)?.text).toBe(URL_TEXT);
+		}
+	});
+
 	it("reads through sensor noise", () => {
 		const frame = addNoise(
 			renderFrame(make(URL_TEXT), { scale: 6 }),

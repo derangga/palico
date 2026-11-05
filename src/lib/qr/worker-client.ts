@@ -112,63 +112,106 @@ export const readQrFromFile = (
 
 /** A worker kept open to read camera frames one after another. */
 export interface FrameReader {
-	/** Resolves with the reading, or undefined when the frame holds no code. */
+	/** Succeeds with the reading, or undefined when the frame holds no code. */
 	readonly read: (
 		width: number,
 		height: number,
 		pixels: Uint8ClampedArray,
-	) => Promise<QrReading | undefined>;
+	) => Effect.Effect<QrReading | undefined, QrWorkerError>;
 	readonly close: () => void;
 }
+
+type Resume = (
+	effect: Effect.Effect<QrReading | undefined, QrWorkerError>,
+) => void;
 
 export const openFrameReader = (): Effect.Effect<FrameReader, QrWorkerError> =>
 	Effect.try({
 		try: () => {
 			const worker = spawn();
-			let nextId = 1;
-			const pending = new Map<
-				number,
-				{
-					readonly resolve: (reading: QrReading | undefined) => void;
-					readonly reject: (error: QrWorkerError) => void;
-				}
-			>();
+			const pending = new Map<number, Resume>();
+			// Once the worker has failed or closed, no later read may wait on it.
+			const state: {
+				nextId: number;
+				failure?: QrWorkerError;
+				closed: boolean;
+			} = { nextId: 1, closed: false };
 
-			worker.onmessage = (event: MessageEvent<QrWorkerResponse>) => {
-				const response = event.data;
-				const waiting = pending.get(response.id);
+			const failAll = (error: QrWorkerError) => {
+				state.failure = error;
 
-				if (!waiting) return;
-
-				pending.delete(response.id);
-				waiting.resolve(response.ok ? toReading(response) : undefined);
-			};
-
-			worker.onerror = (event) => {
-				const error = new QrWorkerError({
-					message: event.message || "The QR reader stopped unexpectedly.",
-				});
-
-				for (const waiting of pending.values()) waiting.reject(error);
+				for (const resume of pending.values()) resume(Effect.fail(error));
 
 				pending.clear();
 			};
 
+			worker.onmessage = (event: MessageEvent<QrWorkerResponse>) => {
+				const response = event.data;
+				const resume = pending.get(response.id);
+
+				if (!resume) return;
+
+				pending.delete(response.id);
+
+				if (response.ok) {
+					resume(Effect.succeed(toReading(response)));
+				} else if (response.reason === "not-found") {
+					resume(Effect.succeed(undefined));
+				} else {
+					resume(Effect.fail(new QrWorkerError({ message: response.message })));
+				}
+			};
+
+			worker.onerror = (event) => {
+				failAll(
+					new QrWorkerError({
+						message: event.message || "The QR reader stopped unexpectedly.",
+					}),
+				);
+			};
+
+			worker.onmessageerror = () => {
+				failAll(
+					new QrWorkerError({
+						message: "The QR reader sent back a bad message.",
+					}),
+				);
+			};
+
 			const reader: FrameReader = {
 				read: (width, height, pixels) =>
-					new Promise((resolve, reject) => {
-						const id = nextId++;
+					Effect.callback<QrReading | undefined, QrWorkerError>((resume) => {
+						if (state.failure) {
+							resume(Effect.fail(state.failure));
+
+							return;
+						}
+
+						if (state.closed) {
+							resume(Effect.succeed(undefined));
+
+							return;
+						}
+
+						const id = state.nextId++;
 						// SAFETY: the pixels come from canvas getImageData, which allocates a
 						// plain ArrayBuffer, never a SharedArrayBuffer.
 						const buffer = pixels.buffer as ArrayBuffer;
 
-						pending.set(id, { resolve, reject });
+						pending.set(id, resume);
 						worker.postMessage({ type: "frame", id, width, height, buffer }, [
 							buffer,
 						]);
+
+						return Effect.sync(() => {
+							pending.delete(id);
+						});
 					}),
 				close: () => {
-					for (const waiting of pending.values()) waiting.resolve(undefined);
+					state.closed = true;
+
+					for (const resume of pending.values())
+						resume(Effect.succeed(undefined));
 
 					pending.clear();
 					worker.terminate();

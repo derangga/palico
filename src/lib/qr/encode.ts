@@ -19,6 +19,7 @@ import {
 	maxCharacters,
 	MAX_VERSION,
 	MODE_INDICATOR,
+	MODE_UNIT,
 	type QrMode,
 	rawCodewords,
 	smallestVersion,
@@ -302,7 +303,7 @@ export const encodeQr = (
 				new QrCapacityError({
 					length: payload.length,
 					limit,
-					message: `That is too long for a QR code at this error correction level. The most it holds is ${limit.toLocaleString("en-US")} ${payload.mode === "numeric" ? "digits" : payload.mode === "alphanumeric" ? "characters" : "bytes"}.`,
+					message: `That is too long for a QR code at this error correction level. The most it holds is ${limit.toLocaleString("en-US")} ${MODE_UNIT[payload.mode]}.`,
 				}),
 			);
 		}

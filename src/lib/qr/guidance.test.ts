@@ -96,6 +96,24 @@ describe("adviseOn", () => {
 		).not.toContain("bare-link");
 	});
 
+	it("does not mistake numbers or file names for links", () => {
+		const kinds = (text: string) =>
+			adviseOn({ ...base, text }).map((a) => a.kind);
+
+		expect(kinds("3.14")).not.toContain("bare-link");
+		expect(kinds("1.2.3")).not.toContain("bare-link");
+		expect(kinds("notes.txt")).not.toContain("bare-link");
+		expect(kinds("example.com")).toContain("bare-link");
+		expect(kinds("www.example.com")).toContain("bare-link");
+	});
+
+	it("keeps the too-long message steady while the text grows", () => {
+		const message = (n: number) =>
+			adviseOn({ ...base, text: "a".repeat(n) })[0]?.message;
+
+		expect(message(3000)).toBe(message(4000));
+	});
+
 	it("gives a print size for dense codes", () => {
 		const advice = adviseOn({ ...base, text: "x".repeat(700) });
 		const dense = advice.find((a) => a.kind === "dense");

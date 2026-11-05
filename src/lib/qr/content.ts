@@ -71,15 +71,27 @@ export function parseWifi(text: string): WifiDetails | undefined {
 	};
 }
 
+// `URL.canParse` is missing before Safari 17, and this runs while rendering a
+// result, so a throw would take the page down. Parsing is the boundary here.
+function parseUrl(text: string): URL | undefined {
+	if (/\s/.test(text)) return undefined;
+
+	try {
+		return new URL(text);
+	} catch {
+		return undefined;
+	}
+}
+
 export function describeContent(text: string): Content {
 	const trimmed = text.trim();
 	const wifi = parseWifi(trimmed);
 
 	if (wifi) return { kind: "wifi", label: "Wi-Fi network", wifi };
 
-	if (!/\s/.test(trimmed) && URL.canParse(trimmed)) {
-		const url = new URL(trimmed);
+	const url = parseUrl(trimmed);
 
+	if (url) {
 		if (url.protocol === "http:" || url.protocol === "https:") {
 			const lookalike = url.hostname
 				.split(".")

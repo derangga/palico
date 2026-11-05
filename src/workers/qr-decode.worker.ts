@@ -68,6 +68,42 @@ async function decodeFile(
 	}
 }
 
+// Always replies, even when decoding throws: a camera loop waits on every frame,
+// and a missing reply would leave it on "scanning" for good.
+function decodeCameraFrame(
+	request: Extract<QrWorkerRequest, { readonly type: "frame" }>,
+): QrWorkerResponse {
+	try {
+		const reading = decodeFrame(
+			{
+				width: request.width,
+				height: request.height,
+				data: new Uint8ClampedArray(request.buffer),
+			},
+			"quick",
+		);
+
+		return reading
+			? { id: request.id, ok: true, ...reading }
+			: {
+					id: request.id,
+					ok: false,
+					reason: "not-found",
+					message: "No code in this frame.",
+				};
+	} catch (cause) {
+		return {
+			id: request.id,
+			ok: false,
+			reason: "image",
+			message:
+				cause instanceof Error
+					? cause.message
+					: "Couldn't read this camera frame.",
+		};
+	}
+}
+
 self.onmessage = async (event: MessageEvent<QrWorkerRequest>) => {
 	const request = event.data;
 
@@ -79,23 +115,5 @@ self.onmessage = async (event: MessageEvent<QrWorkerRequest>) => {
 		return;
 	}
 
-	const reading = decodeFrame(
-		{
-			width: request.width,
-			height: request.height,
-			data: new Uint8ClampedArray(request.buffer),
-		},
-		"quick",
-	);
-
-	self.postMessage(
-		reading
-			? ({ id: request.id, ok: true, ...reading } satisfies QrWorkerResponse)
-			: ({
-					id: request.id,
-					ok: false,
-					reason: "not-found",
-					message: "No code in this frame.",
-				} satisfies QrWorkerResponse),
-	);
+	self.postMessage(decodeCameraFrame(request));
 };

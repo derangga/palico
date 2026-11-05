@@ -28,11 +28,15 @@ export function useQrCamera() {
 	// Bumped on every start and stop, so a start that is still awaiting the
 	// camera can tell it was cancelled.
 	const generationRef = useRef(0);
+	// True from the moment start is called until the camera is released, so the
+	// tab-hidden handler also covers a camera that is still opening.
+	const busyRef = useRef(false);
 	const [status, setStatus] = useState<CameraStatus>("idle");
 	const [message, setMessage] = useState<string | null>(null);
 
 	const release = useCallback(() => {
 		generationRef.current++;
+		busyRef.current = false;
 		sessionRef.current?.stop();
 		sessionRef.current = null;
 	}, []);
@@ -57,6 +61,8 @@ export function useQrCamera() {
 			release();
 
 			const generation = generationRef.current;
+
+			busyRef.current = true;
 
 			setStatus("starting");
 			setMessage(null);
@@ -92,6 +98,16 @@ export function useQrCamera() {
 			const { camera: stream, frameReader: reader } = opened.value;
 			const video = videoRef.current;
 
+			// The tab was hidden while the camera opened: nobody is looking.
+			if (document.hidden && generation === generationRef.current) {
+				for (const track of stream.getTracks()) track.stop();
+
+				reader.close();
+				stop();
+
+				return;
+			}
+
 			if (generation !== generationRef.current || !video) {
 				for (const track of stream.getTracks()) track.stop();
 
@@ -119,6 +135,16 @@ export function useQrCamera() {
 					video.srcObject = null;
 				},
 			};
+
+			// The device was unplugged, or the system or another app took it. Without
+			// this the video freezes and the loop keeps resending the same frame.
+			for (const track of stream.getTracks()) {
+				track.onended = () => {
+					if (loop.active) {
+						fail("The camera was disconnected. Check it and try again.");
+					}
+				};
+			}
 
 			video.srcObject = stream;
 
@@ -152,24 +178,38 @@ export function useQrCamera() {
 					context.drawImage(video, 0, 0, width, height);
 
 					try {
-						const reading = await reader.read(
-							width,
-							height,
-							context.getImageData(0, 0, width, height).data,
+						const exit = await Effect.runPromiseExit(
+							reader.read(
+								width,
+								height,
+								context.getImageData(0, 0, width, height).data,
+							),
 						);
 
 						if (!loop.active) return;
 
-						if (reading) {
+						if (Exit.isFailure(exit)) {
+							const error = Option.getOrUndefined(
+								Cause.findErrorOption(exit.cause),
+							);
+
+							fail(
+								error?.message ??
+									"The QR reader stopped unexpectedly. Try again.",
+							);
+
+							return;
+						}
+
+						if (exit.value) {
 							release();
 							setStatus("idle");
-							onReading(reading);
+							onReading(exit.value);
 
 							return;
 						}
 					} catch {
-						if (loop.active)
-							fail("The QR reader stopped unexpectedly. Try again.");
+						if (loop.active) fail("Couldn't read the camera image. Try again.");
 
 						return;
 					}
@@ -180,13 +220,13 @@ export function useQrCamera() {
 
 			void tick();
 		},
-		[fail, release],
+		[fail, release, stop],
 	);
 
 	// Camera off when the tab is hidden: nobody is looking, and the light stays on.
 	useEffect(() => {
 		const onHidden = () => {
-			if (document.hidden && sessionRef.current) stop();
+			if (document.hidden && busyRef.current) stop();
 		};
 
 		document.addEventListener("visibilitychange", onHidden);
