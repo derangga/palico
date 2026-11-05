@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 
 import { AppSidebar } from "#/components/app-sidebar.tsx";
 import { UpdatePrompt } from "#/components/offline/update-prompt.tsx";
+import { SearchButton } from "#/components/search/search-button.tsx";
+import { SearchPalette } from "#/components/search/search-palette.tsx";
 import { ThemeProvider } from "#/components/theme-provider.tsx";
 import { ThemeToggle } from "#/components/theme-toggle.tsx";
 import {
@@ -122,6 +124,7 @@ function RootLayout() {
 			window.removeEventListener("pointerdown", onPointer, true);
 		};
 	}, []);
+	const [searchOpen, setSearchOpen] = useState(false);
 	const [lastPath, setLastPath] = useState(pathname);
 	const [fadeIn, setFadeIn] = useState(false);
 
@@ -133,6 +136,7 @@ function RootLayout() {
 	return (
 		<SidebarProvider>
 			<UpdatePrompt />
+			<SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
 			<AppSidebar />
 			<SidebarInset>
 				<header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/70 px-4 backdrop-blur-md supports-backdrop-filter:bg-background/60">
@@ -152,7 +156,10 @@ function RootLayout() {
 							</li>
 						</ol>
 					</nav>
-					<ThemeToggle />
+					<div className="ml-auto flex items-center gap-2">
+						<SearchButton onClick={() => setSearchOpen(true)} />
+						<ThemeToggle />
+					</div>
 				</header>
 				<div
 					key={pathname}

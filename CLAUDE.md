@@ -35,6 +35,9 @@ Read the matching file before starting that kind of work.
   `docs/extract-audio.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
   `docs/palette-extractor.md`, `docs/color-picker.md`:
   how each tool works end to end and why it is built that way.
+- `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
+  before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
+  new tool needs `keywords` in `src/lib/tool-categories.ts`.
 - `docs/offline-pwa.md`: the service worker, offline status pills, update flow and
   storage handling. Read it before touching `src/sw.ts`, `public/_headers`,
   `src/lib/offline/` or an engine's cache.
