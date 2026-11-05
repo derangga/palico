@@ -20,7 +20,7 @@ search dependency.
    still closes its own palette.
 3. The palette is a Base UI `Dialog` with an `Autocomplete` in `inline` mode, so
    the list sits inside the dialog and not in a popup.
-4. With an empty query the list is the four category groups, with the same dots
+4. With an empty query the list is the category groups, with the same dots
    as the home grid. Typing switches to one flat ranked list. The first row is
    highlighted as soon as the person types, so Enter works straight away.
 5. Enter on the highlighted row, or a click, closes the palette and navigates.

@@ -1,5 +1,6 @@
 import {
 	AudioLines,
+	CalendarClock,
 	Combine,
 	Eraser,
 	EyeOff,
@@ -30,9 +31,9 @@ import type { EngineId } from "#/lib/offline/shapes.ts";
  * The one registry of tools. The home grid and the sidebar both read it, and
  * `categoryOfPath` lets any page find its category from the URL.
  * Grouping follows DESIGN.md: Image (Mauve + Pink), Video (Peach + Yellow),
- * File (Teal + Green), Color (Blue + Sapphire).
+ * File (Teal + Green), Color (Blue + Sapphire), Developer (Lavender + Flamingo).
  */
-export type ToolCategory = "image" | "video" | "file" | "color";
+export type ToolCategory = "image" | "video" | "file" | "color" | "developer";
 
 export type Tool = {
 	to: string;
@@ -54,6 +55,7 @@ export const CATEGORIES: ReadonlyArray<{ id: ToolCategory; label: string }> = [
 	{ id: "video", label: "Video" },
 	{ id: "file", label: "File" },
 	{ id: "color", label: "Color" },
+	{ id: "developer", label: "Developer" },
 ];
 
 export const TOOLS: ReadonlyArray<Tool> = [
@@ -223,7 +225,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		seoDescription:
 			"Type Markdown and see it rendered live, with code highlighting and Mermaid diagrams. Runs in your browser and nothing is uploaded.",
 		icon: ScrollText,
-		category: "file",
+		category: "developer",
 	},
 	{
 		to: "/diff-viewer",
@@ -234,7 +236,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		seoDescription:
 			"Paste two versions of a text and see the differences side by side. Runs on your device and nothing is uploaded.",
 		icon: FileDiff,
-		category: "file",
+		category: "developer",
 	},
 	{
 		to: "/pdf-split",
@@ -363,6 +365,27 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		icon: Pipette,
 		category: "color",
 	},
+	{
+		to: "/cron-generator",
+		label: "Cron Generator",
+		blurb: "Build a cron schedule and see when it runs.",
+		keywords: [
+			"crontab",
+			"cron job",
+			"schedule",
+			"scheduler",
+			"timer",
+			"every",
+			"interval",
+			"linux",
+			"unix",
+		],
+		seoTitle: "Cron Expression Generator and Explainer",
+		seoDescription:
+			"Build a cron expression with presets or fields, read it in plain English and see the next run times. Runs in your browser, so nothing is uploaded.",
+		icon: CalendarClock,
+		category: "developer",
+	},
 ];
 
 export const toolGroups = CATEGORIES.map((category) => ({
@@ -427,5 +450,13 @@ export const CATEGORY_STYLES: Record<
 		tint: "bg-cat-color-2/15",
 		ink: "text-[color-mix(in_oklab,var(--cat-color),var(--foreground)_30%)] dark:text-cat-color",
 		vars: "[--tile-edge:var(--cat-color)] [--tile-tint:var(--cat-color-2)]",
+	},
+	developer: {
+		label: "Developer",
+		fill: "bg-cat-developer",
+		chip: "bg-cat-developer/20",
+		tint: "bg-cat-developer-2/15",
+		ink: "text-[color-mix(in_oklab,var(--cat-developer),var(--foreground)_30%)] dark:text-cat-developer",
+		vars: "[--tile-edge:var(--cat-developer)] [--tile-tint:var(--cat-developer-2)]",
 	},
 };

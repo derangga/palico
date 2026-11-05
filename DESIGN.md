@@ -40,6 +40,8 @@ colors:
   blue-dark: "#89b4fa"
   lavender: "#7287fd"
   lavender-dark: "#b4befe"
+  flamingo: "#dd7878"
+  flamingo-dark: "#f2cdcd"
 typography:
   display:
     fontFamily: "Nunito Variable, ui-sans-serif, system-ui, sans-serif"
@@ -121,7 +123,7 @@ switched with a toggle in the header. Surfaces are calm and slightly cool
 (Latte Base `#eff1f5`, Mocha Base `#1e1e2e`). Colour lives in small, repeated
 spots: tool chips and tiles, status pills, progress bars, underlines and hover
 edges. Mauve is the single primary action colour. Each tool category has its
-own accent pair so people can tell Image, Video, File and Color tools apart at
+own accent pair so people can tell Image, Video, File, Color and Developer tools apart at
 a glance. Typography stays one voice, Nunito Variable, with weight and scale
 carrying hierarchy.
 
@@ -231,13 +233,19 @@ tile and icon fill; the second is the tint or secondary detail.
 | --- | --- | --- |
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
 | Video | Peach + Yellow | Video converter, video cutter |
-| File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, diff viewer, Markdown preview, QR code generator, QR code reader |
+| File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, QR code generator, QR code reader |
 | Color | Blue + Sapphire | Palette extractor, color picker |
+| Developer | Lavender + Flamingo | Cron generator, Markdown preview, diff viewer |
 
 Color tools read or help you choose colors. A tool that takes an image and
 returns a changed image (grayscale, make a color transparent) stays in Image.
 Blue is a fill and tint here like every other accent. Latte lets large Blue
 carry text, but the category chip keeps a `text` label for consistency.
+
+File tools take files you drop in. Developer tools take text you type or paste
+and are mostly used by people who write code. A new tool goes in whichever of
+the two matches its input. Flamingo is reserved for this pair, and Sky stays
+with status.
 
 Category colour appears on the home tile, the sidebar icon, the page-header
 chip, the progress fill and the dropzone drag-over state. It never appears on

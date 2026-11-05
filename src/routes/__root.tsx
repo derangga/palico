@@ -80,8 +80,8 @@ const PAGE_CRUMBS = new Map<
 	["/video-compressor", { group: "Video", title: "Compress" }],
 	["/video-to-gif", { group: "Video", title: "To GIF" }],
 	["/extract-audio", { group: "Video", title: "Extract Audio" }],
-	["/markdown-preview", { group: "File", title: "Markdown Preview" }],
-	["/diff-viewer", { group: "File", title: "Diff Viewer" }],
+	["/markdown-preview", { group: "Developer", title: "Markdown Preview" }],
+	["/diff-viewer", { group: "Developer", title: "Diff Viewer" }],
 	["/pdf-split", { group: "File", title: "Split PDF" }],
 	["/pdf-merge", { group: "File", title: "Merge PDFs" }],
 	["/pdf-organize", { group: "File", title: "Organize PDF" }],
@@ -91,6 +91,7 @@ const PAGE_CRUMBS = new Map<
 	["/qr-reader", { group: "File", title: "QR Reader" }],
 	["/palette-extractor", { group: "Color", title: "Palette Extractor" }],
 	["/color-picker", { group: "Color", title: "Color Picker" }],
+	["/cron-generator", { group: "Developer", title: "Cron Generator" }],
 ]);
 
 function RootLayout() {

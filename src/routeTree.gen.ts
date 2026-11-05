@@ -27,6 +27,7 @@ import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as ExtractAudioRouteImport } from './routes/extract-audio'
 import { Route as DiffViewerRouteImport } from './routes/diff-viewer'
+import { Route as CronGeneratorRouteImport } from './routes/cron-generator'
 import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as CompressorRouteImport } from './routes/compressor'
 import { Route as ColorPickerRouteImport } from './routes/color-picker'
@@ -123,6 +124,11 @@ const DiffViewerRoute = DiffViewerRouteImport.update({
   path: '/diff-viewer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CronGeneratorRoute = CronGeneratorRouteImport.update({
+  id: '/cron-generator',
+  path: '/cron-generator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConverterRoute = ConverterRouteImport.update({
   id: '/converter',
   path: '/converter',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
+  '/cron-generator': typeof CronGeneratorRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
+  '/cron-generator': typeof CronGeneratorRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
   '/converter': typeof ConverterRoute
+  '/cron-generator': typeof CronGeneratorRoute
   '/diff-viewer': typeof DiffViewerRoute
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/color-picker'
     | '/compressor'
     | '/converter'
+    | '/cron-generator'
     | '/diff-viewer'
     | '/extract-audio'
     | '/favicon-generator'
@@ -258,6 +268,7 @@ export interface FileRouteTypes {
     | '/color-picker'
     | '/compressor'
     | '/converter'
+    | '/cron-generator'
     | '/diff-viewer'
     | '/extract-audio'
     | '/favicon-generator'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/color-picker'
     | '/compressor'
     | '/converter'
+    | '/cron-generator'
     | '/diff-viewer'
     | '/extract-audio'
     | '/favicon-generator'
@@ -309,6 +321,7 @@ export interface RootRouteChildren {
   ColorPickerRoute: typeof ColorPickerRoute
   CompressorRoute: typeof CompressorRoute
   ConverterRoute: typeof ConverterRoute
+  CronGeneratorRoute: typeof CronGeneratorRoute
   DiffViewerRoute: typeof DiffViewerRoute
   ExtractAudioRoute: typeof ExtractAudioRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
@@ -457,6 +470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DiffViewerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cron-generator': {
+      id: '/cron-generator'
+      path: '/cron-generator'
+      fullPath: '/cron-generator'
+      preLoaderRoute: typeof CronGeneratorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/converter': {
       id: '/converter'
       path: '/converter'
@@ -501,6 +521,7 @@ const rootRouteChildren: RootRouteChildren = {
   ColorPickerRoute: ColorPickerRoute,
   CompressorRoute: CompressorRoute,
   ConverterRoute: ConverterRoute,
+  CronGeneratorRoute: CronGeneratorRoute,
   DiffViewerRoute: DiffViewerRoute,
   ExtractAudioRoute: ExtractAudioRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,

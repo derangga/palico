@@ -33,7 +33,7 @@ Read the matching file before starting that kind of work.
   `docs/pdf-organize.md`, `docs/pdf-to-images.md`,
   `docs/video-converter.md`, `docs/video-cutter.md`, `docs/video-to-gif.md`,
   `docs/extract-audio.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
-  `docs/palette-extractor.md`, `docs/color-picker.md`:
+  `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`:
   how each tool works end to end and why it is built that way.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
