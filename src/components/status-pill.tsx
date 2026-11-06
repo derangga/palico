@@ -3,6 +3,7 @@ import { CircleAlert, Loader2 } from "lucide-react";
 
 import { DoneBurst, DrawCheck } from "#/components/done-burst.tsx";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type PillState =
 	| "queued"
@@ -12,23 +13,23 @@ export type PillState =
 	| "warning"
 	| "info";
 
-const STATES: Record<PillState, { label: string; tint: string; dot: string }> =
-	{
-		queued: {
-			label: "Queued",
-			tint: "bg-secondary",
-			dot: "bg-muted-foreground",
-		},
-		working: { label: "Working", tint: "bg-primary/15", dot: "bg-primary" },
-		done: { label: "Done", tint: "bg-success/20", dot: "bg-success" },
-		failed: {
-			label: "Failed",
-			tint: "bg-destructive/15",
-			dot: "bg-destructive",
-		},
-		warning: { label: "Warning", tint: "bg-warning/25", dot: "bg-warning" },
-		info: { label: "Info", tint: "bg-info/20", dot: "bg-info" },
-	};
+const STATES: Record<PillState, { tint: string; dot: string }> = {
+	queued: { tint: "bg-secondary", dot: "bg-muted-foreground" },
+	working: { tint: "bg-primary/15", dot: "bg-primary" },
+	done: { tint: "bg-success/20", dot: "bg-success" },
+	failed: { tint: "bg-destructive/15", dot: "bg-destructive" },
+	warning: { tint: "bg-warning/25", dot: "bg-warning" },
+	info: { tint: "bg-info/20", dot: "bg-info" },
+};
+
+const STATE_LABELS: Record<PillState, () => string> = {
+	queued: m.status_queued,
+	working: m.status_working,
+	done: m.status_done,
+	failed: m.status_failed,
+	warning: m.status_warning,
+	info: m.status_info,
+};
 
 /**
  * Tinted status pill. The label stays in the DOM at every width and is only
@@ -82,7 +83,9 @@ export function StatusPill({
 					/>
 				)),
 			)}
-			<span className="sr-only sm:not-sr-only">{label ?? config.label}</span>
+			<span className="sr-only sm:not-sr-only">
+				{label ?? STATE_LABELS[state]()}
+			</span>
 		</span>
 	);
 }

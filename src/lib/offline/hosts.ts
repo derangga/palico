@@ -4,6 +4,8 @@
 
 import { Context, Effect, Layer, Option, Queue, Schema, Stream } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	OfflineCacheError,
 	StorageUnavailableError,
@@ -102,7 +104,9 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 		activateWaiting: Effect.suspend(() =>
 			reg.waiting
 				? Effect.sync(() => reg.waiting?.postMessage({ type: "SKIP_WAITING" }))
-				: Effect.fail(new SwUpdateError({ message: "No update is waiting." })),
+				: Effect.fail(
+						new SwUpdateError({ message: m.error_no_update_waiting() }),
+					),
 		),
 		waitingBuild: askBuild(reg),
 	};

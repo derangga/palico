@@ -26,7 +26,9 @@ import {
 	Star,
 } from "lucide-react";
 
+import type { Locale } from "#/lib/i18n/shapes.ts";
 import type { EngineId } from "#/lib/offline/shapes.ts";
+import { m } from "#/paraglide/messages.js";
 
 /**
  * The one registry of tools. The home grid and the sidebar both read it, and
@@ -37,385 +39,283 @@ import type { EngineId } from "#/lib/offline/shapes.ts";
  */
 export type ToolCategory = "image" | "video" | "file" | "color" | "developer";
 
-export type Tool = {
-	to: string;
+/** The words a person can search a tool by, in one language. */
+export type ToolText = {
 	label: string;
 	blurb: string;
 	/** Extra search terms (formats, synonyms) the label and blurb miss. Name only what the tool really does. */
 	keywords: ReadonlyArray<string>;
-	/** Page <title> and meta description (see src/lib/seo.ts). Keep the title under 50 characters and the description under 160. */
+};
+
+/**
+ * The text fields read the active language each time, so a component that
+ * re-renders after a language switch shows the new one. Copy a tool with
+ * `{ ...tool }` and you freeze the text; pass the tool itself.
+ */
+export type Tool = {
+	to: string;
+	label: string;
+	blurb: string;
+	keywords: ReadonlyArray<string>;
+	/** Page <title> and meta description (see src/lib/seo.ts). Keep the title under 50 characters and the description under 160, in every language. */
 	seoTitle: string;
 	seoDescription: string;
+	/** The short name in the top bar breadcrumb. */
+	crumb: string;
+	/** The text in one language, for search to match in English as well as the active one. */
+	textIn: (locale: Locale) => ToolText;
 	icon: LucideIcon;
 	category: ToolCategory;
 	/** The opt-in download this tool needs, if any (drives the offline pill). */
 	engine?: EngineId;
 };
 
-export const CATEGORIES: ReadonlyArray<{ id: ToolCategory; label: string }> = [
-	{ id: "image", label: "Image" },
-	{ id: "video", label: "Video & Audio" },
-	{ id: "file", label: "File" },
-	{ id: "color", label: "Color" },
-	{ id: "developer", label: "Developer" },
+export const CATEGORIES: ReadonlyArray<{
+	id: ToolCategory;
+	readonly label: string;
+}> = [
+	{
+		id: "image",
+		get label() {
+			return m.category_image();
+		},
+	},
+	{
+		id: "video",
+		get label() {
+			return m.category_video();
+		},
+	},
+	{
+		id: "file",
+		get label() {
+			return m.category_file();
+		},
+	},
+	{
+		id: "color",
+		get label() {
+			return m.category_color();
+		},
+	},
+	{
+		id: "developer",
+		get label() {
+			return m.category_developer();
+		},
+	},
 ];
 
+type ToolId =
+	| "converter"
+	| "resizer"
+	| "compressor"
+	| "background_removal"
+	| "favicon_generator"
+	| "video_converter"
+	| "video_cutter"
+	| "video_compressor"
+	| "video_to_gif"
+	| "extract_audio"
+	| "audio_cutter"
+	| "markdown_preview"
+	| "diff_viewer"
+	| "pdf_split"
+	| "pdf_merge"
+	| "pdf_organize"
+	| "pdf_to_images"
+	| "office_to_pdf"
+	| "strip_metadata"
+	| "qr_generator"
+	| "qr_reader"
+	| "palette_extractor"
+	| "color_picker"
+	| "cron_generator";
+
+const splitKeywords = (text: string) =>
+	text
+		.split(",")
+		.map((word) => word.trim())
+		.filter((word) => word !== "");
+
+// `locale` undefined means the active language.
+const callOptions = (locale: Locale | undefined) =>
+	locale === undefined ? undefined : { locale };
+
+function defineTool(
+	id: ToolId,
+	spec: Pick<Tool, "to" | "icon" | "category" | "engine">,
+): Tool {
+	const textIn = (locale?: Locale): ToolText => ({
+		label: m[`tool_${id}_label` as const]({}, callOptions(locale)),
+		blurb: m[`tool_${id}_blurb` as const]({}, callOptions(locale)),
+		keywords: splitKeywords(
+			m[`tool_${id}_keywords` as const]({}, callOptions(locale)),
+		),
+	});
+
+	return {
+		...spec,
+		get label() {
+			return textIn().label;
+		},
+		get blurb() {
+			return textIn().blurb;
+		},
+		get keywords() {
+			return textIn().keywords;
+		},
+		get seoTitle() {
+			return m[`tool_${id}_seo_title` as const]();
+		},
+		get seoDescription() {
+			return m[`tool_${id}_seo_description` as const]();
+		},
+		get crumb() {
+			return m[`tool_${id}_crumb` as const]();
+		},
+		textIn,
+	};
+}
+
 export const TOOLS: ReadonlyArray<Tool> = [
-	{
+	defineTool("converter", {
 		to: "/converter",
-		label: "Image Converter",
-		blurb: "Convert images to JPG, PNG or WebP.",
-		keywords: [
-			"jpg",
-			"jpeg",
-			"png",
-			"webp",
-			"photo",
-			"picture",
-			"image format",
-			"change format",
-		],
-		seoTitle: "Free Image Converter (JPG, PNG, WebP)",
-		seoDescription:
-			"Convert images to JPG, PNG or WebP in your browser. Files never leave your device, so there is no upload and no sign-up, and it works offline.",
 		icon: ImageIcon,
 		category: "image",
-	},
-	{
+	}),
+	defineTool("resizer", {
 		to: "/resizer",
-		label: "Image Resizer",
-		blurb: "Resize by pixels or percentage.",
-		keywords: [
-			"scale",
-			"dimensions",
-			"pixels",
-			"percent",
-			"smaller",
-			"bigger",
-			"photo",
-		],
-		seoTitle: "Image Resizer by Pixels or Percent",
-		seoDescription:
-			"Resize images by exact pixels or by percentage in your browser. Nothing is uploaded, no account is needed, and it works offline.",
 		icon: Scaling,
 		category: "image",
-	},
-	{
+	}),
+	defineTool("compressor", {
 		to: "/compressor",
-		label: "Compress Image",
-		blurb: "Make images smaller without resizing.",
-		keywords: [
-			"shrink",
-			"smaller",
-			"file size",
-			"reduce size",
-			"jpg",
-			"png",
-			"webp",
-			"photo",
-		],
-		seoTitle: "Compress Images Without Resizing",
-		seoDescription:
-			"Make JPG, PNG and WebP files smaller while keeping their dimensions. Runs on your device with no upload, and works offline.",
 		icon: Shrink,
 		category: "image",
-	},
-	{
+	}),
+	defineTool("background_removal", {
 		to: "/background-removal",
-		label: "Remove Background",
-		blurb: "Cut out the subject of any image.",
-		keywords: [
-			"cutout",
-			"cut out",
-			"transparent",
-			"remove bg",
-			"subject",
-			"ai",
-			"photo",
-		],
-		seoTitle: "Remove Image Background Offline",
-		seoDescription:
-			"Cut out the subject of any photo with an AI model that runs in your browser. The image is never uploaded. Works offline after a one-time model download.",
 		icon: Eraser,
 		category: "image",
 		engine: "bg-model",
-	},
-	{
+	}),
+	defineTool("favicon_generator", {
 		to: "/favicon-generator",
-		label: "Favicon Generator",
-		blurb: "Every favicon size from one logo.",
-		keywords: ["logo", "site icon", "apple touch icon", "webmanifest"],
-		seoTitle: "Favicon Generator from One Logo",
-		seoDescription:
-			"Generate every favicon size from a single logo image. Runs in your browser with no upload and no sign-up.",
 		icon: Star,
 		category: "image",
-	},
-	{
+	}),
+	defineTool("video_converter", {
 		to: "/video-converter",
-		label: "Video Converter",
-		blurb: "Convert to MP4, WebM, MOV, MKV or AVI.",
-		keywords: ["mp4", "webm", "mov", "mkv", "avi", "format", "movie"],
-		seoTitle: "Free Video Converter in Your Browser",
-		seoDescription:
-			"Convert video to MP4, WebM, MOV, MKV or AVI on your device. No upload and no sign-up. Works offline after a one-time engine download.",
 		icon: Film,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("video_cutter", {
 		to: "/video-cutter",
-		label: "Video Cutter",
-		blurb: "Trim a clip out of any video.",
-		keywords: ["trim", "clip", "shorten"],
-		seoTitle: "Video Cutter: Trim Any Clip",
-		seoDescription:
-			"Trim a clip out of any video without uploading it. Pick a start and an end, then save the cut. Runs in your browser and works offline.",
 		icon: Scissors,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("video_compressor", {
 		to: "/video-compressor",
-		label: "Compress Video",
-		blurb: "Shrink a video to fit an upload limit.",
-		keywords: [
-			"shrink",
-			"smaller",
-			"file size",
-			"upload limit",
-			"email",
-			"reduce size",
-		],
-		seoTitle: "Compress Video to Fit an Upload Limit",
-		seoDescription:
-			"Shrink a video so it fits an email or upload limit. Runs in your browser with no upload, and works offline after a one-time engine download.",
 		icon: Minimize2,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("video_to_gif", {
 		to: "/video-to-gif",
-		label: "Video to GIF",
-		blurb: "Turn a short clip into an animated GIF.",
-		keywords: ["animated", "animation", "clip"],
-		seoTitle: "Video to GIF Converter",
-		seoDescription:
-			"Turn a short video clip into an animated GIF on your device. No upload, no sign-up, and it works offline after a one-time engine download.",
 		icon: ImagePlay,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("extract_audio", {
 		to: "/extract-audio",
-		label: "Extract Audio",
-		blurb: "Save the sound of a video as MP3, M4A, Opus or WAV.",
-		keywords: ["mp3", "m4a", "opus", "wav", "sound", "audio from video"],
-		seoTitle: "Extract Audio from Video (MP3, M4A, WAV)",
-		seoDescription:
-			"Save the sound of a video as MP3, M4A, Opus or WAV. Runs in your browser, so the video never leaves your device.",
 		icon: AudioLines,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("audio_cutter", {
 		to: "/audio-cutter",
-		label: "Audio Cutter",
-		blurb: "Trim a clip out of any audio file.",
-		keywords: [
-			"trim",
-			"clip",
-			"shorten",
-			"mp3",
-			"wav",
-			"m4a",
-			"ogg",
-			"opus",
-			"flac",
-			"sound",
-			"waveform",
-		],
-		seoTitle: "Audio Cutter: Trim MP3, WAV, M4A",
-		seoDescription:
-			"Trim a clip out of an MP3, WAV, M4A, OGG or FLAC file. Pick a start and an end on the waveform, then save the cut. Runs in your browser and works offline.",
 		icon: AudioWaveform,
 		category: "video",
 		engine: "ffmpeg",
-	},
-	{
+	}),
+	defineTool("markdown_preview", {
 		to: "/markdown-preview",
-		label: "Markdown Preview",
-		blurb: "Type Markdown, see it rendered live.",
-		keywords: ["md", "render", "mermaid", "editor", "code highlighting"],
-		seoTitle: "Markdown Preview with Live Rendering",
-		seoDescription:
-			"Type Markdown and see it rendered live, with code highlighting and Mermaid diagrams. Runs in your browser and nothing is uploaded.",
 		icon: ScrollText,
 		category: "developer",
-	},
-	{
+	}),
+	defineTool("diff_viewer", {
 		to: "/diff-viewer",
-		label: "Diff Viewer",
-		blurb: "Compare two texts side by side.",
-		keywords: ["compare", "difference", "text", "side by side", "changes"],
-		seoTitle: "Text Diff Viewer: Compare Two Texts",
-		seoDescription:
-			"Paste two versions of a text and see the differences side by side. Runs on your device and nothing is uploaded.",
 		icon: FileDiff,
 		category: "developer",
-	},
-	{
+	}),
+	defineTool("pdf_split", {
 		to: "/pdf-split",
-		label: "Split PDF",
-		blurb: "Pull pages out of a PDF.",
-		keywords: ["extract pages", "page range", "separate", "cut pdf"],
-		seoTitle: "Split PDF: Extract Pages",
-		seoDescription:
-			"Pull pages or page ranges out of a PDF into a new file. Runs in your browser, so the PDF is never uploaded.",
 		icon: FileStack,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("pdf_merge", {
 		to: "/pdf-merge",
-		label: "Merge PDFs",
-		blurb: "Combine several PDFs into one.",
-		keywords: ["combine", "join", "append", "concatenate"],
-		seoTitle: "Merge PDFs into One File",
-		seoDescription:
-			"Combine several PDFs into one document. Runs on your device with no upload and no sign-up.",
 		icon: Combine,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("pdf_organize", {
 		to: "/pdf-organize",
-		label: "Organize PDF",
-		blurb: "Rotate, delete and reorder pages.",
-		keywords: ["rotate", "delete pages", "reorder", "rearrange", "sort pages"],
-		seoTitle: "Organize PDF: Rotate, Delete, Reorder",
-		seoDescription:
-			"Rotate, delete and reorder the pages of a PDF. Runs in your browser, so the file never leaves your device.",
 		icon: LayoutGrid,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("pdf_to_images", {
 		to: "/pdf-to-images",
-		label: "PDF to Images",
-		blurb: "Save every page as a JPG or PNG.",
-		keywords: ["jpg", "jpeg", "png", "convert pdf", "pages to images"],
-		seoTitle: "PDF to JPG or PNG Converter",
-		seoDescription:
-			"Save every page of a PDF as a JPG or PNG image. Runs in your browser, so the file never leaves your device.",
 		icon: Images,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("office_to_pdf", {
 		to: "/office-to-pdf",
-		label: "Word to PDF",
-		blurb: "Turn Word, ODT and RTF files into PDF.",
-		keywords: ["docx", "odt", "rtf", "document", "convert to pdf"],
-		seoTitle: "Word to PDF Converter (DOCX, ODT, RTF)",
-		seoDescription:
-			"Turn Word, ODT and RTF files into PDF in your browser. No upload, and it works offline after a one-time engine download.",
 		icon: FileText,
 		category: "file",
 		engine: "office",
-	},
-	{
+	}),
+	defineTool("strip_metadata", {
 		to: "/strip-metadata",
-		label: "Remove Metadata",
-		blurb: "See and remove hidden data in photos and PDFs.",
-		keywords: [
-			"exif",
-			"gps",
-			"location",
-			"privacy",
-			"hidden data",
-			"anonymize",
-			"camera",
-		],
-		seoTitle: "Remove Metadata from Photos and PDFs",
-		seoDescription:
-			"See the hidden data in your photos and PDFs, such as GPS location and camera details, then remove it. Runs on your device.",
 		icon: EyeOff,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("qr_generator", {
 		to: "/qr-generator",
-		label: "QR Code Generator",
-		blurb: "Make a QR code from a link or text.",
-		keywords: ["create", "link", "url", "svg", "png"],
-		seoTitle: "Free QR Code Generator (PNG, SVG)",
-		seoDescription:
-			"Make a QR code from any link or text and save it as PNG or SVG. It is made in your browser, so nothing is uploaded, and it works offline.",
 		icon: QrCode,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("qr_reader", {
 		to: "/qr-reader",
-		label: "QR Code Reader",
-		blurb: "Read the text inside a QR code image.",
-		keywords: ["scan", "camera", "decode", "screenshot"],
-		seoTitle: "QR Code Reader from Image or Camera",
-		seoDescription:
-			"Read a QR code from a photo, a screenshot or your camera. It is decoded in your browser and never uploaded, and it works offline.",
 		icon: ScanQrCode,
 		category: "file",
-	},
-	{
+	}),
+	defineTool("palette_extractor", {
 		to: "/palette-extractor",
-		label: "Palette Extractor",
-		blurb: "Pull the main colors out of any image.",
-		keywords: [
-			"colors",
-			"colours",
-			"swatches",
-			"dominant",
-			"css variables",
-			"hex",
-			"oklch",
-		],
-		seoTitle: "Extract a Color Palette from Any Image",
-		seoDescription:
-			"Get the main colors of any image as HEX, RGB, HSL or OKLCH, or as CSS variables. Runs in your browser, so the image is never uploaded, and it works offline.",
 		icon: Palette,
 		category: "color",
-	},
-	{
+	}),
+	defineTool("color_picker", {
 		to: "/color-picker",
-		label: "Color Picker",
-		blurb: "Pick a color from an image or type one in.",
-		keywords: ["eyedropper", "hex", "rgb", "hsl", "oklch", "colour"],
-		seoTitle: "Color Picker: HEX, RGB, HSL, OKLCH",
-		seoDescription:
-			"Pick a color from an image, or type one in, and get it as HEX, RGB, HSL or OKLCH. Runs in your browser, so nothing is uploaded.",
 		icon: Pipette,
 		category: "color",
-	},
-	{
+	}),
+	defineTool("cron_generator", {
 		to: "/cron-generator",
-		label: "Cron Generator",
-		blurb: "Build a cron schedule and see when it runs.",
-		keywords: [
-			"crontab",
-			"cron job",
-			"schedule",
-			"scheduler",
-			"timer",
-			"every",
-			"interval",
-			"linux",
-			"unix",
-		],
-		seoTitle: "Cron Expression Generator and Explainer",
-		seoDescription:
-			"Build a cron expression by choosing how often it runs, read it in plain English and see the next run times. Runs in your browser, so nothing is uploaded.",
 		icon: CalendarClock,
 		category: "developer",
-	},
+	}),
 ];
 
 export const toolGroups = CATEGORIES.map((category) => ({
-	...category,
+	id: category.id,
+	// A getter, not a spread: a spread would copy the label once, in the language
+	// active when this module loaded.
+	get label() {
+		return category.label;
+	},
 	tools: TOOLS.filter((tool) => tool.category === category.id),
 }));
 
@@ -446,7 +346,9 @@ export const CATEGORY_STYLES: Record<
 	}
 > = {
 	image: {
-		label: "Image",
+		get label() {
+			return m.category_image();
+		},
 		fill: "bg-cat-image",
 		chip: "bg-cat-image/20",
 		tint: "bg-cat-image-2/15",
@@ -454,7 +356,9 @@ export const CATEGORY_STYLES: Record<
 		vars: "[--tile-edge:var(--cat-image)] [--tile-tint:var(--cat-image-2)]",
 	},
 	video: {
-		label: "Video & Audio",
+		get label() {
+			return m.category_video();
+		},
 		fill: "bg-cat-video",
 		chip: "bg-cat-video/20",
 		tint: "bg-cat-video-2/15",
@@ -462,7 +366,9 @@ export const CATEGORY_STYLES: Record<
 		vars: "[--tile-edge:var(--cat-video)] [--tile-tint:var(--cat-video-2)]",
 	},
 	file: {
-		label: "File",
+		get label() {
+			return m.category_file();
+		},
 		fill: "bg-cat-file",
 		chip: "bg-cat-file/20",
 		tint: "bg-cat-file-2/15",
@@ -470,7 +376,9 @@ export const CATEGORY_STYLES: Record<
 		vars: "[--tile-edge:var(--cat-file)] [--tile-tint:var(--cat-file-2)]",
 	},
 	color: {
-		label: "Color",
+		get label() {
+			return m.category_color();
+		},
 		fill: "bg-cat-color",
 		chip: "bg-cat-color/20",
 		tint: "bg-cat-color-2/15",
@@ -478,7 +386,9 @@ export const CATEGORY_STYLES: Record<
 		vars: "[--tile-edge:var(--cat-color)] [--tile-tint:var(--cat-color-2)]",
 	},
 	developer: {
-		label: "Developer",
+		get label() {
+			return m.category_developer();
+		},
 		fill: "bg-cat-developer",
 		chip: "bg-cat-developer/20",
 		tint: "bg-cat-developer-2/15",

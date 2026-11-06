@@ -7,6 +7,7 @@ import { buttonVariants } from "#/components/ui/button.tsx";
 import { seoHead } from "#/lib/seo.ts";
 import { CATEGORY_STYLES, toolGroups } from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const SEEN_KEY = "palico-home-seen";
 
@@ -66,13 +67,13 @@ function Home() {
 			<section className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2 lg:gap-16">
 				<div className="flex flex-col items-start">
 					<h1 className="text-[clamp(1.875rem,5vw,3rem)] font-black leading-[1.05] tracking-[-0.01em] text-foreground">
-						Your Daily
+						{m.home_hero_before()}
 						<br className="hidden lg:inline" />{" "}
-						<span className="text-primary">Offline</span>
-						<br className="hidden sm:inline" /> Toolkit
+						<span className="text-primary">{m.home_hero_highlight()}</span>
+						<br className="hidden sm:inline" /> {m.home_hero_after()}
 					</h1>
 					<p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-						Your files never leave your browser. No uploads, no tracking.
+						{m.home_tagline()}
 					</p>
 					<Link
 						to="/converter"
@@ -81,7 +82,7 @@ function Home() {
 							"mt-6 px-4 text-base",
 						)}
 					>
-						Convert an image
+						{m.home_cta()}
 					</Link>
 				</div>
 
@@ -96,7 +97,7 @@ function Home() {
 						width={560}
 						height={492}
 						fetchPriority="high"
-						alt="Palico, a chibi cat adventurer with a hammer, your offline toolkit companion"
+						alt={m.home_hero_alt()}
 						className="mx-auto h-auto w-full max-w-36 lg:max-w-80"
 					/>
 				</div>

@@ -1,5 +1,7 @@
 import { Effect, Schema, SubscriptionRef } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { CURRENT_ENGINE_BUCKETS, ENGINES } from "./engines.ts";
 import { StorageQuotaError } from "./errors.ts";
 import { CacheHost, StorageHost } from "./hosts.ts";
@@ -26,7 +28,7 @@ export const preflightDownload = (
 			return yield* new StorageQuotaError({
 				needed: spec.sizeBytes,
 				available,
-				message: `Not enough free space on this device. This download needs ${spec.sizeLabel}.`,
+				message: m.error_storage_quota({ size: spec.sizeLabel }),
 			});
 		}
 	}).pipe(

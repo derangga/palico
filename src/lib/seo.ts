@@ -1,42 +1,36 @@
 import { TOOLS } from "#/lib/tool-categories.ts";
+import { m } from "#/paraglide/messages.js";
 
 /** The production origin. Canonical URLs, og:url, og:image and sitemap.xml use it. */
 export const SITE_URL = "https://palico.rangga.site";
 
 const SITE_NAME = "Palico";
 
-const HOME_TITLE = "Palico: Free, private, offline file tools. No sign-up.";
-
-const HOME_DESCRIPTION =
-	"Free, offline toolkit for images, video, audio and PDFs. Convert, resize, compress and more in your browser. No uploads, no tracking, no account.";
-
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
-
-const OG_IMAGE_ALT =
-	"Palico, a chibi cat adventurer with a hammer, and the line Your Daily Offline Toolkit";
 
 // Home only: tells search engines this is a free app, not a converter site that
 // uploads files.
-const STRUCTURED_DATA = JSON.stringify({
-	"@context": "https://schema.org",
-	"@graph": [
-		{
-			"@type": "WebSite",
-			name: SITE_NAME,
-			url: `${SITE_URL}/`,
-		},
-		{
-			"@type": "WebApplication",
-			name: SITE_NAME,
-			url: `${SITE_URL}/`,
-			description: HOME_DESCRIPTION,
-			applicationCategory: "MultimediaApplication",
-			operatingSystem: "Any",
-			browserRequirements: "Requires JavaScript and a modern browser",
-			offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-		},
-	],
-});
+const structuredData = (description: string) =>
+	JSON.stringify({
+		"@context": "https://schema.org",
+		"@graph": [
+			{
+				"@type": "WebSite",
+				name: SITE_NAME,
+				url: `${SITE_URL}/`,
+			},
+			{
+				"@type": "WebApplication",
+				name: SITE_NAME,
+				url: `${SITE_URL}/`,
+				description,
+				applicationCategory: "MultimediaApplication",
+				operatingSystem: "Any",
+				browserRequirements: "Requires JavaScript and a modern browser",
+				offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+			},
+		],
+	});
 
 /**
  * The head contents of a page: its title, description, canonical URL and social
@@ -45,8 +39,9 @@ const STRUCTURED_DATA = JSON.stringify({
  */
 export function seoHead(pathname: string) {
 	const tool = TOOLS.find((t) => t.to === pathname);
-	const title = tool ? `${tool.seoTitle} | ${SITE_NAME}` : HOME_TITLE;
-	const description = tool ? tool.seoDescription : HOME_DESCRIPTION;
+	const title = tool ? `${tool.seoTitle} | ${SITE_NAME}` : m.seo_home_title();
+	const description = tool ? tool.seoDescription : m.seo_home_description();
+	const imageAlt = m.seo_og_image_alt();
 	const url = new URL(pathname, SITE_URL).href;
 
 	return {
@@ -61,17 +56,22 @@ export function seoHead(pathname: string) {
 			{ property: "og:image", content: OG_IMAGE },
 			{ property: "og:image:width", content: "1200" },
 			{ property: "og:image:height", content: "630" },
-			{ property: "og:image:alt", content: OG_IMAGE_ALT },
+			{ property: "og:image:alt", content: imageAlt },
 			{ name: "twitter:card", content: "summary_large_image" },
 			{ name: "twitter:title", content: title },
 			{ name: "twitter:description", content: description },
 			{ name: "twitter:image", content: OG_IMAGE },
-			{ name: "twitter:image:alt", content: OG_IMAGE_ALT },
+			{ name: "twitter:image:alt", content: imageAlt },
 		],
 		links: [{ rel: "canonical", href: url }],
 		scripts:
 			pathname === "/"
-				? [{ type: "application/ld+json", children: STRUCTURED_DATA }]
+				? [
+						{
+							type: "application/ld+json",
+							children: structuredData(description),
+						},
+					]
 				: [],
 	};
 }

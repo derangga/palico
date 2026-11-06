@@ -12,6 +12,7 @@ import {
 	AlertDialogMedia,
 	AlertDialogTitle,
 } from "#/components/ui/alert-dialog.tsx";
+import { m } from "#/paraglide/messages.js";
 
 export interface DownloadConsentDialogProps {
 	readonly open: boolean;
@@ -34,8 +35,8 @@ export function DownloadConsentDialog({
 	icon,
 	title,
 	description,
-	cancelLabel = "Maybe later",
-	confirmLabel = "Yes, download",
+	cancelLabel = m.consent_cancel(),
+	confirmLabel = m.consent_confirm(),
 }: DownloadConsentDialogProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>

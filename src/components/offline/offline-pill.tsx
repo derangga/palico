@@ -1,6 +1,7 @@
 import { type PillState, StatusPill } from "#/components/status-pill.tsx";
 import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const PILL: Record<OfflineStatus["_tag"], PillState> = {
 	Ready: "done",
@@ -20,11 +21,12 @@ export const OFFLINE_DOT: Record<OfflineStatus["_tag"], string> = {
 
 export const offlineLabel = (status: OfflineStatus): string =>
 	OfflineStatus.match(status, {
-		Ready: () => "Works offline",
-		Preparing: () => "Getting ready for offline",
-		NeedsDownload: ({ sizeLabel }) => `Needs a ${sizeLabel} download`,
-		NotSaved: () => "Not saved on this device",
-		Unavailable: () => "Not available offline",
+		Ready: () => m.offline_ready(),
+		Preparing: () => m.offline_preparing(),
+		NeedsDownload: ({ sizeLabel }) =>
+			m.offline_needs_download({ size: sizeLabel }),
+		NotSaved: () => m.offline_not_saved(),
+		Unavailable: () => m.offline_unavailable(),
 	});
 
 /** Tool page header: the shared tinted status pill. */

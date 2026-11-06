@@ -1,22 +1,38 @@
+import { Effect, SubscriptionRef } from "effect";
 import { Star } from "lucide-react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { localeRef, resetLocale } from "./i18n/state.ts";
 import { type Tool, TOOLS } from "./tool-categories.ts";
 import { searchTools } from "./tool-search.ts";
 
-const fake = (label: string, over: Partial<Tool> = {}): Tool => ({
-	to: "/fake",
-	label,
-	blurb: "",
-	keywords: [],
-	seoTitle: "",
-	seoDescription: "",
-	icon: Star,
-	category: "file",
-	...over,
-});
+const fake = (label: string, over: Partial<Tool> = {}): Tool => {
+	const tool = {
+		to: "/fake",
+		label,
+		blurb: "",
+		keywords: [],
+		seoTitle: "",
+		seoDescription: "",
+		crumb: "",
+		icon: Star,
+		category: "file",
+		...over,
+	} satisfies Omit<Tool, "textIn">;
+
+	return {
+		...tool,
+		textIn: () => ({
+			label: tool.label,
+			blurb: tool.blurb,
+			keywords: tool.keywords,
+		}),
+	};
+};
 
 const labels = (tools: ReadonlyArray<Tool>) => tools.map((t) => t.label);
+
+afterEach(() => Effect.runSync(resetLocale));
 
 describe("searchTools", () => {
 	it("returns every tool in registry order for an empty or blank query", () => {
@@ -94,6 +110,36 @@ describe("searchTools", () => {
 	});
 
 	it("puts each tool first when searching for its own label", () => {
+		for (const tool of TOOLS) {
+			expect(searchTools(tool.label)[0]).toBe(tool);
+		}
+	});
+});
+
+describe("searchTools in Indonesian", () => {
+	const useIndonesian = () =>
+		Effect.runSync(SubscriptionRef.set(localeRef, "id"));
+
+	it("finds a tool by its Indonesian name", () => {
+		useIndonesian();
+
+		expect(searchTools("kompres")[0]?.label).toBe("Kompres Gambar");
+		expect(searchTools("pemotong audio")[0]?.label).toBe("Pemotong Audio");
+	});
+
+	it("still finds a tool by its English name and keywords", () => {
+		useIndonesian();
+
+		expect(searchTools("compress").map((t) => t.label)).toContain(
+			"Kompres Gambar",
+		);
+		expect(searchTools("crontab")[0]?.label).toBe("Pembuat Cron");
+		expect(searchTools("mp3")[0]?.label).toBe("Ekstrak Audio");
+	});
+
+	it("puts each tool first when searching for its own label", () => {
+		useIndonesian();
+
 		for (const tool of TOOLS) {
 			expect(searchTools(tool.label)[0]).toBe(tool);
 		}

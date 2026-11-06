@@ -15,6 +15,7 @@ import {
 } from "#/lib/tool-categories.ts";
 import { searchTools } from "#/lib/tool-search.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 type Section = {
 	value: string;
@@ -130,15 +131,17 @@ export function SearchPalette({
 				items: group.tools,
 			}))
 		: results.length > 0
-			? [{ value: "Results", items: [...results] }]
+			? [{ value: m.search_results_group(), items: [...results] }]
 			: [];
 
 	// Always mounted, so screen readers announce the text when it changes.
 	const status = !searching
 		? ""
 		: results.length > 0
-			? `${results.length} ${results.length === 1 ? "tool" : "tools"} found`
-			: `No tool matches "${query.trim()}". Try a format, like gif or pdf.`;
+			? results.length === 1
+				? m.search_found_one({ count: results.length })
+				: m.search_found_other({ count: results.length })
+			: m.search_none({ query: query.trim() });
 
 	return (
 		<Dialog.Root
@@ -152,7 +155,9 @@ export function SearchPalette({
 			<Dialog.Portal>
 				<Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/25 supports-backdrop-filter:backdrop-blur-xs dark:bg-ctp-crust/60" />
 				<Dialog.Popup className="fixed top-[12dvh] left-1/2 z-50 flex max-h-[76dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-xl ring-1 ring-border outline-none">
-					<Dialog.Title className="sr-only">Search tools</Dialog.Title>
+					<Dialog.Title className="sr-only">
+						{m.search_button_label()}
+					</Dialog.Title>
 					<Autocomplete.Root
 						inline
 						open
@@ -170,8 +175,8 @@ export function SearchPalette({
 									aria-hidden
 								/>
 								<Autocomplete.Input
-									aria-label="Search tools"
-									placeholder="Search tools, like gif or pdf"
+									aria-label={m.search_button_label()}
+									placeholder={m.search_placeholder()}
 									// Same field as ui/input.tsx, so the focus ring is the standard one.
 									className="h-10 w-full min-w-0 rounded-md border border-input bg-background pr-3 pl-9 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 								/>

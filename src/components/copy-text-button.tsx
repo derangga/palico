@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { useFlash } from "#/hooks/use-flash.ts";
 import { copyText } from "#/lib/clipboard.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
+import { m } from "#/paraglide/messages.js";
 
 const FLASH_MS = 1800;
 
@@ -38,7 +39,7 @@ export function CopyTextButton({
 		<>
 			<Button onClick={copy} className={className}>
 				{copied ? <Check /> : <Copy />}
-				{copied ? "Copied" : label}
+				{copied ? m.copy_copied() : label}
 			</Button>
 			<output className="sr-only">{copied ? copiedMessage : ""}</output>
 		</>

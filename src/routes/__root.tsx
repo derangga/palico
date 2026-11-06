@@ -4,6 +4,7 @@ import {
 	HeadContent,
 	Outlet,
 	Scripts,
+	useRouter,
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
@@ -34,7 +35,9 @@ import { resolveLocale } from "#/lib/i18n/locale.ts";
 import { localeRuntime } from "#/lib/i18n/runtime.ts";
 import { startOffline } from "#/lib/offline/register.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
+import { CATEGORY_STYLES, TOOLS } from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 import appCss from "../styles.css?url";
 
@@ -73,44 +76,30 @@ export const Route = createRootRoute({
 	shellComponent: RootDocument,
 });
 
-// Group matches the sidebar sections in app-sidebar.tsx; the page h1 carries the
-// full tool name, so the top bar only shows "Group / Tool" to avoid repeating it.
-const PAGE_CRUMBS = new Map<
-	string,
-	{ readonly group?: string; readonly title: string }
->([
-	["/", { title: "Home" }],
-	["/converter", { group: "Image", title: "Converter" }],
-	["/resizer", { group: "Image", title: "Resizer" }],
-	["/compressor", { group: "Image", title: "Compress" }],
-	["/background-removal", { group: "Image", title: "Remove Background" }],
-	["/favicon-generator", { group: "Image", title: "Favicon Generator" }],
-	["/video-converter", { group: "Video & Audio", title: "Converter" }],
-	["/video-cutter", { group: "Video & Audio", title: "Cutter" }],
-	["/video-compressor", { group: "Video & Audio", title: "Compress" }],
-	["/video-to-gif", { group: "Video & Audio", title: "To GIF" }],
-	["/extract-audio", { group: "Video & Audio", title: "Extract Audio" }],
-	["/audio-cutter", { group: "Video & Audio", title: "Audio Cutter" }],
-	["/markdown-preview", { group: "Developer", title: "Markdown Preview" }],
-	["/diff-viewer", { group: "Developer", title: "Diff Viewer" }],
-	["/pdf-split", { group: "File", title: "Split PDF" }],
-	["/pdf-merge", { group: "File", title: "Merge PDFs" }],
-	["/pdf-organize", { group: "File", title: "Organize PDF" }],
-	["/pdf-to-images", { group: "File", title: "PDF to Images" }],
-	["/office-to-pdf", { group: "File", title: "Word to PDF" }],
-	["/qr-generator", { group: "File", title: "QR Generator" }],
-	["/qr-reader", { group: "File", title: "QR Reader" }],
-	["/palette-extractor", { group: "Color", title: "Palette Extractor" }],
-	["/color-picker", { group: "Color", title: "Color Picker" }],
-	["/cron-generator", { group: "Developer", title: "Cron Generator" }],
-]);
+// The top bar shows "Group / Tool" from the registry; the page h1 carries the
+// full tool name, so the bar keeps the short one and does not repeat it.
+interface Crumb {
+	readonly group?: string;
+	readonly title: string;
+}
+
+function crumbOf(pathname: string): Crumb {
+	if (pathname === "/") return { title: m.sidebar_home() };
+
+	const tool = TOOLS.find((t) => t.to === pathname);
+
+	return tool
+		? { group: CATEGORY_STYLES[tool.category].label, title: tool.crumb }
+		: { title: "Palico" };
+}
 
 function RootLayout() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const crumb = PAGE_CRUMBS.get(pathname) ?? { title: "Palico" };
 	// Subscribing here re-renders the header and sidebar on a language change.
 	// The page content below is keyed on it, because `m.*()` calls are not reactive.
 	const locale = useLocale();
+	const crumb = crumbOf(pathname);
+	const router = useRouter();
 
 	// The store starts at English so the prerendered shell and hydration agree.
 	// Switch to the saved or browser language before the first paint. The resolve is
@@ -123,6 +112,12 @@ function RootLayout() {
 		localeRuntime.runSync(resolveLocale);
 		renderAgain();
 	}, []);
+
+	// Page titles and descriptions come from each route's head(), which the router
+	// only re-runs on navigation. Re-run them when the language changes.
+	useEffect(() => {
+		void router.invalidate();
+	}, [locale, router]);
 
 	// Production only: the worker would cache stale modules during `vite dev`.
 	useEffect(() => {
@@ -168,7 +163,7 @@ function RootLayout() {
 			<SidebarInset>
 				<header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/70 px-4 backdrop-blur-md supports-backdrop-filter:bg-background/60">
 					<SidebarTrigger />
-					<nav aria-label="Breadcrumb">
+					<nav aria-label={m.breadcrumb_label()}>
 						<ol className="flex items-center gap-1.5 text-sm">
 							{crumb.group && (
 								<>
