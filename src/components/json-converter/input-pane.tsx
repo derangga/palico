@@ -63,7 +63,7 @@ export function InputPane({
 		<section
 			aria-label={m.jc_input_title()}
 			data-dragging={dragging || undefined}
-			className="relative flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm transition-[border-color,box-shadow] duration-150 ease-out data-[dragging]:border-primary data-[dragging]:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_22%,transparent)] sm:p-5"
+			className="relative flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm transition-[border-color,box-shadow] duration-150 ease-out data-[dragging]:border-primary data-[dragging]:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_22%,transparent)] sm:p-5"
 			onDragEnter={(event) => {
 				if (hasFiles(event)) setDragging(true);
 			}}
