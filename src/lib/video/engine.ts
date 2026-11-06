@@ -8,6 +8,8 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { Effect, Option, Ref } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	CACHE_NAME,
 	ENGINE_ASSETS,
@@ -73,7 +75,7 @@ export const getEngine: Effect.Effect<EngineHandle, EngineNotLoadedError> =
 				onNone: () =>
 					Effect.fail(
 						new EngineNotLoadedError({
-							message: "Engine is not loaded. Please reload the page.",
+							message: m.error_engine_not_loaded(),
 						}),
 					),
 				onSome: (engine) => Effect.succeed(engine),
@@ -133,14 +135,17 @@ const fetchAssetWithProgress = (
 					message:
 						cause instanceof Error
 							? cause.message
-							: `Failed to download ${asset.key}.`,
+							: m.error_engine_download({ key: asset.key }),
 				}),
 		});
 
 		if (!res.ok || !res.body) {
 			return yield* new EngineLoadError({
 				stage: "downloading",
-				message: `Failed to download ${asset.key} (HTTP ${res.status}).`,
+				message: m.error_engine_http({
+					key: asset.key,
+					status: res.status,
+				}),
 			});
 		}
 
@@ -173,7 +178,7 @@ const fetchAssetWithProgress = (
 					message:
 						cause instanceof Error
 							? cause.message
-							: `Failed to stream ${asset.key}.`,
+							: m.error_engine_stream({ key: asset.key }),
 				}),
 		});
 	});
@@ -228,7 +233,7 @@ const buildBlobUrl = (
 				message:
 					cause instanceof Error
 						? cause.message
-						: `Failed to read ${asset.key} blob.`,
+						: m.error_engine_blob({ key: asset.key }),
 			}),
 	}).pipe(Effect.map((blob) => URL.createObjectURL(blob)));
 
@@ -253,7 +258,7 @@ const initFFmpeg = (
 
 				return yield* new EngineLoadError({
 					stage: "preparing",
-					message: `Engine asset "${asset.key}" is missing after download.`,
+					message: m.error_engine_missing({ key: asset.key }),
 				});
 			}
 
@@ -277,9 +282,7 @@ const initFFmpeg = (
 				new EngineLoadError({
 					stage: "preparing",
 					message:
-						cause instanceof Error
-							? cause.message
-							: "Failed to initialize ffmpeg.",
+						cause instanceof Error ? cause.message : m.error_engine_init(),
 				}),
 		}).pipe(Effect.onError(() => revokeCreated));
 

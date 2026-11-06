@@ -12,6 +12,8 @@
 
 import { Effect, Predicate, Result } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { disposeEngine, type EngineHandle } from "./engine.ts";
 
 export interface FfmpegJobOptions<ER, EJ, EP = never> {
@@ -48,7 +50,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 			try: async () => new Uint8Array(await opts.file.arrayBuffer()),
 			catch: (cause) =>
 				opts.readError(
-					cause instanceof Error ? cause.message : "Could not read file bytes.",
+					cause instanceof Error ? cause.message : m.error_read_file_bytes(),
 				),
 		});
 
@@ -56,7 +58,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 			try: () => ffmpeg.writeFile(opts.inputName, bytes),
 			catch: (cause) =>
 				opts.jobError(
-					cause instanceof Error ? cause.message : "Could not stage input.",
+					cause instanceof Error ? cause.message : m.error_stage_input(),
 				),
 		});
 
@@ -138,7 +140,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 							catch: (cause) =>
 								cause instanceof Error && cause.message
 									? cause.message
-									: `${opts.label} threw.`,
+									: m.error_job_threw({ label: opts.label }),
 						}),
 					),
 				({ onProgress, onLog }) =>
@@ -175,7 +177,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 
 				const reason = Result.isFailure(result)
 					? result.failure
-					: `${opts.label} exited with code ${result.success}.`;
+					: m.error_job_exit({ label: opts.label, code: result.success });
 
 				return yield* Effect.fail(
 					opts.jobError(tail ? `${reason} ${tail}` : reason),
@@ -186,7 +188,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 				try: () => ffmpeg.readFile(opts.outputName),
 				catch: (cause) =>
 					opts.jobError(
-						cause instanceof Error ? cause.message : "Could not read output.",
+						cause instanceof Error ? cause.message : m.error_read_output(),
 					),
 			});
 
@@ -194,11 +196,7 @@ export const runFfmpegJob = <ER, EJ, EP = never>(
 			// is valid for binary outputs. Surface the string variant as a typed
 			// failure rather than coercing it.
 			if (Predicate.isString(data)) {
-				return yield* Effect.fail(
-					opts.jobError(
-						"ffmpeg returned a string payload instead of binary data.",
-					),
-				);
+				return yield* Effect.fail(opts.jobError(m.error_ffmpeg_string()));
 			}
 
 			// SAFETY: readFile's bytes arrive by postMessage from the ffmpeg worker, so

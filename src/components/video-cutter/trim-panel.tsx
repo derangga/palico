@@ -15,6 +15,7 @@ import {
 	formatLabelFor,
 	formatTime,
 } from "#/components/video-cutter/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface TrimPanelProps {
 	file: File;
@@ -34,7 +35,7 @@ interface TrimPanelProps {
 
 export function TrimPanel({
 	file,
-	formatTitle = "Current video format",
+	formatTitle = m.trim_current_video_format(),
 	ResultIcon = Film,
 	outputDuration,
 	trimming,
@@ -53,7 +54,9 @@ export function TrimPanel({
 					<span className="text-sm font-medium">{formatLabelFor(file)}</span>
 				</div>
 				<div className="flex items-center justify-between gap-4">
-					<span className="text-xs text-muted-foreground">Output duration</span>
+					<span className="text-xs text-muted-foreground">
+						{m.trim_output_duration()}
+					</span>
 					<span className="text-sm font-medium tabular-nums">
 						{formatTime(outputDuration)}
 					</span>
@@ -67,17 +70,17 @@ export function TrimPanel({
 						disabled={cancelling}
 					>
 						{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
-						{cancelling ? "Cancelling…" : "Cancel"}
+						{cancelling ? m.common_cancelling() : m.common_cancel()}
 					</Button>
 				) : (
 					<Button variant="ghost" className="w-full" onClick={onReset}>
-						Choose another
+						{m.common_choose_another()}
 					</Button>
 				)}
 
 				<Button className="w-full" onClick={onProceed} disabled={!canProceed}>
 					{trimming ? <Loader2 className="animate-spin" /> : <Scissors />}
-					{trimming ? "Trimming…" : "Proceed"}
+					{trimming ? m.trim_trimming() : m.bgremoval_proceed()}
 				</Button>
 			</div>
 
@@ -92,7 +95,7 @@ export function TrimPanel({
 					</div>
 					<Button onClick={() => downloadBlob(output.blob, output.name)}>
 						<Download />
-						Save
+						{m.common_save()}
 					</Button>
 				</div>
 			)}

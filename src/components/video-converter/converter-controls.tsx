@@ -15,6 +15,7 @@ import {
 	VIDEO_OUTPUT_FORMATS,
 	type VideoOutputFormat,
 } from "#/lib/video/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface ConverterControlsProps {
 	format: VideoOutputFormat;
@@ -48,7 +49,7 @@ export function ConverterControls({
 					id={formatLabelId}
 					className="text-xs font-medium text-muted-foreground"
 				>
-					Convert to
+					{m.videoconv_convert_to()}
 				</span>
 				<Select
 					value={format}
@@ -81,11 +82,11 @@ export function ConverterControls({
 						className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
 					>
 						{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
-						{cancelling ? "Cancelling…" : "Cancel"}
+						{cancelling ? m.common_cancelling() : m.common_cancel()}
 					</Button>
 				) : (
 					<Button variant="ghost" onClick={onClear}>
-						Clear
+						{m.common_clear()}
 					</Button>
 				)}
 				<Button onClick={onConvert} disabled={convertDisabled}>

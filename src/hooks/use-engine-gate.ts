@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { isEngineCached, type LoadPhase } from "#/lib/video/cache.ts";
+import { m } from "#/paraglide/messages.js";
 
 export function useEngineGate() {
 	const [phase, setPhase] = useState<LoadPhase>({ kind: "checking" });
@@ -33,9 +34,7 @@ export function useEngineGate() {
 			setPhase({
 				kind: "error",
 				message:
-					err instanceof Error
-						? err.message
-						: "Could not load the video engine.",
+					err instanceof Error ? err.message : m.error_video_engine_load(),
 			});
 		}
 	}, []);

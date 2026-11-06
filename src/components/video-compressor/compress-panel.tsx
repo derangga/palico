@@ -29,6 +29,7 @@ import {
 	SizeChoice,
 } from "#/lib/video/compress-options.ts";
 import { estimateMinutes } from "#/lib/video/limits.ts";
+import { m } from "#/paraglide/messages.js";
 
 const isSizeChoice = Schema.is(SizeChoice);
 const isQuality = Schema.is(CompressQuality);
@@ -79,10 +80,13 @@ export function CompressPanel({
 
 	const minutes = estimateMinutes(file.size, "mp4");
 
-	let compressLabel = "Compress";
+	let compressLabel = m.videocomp_compress();
 
 	if (compressing)
-		compressLabel = percent > 0 ? `Compressing… ${percent}%` : "Compressing…";
+		compressLabel =
+			percent > 0
+				? m.videocomp_compressing_percent({ percent })
+				: m.videocomp_compressing();
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -108,10 +112,10 @@ export function CompressPanel({
 				>
 					<TabsList>
 						<TabsTrigger value="size" disabled={compressing}>
-							Fit a size
+							{m.videocomp_tab_size()}
 						</TabsTrigger>
 						<TabsTrigger value="quality" disabled={compressing}>
-							Quality
+							{m.videocomp_tab_quality()}
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
@@ -123,7 +127,7 @@ export function CompressPanel({
 								id={sizeLabelId}
 								className="text-xs font-medium text-muted-foreground"
 							>
-								Keep it under
+								{m.videocomp_keep_under()}
 							</span>
 							<div className="flex items-center gap-2">
 								<Select
@@ -138,7 +142,7 @@ export function CompressPanel({
 										<SelectValue>
 											{() =>
 												SIZE_PRESETS.find((p) => p.value === sizeChoice)
-													?.label ?? "Custom"
+													?.label ?? m.videocomp_custom()
 											}
 										</SelectValue>
 									</SelectTrigger>
@@ -152,7 +156,9 @@ export function CompressPanel({
 												{p.label}
 											</SelectItem>
 										))}
-										<SelectItem value="custom">Custom</SelectItem>
+										<SelectItem value="custom">
+											{m.videocomp_custom()}
+										</SelectItem>
 									</SelectContent>
 								</Select>
 								{sizeChoice === "custom" && (
@@ -164,7 +170,7 @@ export function CompressPanel({
 											className="w-24"
 											value={customMB}
 											disabled={compressing}
-											aria-label="Target size in MB"
+											aria-label={m.videocomp_target_aria()}
 											aria-invalid={verdict.kind === "invalid"}
 											aria-describedby={
 												fieldMessage ? fieldMessageId : undefined
@@ -189,7 +195,7 @@ export function CompressPanel({
 								id={qualityLabelId}
 								className="text-xs font-medium text-muted-foreground"
 							>
-								Quality
+								{m.videocomp_tab_quality()}
 							</span>
 							<Select
 								value={quality}
@@ -224,7 +230,7 @@ export function CompressPanel({
 							id={resolutionLabelId}
 							className="text-xs font-medium text-muted-foreground"
 						>
-							Resolution
+							{m.videocomp_resolution()}
 						</span>
 						<Select
 							value={resolution}
@@ -257,9 +263,12 @@ export function CompressPanel({
 				</div>
 
 				<p className="text-xs text-muted-foreground">
-					Usually takes{" "}
-					{minutes === 1 ? "about a minute" : `about ${minutes} minutes`}. Keep
-					this tab open.
+					{m.videocomp_usually_takes({
+						duration:
+							minutes === 1
+								? m.duration_about_a_minute()
+								: m.duration_minutes_about({ minutes }),
+					})}
 				</p>
 
 				<div className="flex flex-wrap justify-end gap-2">
@@ -271,11 +280,11 @@ export function CompressPanel({
 							className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
 						>
 							{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
-							{cancelling ? "Cancelling…" : "Cancel"}
+							{cancelling ? m.common_cancelling() : m.common_cancel()}
 						</Button>
 					) : (
 						<Button variant="ghost" onClick={() => dispatch({ type: "reset" })}>
-							Choose another
+							{m.common_choose_another()}
 						</Button>
 					)}
 					<Button
@@ -296,19 +305,23 @@ export function CompressPanel({
 							<p className="truncate text-sm font-medium">{output.name}</p>
 							<p className="text-xs text-muted-foreground tabular-nums">
 								{formatBytes(file.size)} → {formatBytes(output.size)} ·{" "}
-								{Math.round((1 - output.size / file.size) * 100)}% smaller
+								{m.common_smaller({
+									percent: Math.round((1 - output.size / file.size) * 100),
+								})}
 							</p>
 						</div>
 						<Button onClick={() => downloadBlob(output.blob, output.name)}>
 							<Download />
-							Save
+							{m.common_save()}
 						</Button>
 					</div>
 					{output.overTargetMB !== null && (
 						<p className="text-xs text-muted-foreground">
 							{/* Decimal MB, like the target; formatBytes is binary. */}
-							It came out at {(output.size / 1_000_000).toFixed(1)} MB, a little
-							over {output.overTargetMB} MB. Try 720p or a smaller size.
+							{m.videocomp_over_target({
+								size: (output.size / 1_000_000).toFixed(1),
+								target: output.overTargetMB,
+							})}
 						</p>
 					)}
 				</div>
@@ -317,9 +330,7 @@ export function CompressPanel({
 			{output?.kind === "kept" && (
 				<div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
 					<Film className="size-4 shrink-0 text-muted-foreground" />
-					<p className="text-sm">
-						Already small, kept the original. Compressing made it bigger.
-					</p>
+					<p className="text-sm">{m.videocomp_kept_bigger()}</p>
 				</div>
 			)}
 		</div>

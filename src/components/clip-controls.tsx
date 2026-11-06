@@ -4,6 +4,7 @@ import { Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import { Button } from "#/components/ui/button.tsx";
 import { formatTime } from "#/components/video-cutter/utils.ts";
 import type { ClipPlayer } from "#/hooks/use-clip-player.ts";
+import { m } from "#/paraglide/messages.js";
 
 const SKIP_SECONDS = 5;
 
@@ -23,7 +24,7 @@ export function ClipControls({
 				<Button
 					variant="outline"
 					size="icon-sm"
-					aria-label="Restart from selection start"
+					aria-label={m.clip_restart()}
 					onClick={player.restart}
 				>
 					<RotateCcw />
@@ -31,14 +32,14 @@ export function ClipControls({
 				<Button
 					variant="outline"
 					size="icon-sm"
-					aria-label="Back 5 seconds"
+					aria-label={m.clip_back_5()}
 					onClick={() => player.seekTo(currentTime - SKIP_SECONDS)}
 				>
 					<SkipBack />
 				</Button>
 				<Button
 					size="icon-sm"
-					aria-label={isPlaying ? "Pause" : "Play"}
+					aria-label={isPlaying ? m.clip_pause() : m.clip_play()}
 					onClick={player.togglePlay}
 				>
 					{isPlaying ? <Pause /> : <Play />}
@@ -46,7 +47,7 @@ export function ClipControls({
 				<Button
 					variant="outline"
 					size="icon-sm"
-					aria-label="Forward 5 seconds"
+					aria-label={m.clip_forward_5()}
 					onClick={() => player.seekTo(currentTime + SKIP_SECONDS)}
 				>
 					<SkipForward />

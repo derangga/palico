@@ -12,6 +12,8 @@
 
 import { Effect, Result, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { type EngineHandle, getEngine } from "./engine.ts";
 import { type EngineNotLoadedError, VideoTrimError } from "./errors.ts";
 import { runFfmpegJob } from "./ffmpeg-job.ts";
@@ -100,9 +102,8 @@ const trimOne = (
 			outputName,
 			args: buildTrimArgs(inputName, outputName, input.startSec, input.endSec),
 			outputMime: mime,
-			label: "Trim",
-			oomMessage:
-				"Your device ran out of memory. This video is too large to trim in the browser. Try a smaller file.",
+			label: m.job_stage_trim(),
+			oomMessage: m.error_oom_trim_video(),
 			readError: (message) =>
 				new VideoTrimError({ fileName: input.file.name, message }),
 			jobError: (message) =>
@@ -133,7 +134,7 @@ export const trimVideo = (
 		if (isCancelled()) {
 			return yield* new VideoTrimError({
 				fileName: input.file.name,
-				message: "Cancelled.",
+				message: m.error_cancelled(),
 			});
 		}
 

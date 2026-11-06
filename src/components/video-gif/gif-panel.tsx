@@ -18,17 +18,21 @@ import {
 	type GifFps,
 	type GifSize,
 } from "#/lib/video/gif-options.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Labels for <SelectValue>; without `items` it shows the raw value.
-const FPS_ITEMS = GIF_FPS_OPTIONS.map((f) => ({
-	value: String(f),
-	label: `${f} fps`,
-}));
+// Functions, not constants: the size labels are translated.
+const fpsItems = () =>
+	GIF_FPS_OPTIONS.map((f) => ({
+		value: String(f),
+		label: `${f} fps`,
+	}));
 
-const SIZE_ITEMS = GIF_SIZE_OPTIONS.map((s) => ({
-	value: String(s.value),
-	label: `${s.label} (${s.value}px)`,
-}));
+const sizeItems = () =>
+	GIF_SIZE_OPTIONS.map((s) => ({
+		value: String(s.value),
+		label: `${s.label} (${s.value}px)`,
+	}));
 
 interface GifPanelProps {
 	fps: GifFps;
@@ -69,10 +73,10 @@ export function GifPanel({
 			<div className="flex flex-col gap-3 rounded-xl border bg-card p-4">
 				<div className="flex items-center justify-between gap-4">
 					<span id={fpsLabelId} className="text-xs text-muted-foreground">
-						Frame rate
+						{m.videogif_fps()}
 					</span>
 					<Select
-						items={FPS_ITEMS}
+						items={fpsItems()}
 						value={String(fps)}
 						onValueChange={(value) => {
 							const next = GIF_FPS_OPTIONS.find((f) => String(f) === value);
@@ -85,7 +89,7 @@ export function GifPanel({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{FPS_ITEMS.map((item) => (
+							{fpsItems().map((item) => (
 								<SelectItem key={item.value} value={item.value}>
 									{item.label}
 								</SelectItem>
@@ -95,10 +99,10 @@ export function GifPanel({
 				</div>
 				<div className="flex items-center justify-between gap-4">
 					<span id={sizeLabelId} className="text-xs text-muted-foreground">
-						Size
+						{m.videogif_size()}
 					</span>
 					<Select
-						items={SIZE_ITEMS}
+						items={sizeItems()}
 						value={String(size)}
 						onValueChange={(value) => {
 							const next = GIF_SIZE_OPTIONS.find(
@@ -113,7 +117,7 @@ export function GifPanel({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{SIZE_ITEMS.map((item) => (
+							{sizeItems().map((item) => (
 								<SelectItem key={item.value} value={item.value}>
 									{item.label}
 								</SelectItem>
@@ -122,13 +126,17 @@ export function GifPanel({
 					</Select>
 				</div>
 				<div className="flex items-center justify-between gap-4">
-					<span className="text-xs text-muted-foreground">Output size</span>
+					<span className="text-xs text-muted-foreground">
+						{m.videogif_output_size()}
+					</span>
 					<span className="text-sm font-medium tabular-nums">
 						{dimensions ? `${dimensions.width} × ${dimensions.height}` : "—"}
 					</span>
 				</div>
 				<div className="flex items-center justify-between gap-4">
-					<span className="text-xs text-muted-foreground">Clip length</span>
+					<span className="text-xs text-muted-foreground">
+						{m.videogif_clip_length()}
+					</span>
 					<span className="text-sm font-medium tabular-nums">
 						{clipSeconds.toFixed(1)} s
 					</span>
@@ -142,17 +150,17 @@ export function GifPanel({
 						disabled={cancelling}
 					>
 						{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
-						{cancelling ? "Cancelling…" : "Cancel"}
+						{cancelling ? m.common_cancelling() : m.common_cancel()}
 					</Button>
 				) : (
 					<Button variant="ghost" className="w-full" onClick={onReset}>
-						Choose another
+						{m.common_choose_another()}
 					</Button>
 				)}
 
 				<Button className="w-full" onClick={onMake} disabled={!canMake}>
 					{making ? <Loader2 className="animate-spin" /> : <ImagePlay />}
-					{making ? "Making your GIF…" : "Make GIF"}
+					{making ? m.videogif_making() : m.videogif_make()}
 				</Button>
 			</div>
 
@@ -169,7 +177,7 @@ function GifResultCard({ output }: { output: GifResult }) {
 			{url ? (
 				<img
 					src={url}
-					alt={`Preview of ${output.name}`}
+					alt={m.videogif_preview_alt({ name: output.name })}
 					className="max-h-64 w-full rounded-md object-contain"
 				/>
 			) : null}
@@ -182,7 +190,7 @@ function GifResultCard({ output }: { output: GifResult }) {
 				</div>
 				<Button onClick={() => downloadBlob(output.blob, output.name)}>
 					<Download />
-					Save
+					{m.common_save()}
 				</Button>
 			</div>
 		</div>

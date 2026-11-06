@@ -17,6 +17,7 @@ import {
 	type AudioFormat,
 	parseAudioFormat,
 } from "#/lib/video/audio.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface AudioPanelProps {
 	file: File;
@@ -45,10 +46,13 @@ export function AudioPanel({
 }: AudioPanelProps) {
 	const formatLabelId = useId();
 
-	let extractLabel = "Extract audio";
+	let extractLabel = m.extract_extract();
 
 	if (extracting)
-		extractLabel = percent > 0 ? `Extracting… ${percent}%` : "Extracting…";
+		extractLabel =
+			percent > 0
+				? m.extract_extracting_percent({ percent })
+				: m.extract_extracting();
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -69,7 +73,7 @@ export function AudioPanel({
 							id={formatLabelId}
 							className="text-xs font-medium text-muted-foreground"
 						>
-							Save as
+							{m.extract_save_as()}
 						</span>
 						<Select
 							items={AUDIO_FORMATS}
@@ -103,11 +107,11 @@ export function AudioPanel({
 								className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
 							>
 								{cancelling ? <Loader2 className="animate-spin" /> : <Ban />}
-								{cancelling ? "Cancelling…" : "Cancel"}
+								{cancelling ? m.common_cancelling() : m.common_cancel()}
 							</Button>
 						) : (
 							<Button variant="ghost" onClick={onReset}>
-								Choose another
+								{m.common_choose_another()}
 							</Button>
 						)}
 						<Button onClick={onExtract} disabled={extracting}>
@@ -133,7 +137,7 @@ export function AudioPanel({
 					</div>
 					<Button onClick={() => downloadBlob(output.blob, output.name)}>
 						<Download />
-						Save
+						{m.common_save()}
 					</Button>
 				</div>
 			)}

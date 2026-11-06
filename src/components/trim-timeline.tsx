@@ -9,6 +9,7 @@
 import { type ReactNode, useCallback, useId, useRef } from "react";
 
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface TrimTimelineProps {
 	/** Total source duration in seconds. */
@@ -282,7 +283,7 @@ export function TrimTimeline({
 					// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- dual-thumb range, see the note above.
 					role="slider"
 					tabIndex={disabled ? -1 : 0}
-					aria-label="Trim start"
+					aria-label={m.clip_trim_start()}
 					aria-valuemin={0}
 					aria-valuemax={duration}
 					aria-valuenow={start}
@@ -306,7 +307,7 @@ export function TrimTimeline({
 					// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- dual-thumb range, see the note above.
 					role="slider"
 					tabIndex={disabled ? -1 : 0}
-					aria-label="Trim end"
+					aria-label={m.clip_trim_end()}
 					aria-valuemin={0}
 					aria-valuemax={duration}
 					aria-valuenow={end}

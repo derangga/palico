@@ -11,6 +11,7 @@ import {
 	type SizeChoice,
 	startsOnQuality,
 } from "#/lib/video/compress-options.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type CompressResult =
 	| {
@@ -143,7 +144,7 @@ export function resolveMode(state: CompressState, file: File): ModeVerdict {
 		if (isUnderTarget(file.size, mb)) {
 			return {
 				kind: "invalid",
-				message: `This video is already under ${mb} MB.`,
+				message: m.videocomp_already_under({ mb }),
 			};
 		}
 	}

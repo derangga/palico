@@ -10,6 +10,8 @@
 
 import { Effect, Option } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { audioCutFormat } from "./audio.ts";
 import { type EngineHandle, getEngine } from "./engine.ts";
 import { AudioTrimError, type EngineNotLoadedError } from "./errors.ts";
@@ -41,10 +43,7 @@ const trimOne = (
 			new AudioTrimError({ fileName, message });
 
 		const format = yield* Option.match(audioCutFormat(input.file), {
-			onNone: () =>
-				Effect.fail(
-					error("Supported formats: MP3, M4A, WAV, OGG, Opus, FLAC."),
-				),
+			onNone: () => Effect.fail(error(m.error_audio_formats())),
 			onSome: (f) => Effect.succeed(f),
 		});
 
@@ -58,9 +57,8 @@ const trimOne = (
 			outputName,
 			args: buildTrimArgs(inputName, outputName, input.startSec, input.endSec),
 			outputMime: format.mime,
-			label: "Trim",
-			oomMessage:
-				"Your device ran out of memory. This file is too large to trim in the browser. Try a smaller file.",
+			label: m.job_stage_trim(),
+			oomMessage: m.error_oom_trim_audio(),
 			readError: error,
 			jobError: error,
 		});
@@ -86,7 +84,7 @@ export const trimAudio = (
 		if (isCancelled()) {
 			return yield* new AudioTrimError({
 				fileName: input.file.name,
-				message: "Cancelled.",
+				message: m.error_cancelled(),
 			});
 		}
 

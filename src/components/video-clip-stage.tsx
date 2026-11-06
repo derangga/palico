@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ClipControls } from "#/components/clip-controls.tsx";
 import { TrimTimeline } from "#/components/trim-timeline.tsx";
 import type { ClipPlayer } from "#/hooks/use-clip-player.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface VideoClipStageProps {
 	player: ClipPlayer;
@@ -34,7 +35,7 @@ export function VideoClipStage({
 			<video
 				ref={mediaRef}
 				src={objectUrl ?? undefined}
-				aria-label="Video preview"
+				aria-label={m.clip_video_preview()}
 				onLoadedMetadata={player.onLoadedMetadata}
 				onPlay={() => player.setPlaying(true)}
 				onPause={() => player.setPlaying(false)}

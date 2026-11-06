@@ -11,6 +11,8 @@
 
 import { Effect, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { type EngineHandle, getEngine } from "./engine.ts";
 import { type EngineNotLoadedError, VideoGifError } from "./errors.ts";
 import { runFfmpegJob } from "./ffmpeg-job.ts";
@@ -77,9 +79,8 @@ const gifOne = (
 			outputName,
 			args: buildGifArgs(inputName, outputName, input),
 			outputMime: "image/gif",
-			label: "GIF encoder",
-			oomMessage:
-				"Your device ran out of memory. Try a shorter clip or a smaller size.",
+			label: m.job_stage_gif_encoder(),
+			oomMessage: m.error_oom_gif(),
 			readError: error,
 			jobError: error,
 		});
@@ -105,7 +106,7 @@ export const makeGif = (
 		if (isCancelled()) {
 			return yield* new VideoGifError({
 				fileName: input.file.name,
-				message: "Cancelled.",
+				message: m.error_cancelled(),
 			});
 		}
 

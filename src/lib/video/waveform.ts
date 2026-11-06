@@ -7,6 +7,8 @@
 
 import { Effect, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { type DeviceClass, MB } from "./limits.ts";
 
 export class WaveformError extends Schema.TaggedError<WaveformError>()(
@@ -94,7 +96,7 @@ export const peaksToPath = (
 	return d;
 };
 
-const UNREADABLE = "This browser cannot draw a waveform for this file.";
+const unreadable = () => m.error_waveform_unsupported();
 
 // An offline context needs no audio device and no user gesture. A low sample
 // rate makes decodeAudioData resample while decoding, which bounds the memory.
@@ -102,7 +104,7 @@ const UNREADABLE = "This browser cannot draw a waveform for this file.";
 const openContext = (rate: number) =>
 	Effect.try({
 		try: () => new OfflineAudioContext(1, 1, rate),
-		catch: () => new WaveformError({ message: UNREADABLE }),
+		catch: () => new WaveformError({ message: unreadable() }),
 	});
 
 // Decode the file and reduce it to PEAK_BUCKETS peaks (0 to 1). Fails with
@@ -114,7 +116,7 @@ export const decodePeaks = (
 	Effect.gen(function* () {
 		if (file.size > maxBytes) {
 			return yield* new WaveformError({
-				message: "This file is too large to draw a waveform.",
+				message: m.error_waveform_too_large(),
 			});
 		}
 
@@ -124,7 +126,7 @@ export const decodePeaks = (
 
 		const buffer = yield* Effect.tryPromise({
 			try: async () => context.decodeAudioData(await file.arrayBuffer()),
-			catch: () => new WaveformError({ message: UNREADABLE }),
+			catch: () => new WaveformError({ message: unreadable() }),
 		});
 
 		const channels = Array.from({ length: buffer.numberOfChannels }, (_, c) =>
