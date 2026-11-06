@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Runs the checks CI runs before a pull request can merge (typecheck, lint with
+# format, tests) so a failure shows up here and not on the PR. The build job is
+# left out because it is slow and rarely the one that fails.
+#
+# `bun install` turns this on through the `prepare` script, which points
+# core.hooksPath at this folder. To push without the checks, use
+# `git push --no-verify`.
+
+set -u
+
+# Git feeds one line per ref being pushed: <local ref> <local sha> <remote ref> <remote sha>.
+# A push that only deletes branches or tags has nothing to check.
+zero=0000000000000000000000000000000000000000
+checks_needed=false
+
+while read -r _ local_sha _; do
+	if [ "$local_sha" != "$zero" ]; then
+		checks_needed=true
+	fi
+done
+
+if [ "$checks_needed" = false ]; then
+	exit 0
+fi
+
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+
+log=$(mktemp)
+trap 'rm -f "$log"' EXIT
+
+run_script() {
+	if command -v bun >/dev/null 2>&1; then
+		bun run --silent "$1"
+	else
+		npm run --silent "$1"
+	fi
+}
+
+for step in typecheck check test; do
+	echo "pre-push: bun run $step"
+
+	if run_script "$step" >"$log" 2>&1; then
+		continue
+	fi
+
+	if grep -q 'panicked at crates/oxc_allocator' "$log"; then
+		echo >&2
+		echo "pre-push: oxlint crashed while loading its JS plugins (allocator panic)." >&2
+		echo "On this machine the anti-slop rules cannot be checked, and CI does check them." >&2
+		echo "Run \`bun run check\` on a machine where it works, or push with --no-verify." >&2
+	else
+		echo >&2
+		tail -n 40 "$log" >&2
+		echo >&2
+		echo "pre-push: \`bun run $step\` failed, and CI runs the same step. Push stopped." >&2
+	fi
+
+	exit 1
+done
