@@ -15,7 +15,9 @@ import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
+import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-organize")({
 	head: () => seoHead("/pdf-organize"),
@@ -36,7 +38,7 @@ function PdfOrganizePage() {
 			),
 		);
 
-		const result = toastOnExit(exit, "Couldn't open this PDF.");
+		const result = toastOnExit(exit, m.pdf_open_failed());
 
 		if (Option.isNone(result)) {
 			dispatch({ type: "reset" });
@@ -61,7 +63,7 @@ function PdfOrganizePage() {
 		);
 
 		dispatch({ type: "saveEnd" });
-		const result = toastOnExit(exit, "Couldn't save this PDF.");
+		const result = toastOnExit(exit, m.pdforg_save_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(
@@ -81,7 +83,7 @@ function PdfOrganizePage() {
 	return (
 		<PageShell width="wide">
 			<PageHeader
-				title="Organize PDF"
+				title={m.tool_pdf_organize_label()}
 				actions={
 					state.file && (
 						<Button
@@ -91,22 +93,28 @@ function PdfOrganizePage() {
 							disabled={state.saving}
 						>
 							<RotateCcw />
-							Choose another
+							{m.common_choose_another()}
 						</Button>
 					)
 				}
 			>
-				Rotate, delete and reorder the pages of a PDF, entirely in your browser.
-				Up to {Math.round(MAX_PDF_BYTES / MB)} MB and {MAX_PDF_PAGES} pages.
+				{m.pdforg_description()}{" "}
+				{m.pdf_description_limits({
+					mb: Math.round(MAX_PDF_BYTES / MB),
+					pages: MAX_PDF_PAGES,
+				})}
 			</PageHeader>
 
 			{!state.file && (
 				<Dropzone
-					label="Drag & drop a PDF here, or"
-					actionLabel="Choose file"
-					hint={`PDF up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages`}
+					label={m.pdf_dropzone_label()}
+					actionLabel={m.common_choose_file()}
+					hint={m.pdf_hint({
+						mb: Math.round(MAX_PDF_BYTES / MB),
+						pages: MAX_PDF_PAGES,
+					})}
 					accept="application/pdf"
-					ariaLabel="Choose a PDF to organize"
+					ariaLabel={m.pdforg_dropzone_aria()}
 					onFiles={(files) => {
 						const picked = files?.[0];
 
@@ -126,10 +134,10 @@ function PdfOrganizePage() {
 							{state.rendering ? (
 								<span className="inline-flex items-center gap-1.5">
 									<Loader2 className="size-3.5 animate-spin" />
-									Rendering pages… {total}
+									{m.pdf_rendering({ count: total })}
 								</span>
 							) : (
-								`${kept} of ${total} ${total === 1 ? "page" : "pages"}`
+								m.pdforg_kept({ kept, total: pagesLabel(total) })
 							)}
 						</p>
 						<div className="flex items-center gap-2">
@@ -140,7 +148,7 @@ function PdfOrganizePage() {
 								disabled={busy || !changed}
 							>
 								<Undo2 />
-								Restore all
+								{m.pdforg_restore_all()}
 							</Button>
 							<Button onClick={save} disabled={busy || kept === 0}>
 								{state.saving ? (
@@ -148,14 +156,14 @@ function PdfOrganizePage() {
 								) : (
 									<Download />
 								)}
-								Save PDF
+								{m.pdforg_save()}
 							</Button>
 						</div>
 					</div>
 
 					{kept === 0 && !state.rendering ? (
 						<p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-							Every page is deleted. Use Restore all to bring them back.
+							{m.pdforg_all_deleted()}
 						</p>
 					) : (
 						<PageGrid pages={state.pages} disabled={busy} dispatch={dispatch} />

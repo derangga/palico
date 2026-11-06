@@ -23,6 +23,8 @@ import {
 	SynchronizedRef,
 } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { OfficeConvertError, OfficeEngineLoadError } from "./errors.ts";
 import {
 	type LoadPhase,
@@ -179,14 +181,14 @@ const fetchAssetWithProgress = (
 					message:
 						cause instanceof Error
 							? cause.message
-							: `Failed to download ${asset.key}.`,
+							: m.error_engine_download({ key: asset.key }),
 				}),
 		});
 
 		if (!res.ok || !res.body) {
 			return yield* new OfficeEngineLoadError({
 				stage: "downloading",
-				message: `Failed to download ${asset.key} (HTTP ${res.status}).`,
+				message: m.error_engine_http({ key: asset.key, status: res.status }),
 			});
 		}
 
@@ -219,7 +221,7 @@ const fetchAssetWithProgress = (
 					message:
 						cause instanceof Error
 							? cause.message
-							: `Failed to stream ${asset.key}.`,
+							: m.error_engine_stream({ key: asset.key }),
 				}),
 		});
 	});
@@ -236,7 +238,7 @@ const buildBlobUrl = (
 				message:
 					cause instanceof Error
 						? cause.message
-						: `Failed to read ${asset.key} blob.`,
+						: m.error_engine_blob({ key: asset.key }),
 			}),
 	}).pipe(Effect.map((blob) => URL.createObjectURL(blob)));
 
@@ -324,7 +326,7 @@ const prepareAssets = (
 			if (!r) {
 				return yield* new OfficeEngineLoadError({
 					stage: "preparing",
-					message: `Engine asset "${asset.key}" is missing after download.`,
+					message: m.error_engine_missing({ key: asset.key }),
 				});
 			}
 
@@ -365,9 +367,7 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 				new OfficeEngineLoadError({
 					stage: "preparing",
 					message:
-						cause instanceof Error
-							? cause.message
-							: "Failed to load the office runtime.",
+						cause instanceof Error ? cause.message : m.error_office_runtime(),
 				}),
 		});
 
@@ -393,7 +393,7 @@ const bootEngine: Effect.Effect<EngineHandle, OfficeEngineLoadError> =
 									Effect.fail(
 										new OfficeEngineLoadError({
 											stage: "preparing",
-											message: "Emscripten FS was not available after boot.",
+											message: m.error_office_fs(),
 										}),
 									),
 								);
@@ -451,7 +451,7 @@ export const loadEngine = (
 				Effect.fail(
 					new OfficeEngineLoadError({
 						stage: "preparing",
-						message: "Engine failed to load.",
+						message: m.error_office_engine_failed(),
 					}),
 				),
 			onSome: Effect.succeed,
@@ -483,7 +483,7 @@ export const convertToPdf = (params: {
 					Effect.fail(
 						new OfficeConvertError({
 							fileName: params.fileName,
-							message: "Engine is not loaded.",
+							message: m.error_office_engine_not_loaded(),
 						}),
 					),
 				onSome: (e) => Effect.succeed(e),
@@ -503,9 +503,7 @@ export const convertToPdf = (params: {
 					new OfficeConvertError({
 						fileName: params.fileName,
 						message:
-							cause instanceof Error
-								? cause.message
-								: "Failed to stage input file.",
+							cause instanceof Error ? cause.message : m.error_office_stage(),
 					}),
 			});
 
@@ -538,7 +536,7 @@ export const convertToPdf = (params: {
 						message:
 							cause instanceof Error
 								? cause.message
-								: "Failed to read converted PDF.",
+								: m.error_office_read_converted(),
 					}),
 			});
 

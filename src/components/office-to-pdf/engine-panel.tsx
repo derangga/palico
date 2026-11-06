@@ -10,6 +10,7 @@ import {
 	type LoadPhase,
 	OFFICE_ENGINE_SIZE_LABEL,
 } from "#/lib/file/office-types.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface EnginePanelProps {
 	phase: LoadPhase;
@@ -23,12 +24,14 @@ export function EnginePanel({ phase, onStart }: EnginePanelProps) {
 				<div className="flex items-start gap-3">
 					<CircleAlert className="size-5 shrink-0 text-destructive" />
 					<div className="flex-1">
-						<p className="text-sm font-medium">Could not load the engine</p>
+						<p className="text-sm font-medium">
+							{m.video_engine_error_title()}
+						</p>
 						<p className="mt-1 text-sm text-muted-foreground">
 							{phase.message}
 						</p>
 						<Button className="mt-4" onClick={onStart}>
-							Try again
+							{m.common_try_again()}
 						</Button>
 					</div>
 				</div>
@@ -42,18 +45,13 @@ export function EnginePanel({ phase, onStart }: EnginePanelProps) {
 		return (
 			<EngineConsentCard
 				icon={FileText}
-				title="Office conversion is disabled"
-				body={`The ${OFFICE_ENGINE_SIZE_LABEL} engine download is required to use this tool.`}
-				enableLabel="Enable office conversion"
-				dialogTitle={`Download the office engine (${OFFICE_ENGINE_SIZE_LABEL})`}
-				dialogDescription={
-					<>
-						Conversion runs entirely on your device using LibreOffice compiled
-						to WebAssembly, a one-time {OFFICE_ENGINE_SIZE_LABEL} download. It
-						is cached after the first load, so return visits are instant.
-						Nothing leaves your browser.
-					</>
-				}
+				title={m.office_consent_title()}
+				body={m.video_engine_consent_body({ size: OFFICE_ENGINE_SIZE_LABEL })}
+				enableLabel={m.office_enable()}
+				dialogTitle={m.office_dialog_title({ size: OFFICE_ENGINE_SIZE_LABEL })}
+				dialogDescription={m.office_dialog_description({
+					size: OFFICE_ENGINE_SIZE_LABEL,
+				})}
 				onConfirm={onStart}
 			/>
 		);
@@ -63,20 +61,20 @@ export function EnginePanel({ phase, onStart }: EnginePanelProps) {
 	const { status, percent, detail } = Match.value(phase).pipe(
 		Match.discriminators("kind")({
 			downloading: ({ percent }) => ({
-				status: `Downloading engine ${percent}%`,
+				status: m.video_engine_downloading({ percent }),
 				percent,
-				detail: "Fetching the engine. It will be cached for next time.",
+				detail: m.video_engine_downloading_hint(),
 			}),
 			caching: () => ({
-				status: "Caching engine",
+				status: m.video_engine_caching(),
 				percent: 100,
-				detail: "Saving the engine to your browser cache.",
+				detail: m.video_engine_caching_hint(),
 			}),
 		}),
 		Match.orElse(() => ({
-			status: "Preparing tools",
+			status: m.video_engine_preparing(),
 			percent: 100,
-			detail: "Initializing LibreOffice (1–3s).",
+			detail: m.office_preparing_hint(),
 		})),
 	);
 

@@ -4,6 +4,7 @@ import { Effect } from "effect";
 
 import { FileTooLargeError } from "#/lib/image/errors.ts";
 import { MAX_FILE_BYTES } from "#/lib/image/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 import type { QrReading } from "./decode.ts";
 import { QrImageError, QrNotFoundError, QrWorkerError } from "./errors.ts";
@@ -42,7 +43,10 @@ export const readQrFromFile = (
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+					}),
 				}),
 			);
 		}
@@ -52,7 +56,7 @@ export const readQrFromFile = (
 			catch: () =>
 				new QrImageError({
 					fileName: file.name,
-					message: "Couldn't read this file.",
+					message: m.qr_err_read_file(),
 				}),
 		});
 
@@ -69,8 +73,7 @@ export const readQrFromFile = (
 							resume(
 								Effect.fail(
 									new QrNotFoundError({
-										message:
-											"No QR code found. Try a sharper image, or one where the whole code is in view.",
+										message: m.qr_err_not_found(),
 									}),
 								),
 							);
@@ -79,7 +82,10 @@ export const readQrFromFile = (
 								Effect.fail(
 									new QrImageError({
 										fileName: file.name,
-										message: response.message,
+										message:
+											response.reason === "open"
+												? m.qr_err_open_image()
+												: (response.detail ?? m.qr_err_read_image()),
 									}),
 								),
 							);
@@ -90,8 +96,7 @@ export const readQrFromFile = (
 						resume(
 							Effect.fail(
 								new QrWorkerError({
-									message:
-										event.message || "The QR reader stopped unexpectedly.",
+									message: event.message || m.qr_err_worker_stopped(),
 								}),
 							),
 						);
@@ -162,14 +167,23 @@ export const openFrameReader = (): Effect.Effect<FrameReader, QrWorkerError> =>
 				} else if (response.reason === "not-found") {
 					resume(Effect.succeed(undefined));
 				} else {
-					resume(Effect.fail(new QrWorkerError({ message: response.message })));
+					resume(
+						Effect.fail(
+							new QrWorkerError({
+								message:
+									response.reason === "open"
+										? m.qr_err_open_image()
+										: (response.detail ?? m.qr_err_read_frame()),
+							}),
+						),
+					);
 				}
 			};
 
 			worker.onerror = (event) => {
 				failAll(
 					new QrWorkerError({
-						message: event.message || "The QR reader stopped unexpectedly.",
+						message: event.message || m.qr_err_worker_stopped(),
 					}),
 				);
 			};
@@ -177,7 +191,7 @@ export const openFrameReader = (): Effect.Effect<FrameReader, QrWorkerError> =>
 			worker.onmessageerror = () => {
 				failAll(
 					new QrWorkerError({
-						message: "The QR reader sent back a bad message.",
+						message: m.qr_err_worker_bad_message(),
 					}),
 				);
 			};
@@ -226,6 +240,6 @@ export const openFrameReader = (): Effect.Effect<FrameReader, QrWorkerError> =>
 		},
 		catch: () =>
 			new QrWorkerError({
-				message: "Couldn't start the QR reader in this browser.",
+				message: m.qr_err_worker_start(),
 			}),
 	});

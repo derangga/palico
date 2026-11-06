@@ -7,6 +7,7 @@ import {
 
 import { type Advice, SCAN_TIPS } from "#/lib/qr/guidance.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const LOOK: Record<Advice["severity"], string> = {
 	error: "bg-destructive/15",
@@ -86,7 +87,7 @@ export function ScanTips() {
 					aria-hidden
 					className="size-4 text-muted-foreground transition-transform duration-150 ease-out group-open:rotate-90 motion-reduce:transition-none"
 				/>
-				Making it scannable
+				{m.qr_scan_tips()}
 			</summary>
 			<ol className="flex flex-col gap-3 px-1 pt-1 pb-2 text-sm">
 				{SCAN_TIPS.map((tip, index) => (

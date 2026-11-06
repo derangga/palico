@@ -20,7 +20,9 @@ import {
 	MB,
 	OFFICE_ACCEPT,
 } from "#/lib/file/office-types.ts";
+import { filesLabel } from "#/lib/i18n/counts.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { m } from "#/paraglide/messages.js";
 
 export function OfficeShell() {
 	const inputId = useId();
@@ -45,13 +47,16 @@ export function OfficeShell() {
 			const check = checkOfficeFile({ name: file.name, size: file.size });
 
 			if (check.kind === "unsupported") {
-				toast.error(`"${file.name}" isn't a supported Office document.`);
+				toast.error(m.office_unsupported_toast({ name: file.name }));
 				continue;
 			}
 
 			if (check.kind === "too-large") {
 				toast.error(
-					`"${file.name}" is over the ${Math.round(MAX_OFFICE_BYTES / MB)} MB limit.`,
+					m.office_over_limit({
+						name: file.name,
+						limit: Math.round(MAX_OFFICE_BYTES / MB),
+					}),
 				);
 				continue;
 			}
@@ -62,7 +67,7 @@ export function OfficeShell() {
 		const room = Math.max(MAX_BATCH_FILES - items.length, 0);
 
 		if (accepted.length > room) {
-			toast.error(`You can convert up to ${MAX_BATCH_FILES} files at a time.`);
+			toast.error(m.error_office_too_many({ limit: MAX_BATCH_FILES }));
 		}
 
 		const taken = accepted.slice(0, room);
@@ -153,7 +158,7 @@ export function OfficeShell() {
 							? {
 									...it,
 									status: "error",
-									message: failure?.message ?? "Conversion failed.",
+									message: failure?.message ?? m.office_conversion_failed(),
 								}
 							: it,
 					),
@@ -166,12 +171,18 @@ export function OfficeShell() {
 		setConverting(false);
 
 		if (ok > 0) {
-			toast.success(`Converted ${ok} file${ok === 1 ? "" : "s"} to PDF.`);
+			toast.success(
+				ok === 1
+					? m.office_success_one({ count: ok })
+					: m.office_success_other({ count: ok }),
+			);
 		}
 
 		if (failed > 0) {
 			toast.error(
-				`${failed} file${failed === 1 ? "" : "s"} couldn't be converted.`,
+				failed === 1
+					? m.office_failed_one({ count: failed })
+					: m.office_failed_other({ count: failed }),
 			);
 		}
 	}
@@ -190,22 +201,22 @@ export function OfficeShell() {
 			),
 		);
 
-		const result = toastOnExit(exit, "Could not build the zip file.");
+		const result = toastOnExit(exit, m.common_zip_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, "converted-pdfs.zip");
-		toast.success("Downloaded all PDFs as a zip.");
+		toast.success(m.office_zip_done());
 	}
 
 	const hasItems = items.length > 0;
 
 	return (
 		<PageShell>
-			<PageHeader title="Word to PDF">
-				Convert Word (.docx, .doc), OpenDocument (.odt), and RTF files to PDF,
-				entirely in your browser. Each file up to{" "}
-				{Math.round(MAX_OFFICE_BYTES / MB)} MB; up to {MAX_BATCH_FILES} at a
-				time.
+			<PageHeader title={m.tool_office_to_pdf_label()}>
+				{m.office_description({
+					mb: Math.round(MAX_OFFICE_BYTES / MB),
+					max: MAX_BATCH_FILES,
+				})}
 			</PageHeader>
 
 			{/* The dropzone wraps a real file input. */}
@@ -218,16 +229,14 @@ export function OfficeShell() {
 				className="rounded-xl border border-dashed bg-card p-8 text-center"
 			>
 				<UploadCloud className="mx-auto size-8 text-muted-foreground" />
-				<p className="mt-3 text-sm font-medium">
-					Drag &amp; drop documents here, or
-				</p>
+				<p className="mt-3 text-sm font-medium">{m.office_dropzone_label()}</p>
 				<Button
 					variant="outline"
 					size="sm"
 					className="mt-3"
 					onClick={() => fileInputRef.current?.click()}
 				>
-					Choose files
+					{m.common_choose_files()}
 				</Button>
 				<input
 					id={inputId}
@@ -235,7 +244,7 @@ export function OfficeShell() {
 					type="file"
 					accept={OFFICE_ACCEPT}
 					multiple
-					aria-label="Choose office documents to convert"
+					aria-label={m.office_dropzone_aria()}
 					className="hidden"
 					onChange={(e) => {
 						addFiles(e.target.files);
@@ -249,12 +258,13 @@ export function OfficeShell() {
 					{/* Actions */}
 					<div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
 						<p className="text-sm text-muted-foreground">
-							{items.length} {items.length === 1 ? "file" : "files"}
-							{doneItems.length > 0 && ` · ${doneItems.length} converted`}
+							{filesLabel(items.length)}
+							{doneItems.length > 0 &&
+								` · ${m.office_converted_count({ count: doneItems.length })}`}
 						</p>
 						<div className="ml-auto flex gap-2">
 							<Button variant="ghost" onClick={reset} disabled={converting}>
-								Clear
+								{m.common_clear()}
 							</Button>
 							{doneItems.length > 1 && (
 								<Button
@@ -263,15 +273,18 @@ export function OfficeShell() {
 									disabled={converting}
 								>
 									<FileArchive />
-									Download all (.zip)
+									{m.common_download_all_zip()}
 								</Button>
 							)}
 							{convertable.length > 0 && (
 								<Button onClick={runConvert} disabled={converting}>
 									{converting ? <Loader2 className="animate-spin" /> : null}
 									{converting
-										? `Converting ${batchDone} / ${batchTotal}`
-										: `Convert ${convertable.length}`}
+										? m.converter_converting({
+												done: batchDone,
+												total: batchTotal,
+											})
+										: m.converter_convert_count({ count: convertable.length })}
 								</Button>
 							)}
 						</div>

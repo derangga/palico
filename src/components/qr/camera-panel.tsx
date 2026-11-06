@@ -3,6 +3,7 @@ import { type RefObject, useEffect, useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import type { CameraStatus } from "#/hooks/use-qr-camera.ts";
+import { m } from "#/paraglide/messages.js";
 
 /**
  * The live scanner. The <video> stays mounted from "starting" on so the hook
@@ -44,7 +45,7 @@ export function CameraPanel({
 	if (status === "error") {
 		return (
 			<section
-				aria-label="Camera"
+				aria-label={m.qrcam_aria_error()}
 				role="alert"
 				className="flex flex-col items-center gap-4 rounded-xl border bg-card p-8 text-center shadow-sm"
 			>
@@ -52,18 +53,18 @@ export function CameraPanel({
 					<CameraOff aria-hidden className="size-6" />
 				</div>
 				<div className="max-w-sm">
-					<h2 className="font-semibold">Couldn't use the camera</h2>
+					<h2 className="font-semibold">{m.qrcam_error_title()}</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						{message ?? "Something went wrong while opening the camera."}
+						{message ?? m.qrcam_error_default()}
 					</p>
 				</div>
 				<div className="flex flex-wrap justify-center gap-2">
 					<Button ref={primaryRef} onClick={onRetry}>
 						<Camera />
-						Try again
+						{m.common_try_again()}
 					</Button>
 					<Button variant="outline" onClick={onChooseImage}>
-						Choose an image instead
+						{m.qrcam_choose_image()}
 					</Button>
 				</div>
 			</section>
@@ -74,7 +75,7 @@ export function CameraPanel({
 
 	return (
 		<section
-			aria-label="Camera scanner"
+			aria-label={m.qrcam_scanner_aria()}
 			className="animate-pop-in overflow-hidden rounded-xl border bg-card shadow-sm"
 		>
 			<div className="relative bg-secondary">
@@ -82,7 +83,7 @@ export function CameraPanel({
 					ref={videoRef}
 					playsInline
 					muted
-					aria-label="Camera preview"
+					aria-label={m.qrcam_preview_aria()}
 					className="aspect-[4/3] max-h-[70vh] w-full object-cover"
 				/>
 
@@ -93,8 +94,7 @@ export function CameraPanel({
 					>
 						<Loader2 className="size-6 animate-spin text-muted-foreground" />
 						<span className="max-w-xs text-xs text-muted-foreground">
-							Your browser may ask for permission. The video stays on your
-							device.
+							{m.qrcam_permission()}
 						</span>
 					</div>
 				) : (
@@ -108,13 +108,11 @@ export function CameraPanel({
 
 			<div className="flex items-center justify-between gap-3 px-4 py-3">
 				<output className="text-sm">
-					{starting
-						? "Starting the camera…"
-						: "Point the camera at a QR code. It reads by itself."}
+					{starting ? m.qrcam_starting() : m.qrcam_point()}
 				</output>
 				<Button ref={primaryRef} variant="secondary" size="sm" onClick={onStop}>
 					<X />
-					{starting ? "Cancel" : "Stop"}
+					{starting ? m.common_cancel() : m.qrcam_stop()}
 				</Button>
 			</div>
 		</section>

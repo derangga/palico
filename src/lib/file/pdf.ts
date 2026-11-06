@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	InvalidPdfError,
 	PdfExtractError,
@@ -34,9 +36,10 @@ const validateSize = (file: File): Effect.Effect<void, PdfTooLargeError> =>
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_PDF_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(
-						MAX_PDF_BYTES / MB,
-					)} MB limit.`,
+					message: m.error_pdf_too_large({
+						name: file.name,
+						limit: Math.round(MAX_PDF_BYTES / MB),
+					}),
 				}),
 			)
 		: Effect.void;
@@ -62,7 +65,7 @@ export const loadPdf = Effect.fn("Pdf.loadPdf")(function* (
 		catch: (err) =>
 			new InvalidPdfError({
 				fileName: params.file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 
@@ -94,7 +97,7 @@ export const extractPages = Effect.fn("Pdf.extractPages")(function* (params: {
 		catch: (err) =>
 			new PdfExtractError({
 				fileName: params.file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 
@@ -159,7 +162,7 @@ export const splitPdf = Effect.fn("Pdf.splitPdf")(function* (params: {
 		catch: (err) =>
 			new PdfSplitError({
 				fileName: params.file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 
@@ -186,7 +189,7 @@ export const mergePdfs = Effect.fn("Pdf.mergePdfs")(function* (params: {
 			catch: (err) =>
 				new PdfMergeError({
 					fileName: file.name,
-					message: err instanceof Error ? err.message : "Could not read file.",
+					message: err instanceof Error ? err.message : m.error_read_file(),
 				}),
 		}),
 	);
@@ -216,7 +219,7 @@ export const pdfToImages = Effect.fn("Pdf.pdfToImages")(function* (
 		catch: (err) =>
 			new InvalidPdfError({
 				fileName: params.file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 

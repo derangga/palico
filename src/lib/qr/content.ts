@@ -1,3 +1,5 @@
+import { m } from "#/paraglide/messages.js";
+
 // Works out what a decoded code holds, so the reader can offer the right
 // action: open a link, copy a Wi-Fi password, or just copy the text.
 
@@ -66,7 +68,9 @@ export function parseWifi(text: string): WifiDetails | undefined {
 		ssid,
 		password: values.get("P") ?? "",
 		security:
-			security.toLowerCase() === "nopass" ? "None" : security.toUpperCase(),
+			security.toLowerCase() === "nopass"
+				? m.qr_wifi_none()
+				: security.toUpperCase(),
 		hidden: values.get("H")?.toLowerCase() === "true",
 	};
 }
@@ -87,7 +91,7 @@ export function describeContent(text: string): Content {
 	const trimmed = text.trim();
 	const wifi = parseWifi(trimmed);
 
-	if (wifi) return { kind: "wifi", label: "Wi-Fi network", wifi };
+	if (wifi) return { kind: "wifi", label: m.qr_content_wifi(), wifi };
 
 	const url = parseUrl(trimmed);
 
@@ -99,23 +103,23 @@ export function describeContent(text: string): Content {
 
 			return {
 				kind: "link",
-				label: "Link",
+				label: m.qr_content_link(),
 				href: url.href,
 				host: url.hostname,
 				caution: lookalike
-					? "This address uses unusual characters that can imitate a well-known site. Check it carefully before you open it."
+					? m.qr_caution_lookalike()
 					: url.protocol === "http:"
-						? "This link isn't encrypted (http). Only open it if you trust where the code came from."
+						? m.qr_caution_http()
 						: undefined,
 			};
 		}
 
 		if (url.protocol === "mailto:")
-			return { kind: "email", label: "Email address" };
+			return { kind: "email", label: m.qr_content_email() };
 
 		if (url.protocol === "tel:")
-			return { kind: "phone", label: "Phone number" };
+			return { kind: "phone", label: m.qr_content_phone() };
 	}
 
-	return { kind: "text", label: "Text" };
+	return { kind: "text", label: m.qr_content_text() };
 }

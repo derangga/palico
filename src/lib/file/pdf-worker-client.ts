@@ -1,6 +1,7 @@
 import { Data, Effect, Schema } from "effect";
 
 import type { MetadataReport } from "#/lib/metadata/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 import {
 	EncryptedPdfError,
@@ -115,7 +116,9 @@ const runWorkerJob = <A>(
 									: Effect.fail(
 											new PdfWorkerError({
 												fileName,
-												message: `Unexpected PDF worker response: "${res.type}".`,
+												message: m.error_pdf_worker_unexpected({
+													type: res.type,
+												}),
 											}),
 										),
 							),
@@ -127,7 +130,7 @@ const runWorkerJob = <A>(
 						Effect.fail(
 							new PdfWorkerError({
 								fileName,
-								message: event.message || "PDF worker crashed.",
+								message: event.message || m.error_pdf_worker_crashed(),
 							}),
 						),
 					);
@@ -342,19 +345,37 @@ const toTypedError = (
 ): PdfLoadError => {
 	switch (res.reason) {
 		case "encrypted":
-			return new EncryptedPdfError({ fileName, message: res.message });
+			return new EncryptedPdfError({
+				fileName,
+				message: m.error_pdf_encrypted(),
+			});
 		case "too-many-pages":
 			return new PdfTooManyPagesError({
 				fileName,
 				pages: res.pageCount ?? 0,
 				limit: MAX_PDF_PAGES,
-				message: res.message,
+				message: m.error_pdf_too_many({
+					pages: res.pageCount ?? 0,
+					limit: MAX_PDF_PAGES,
+				}),
 			});
 		case "too-large":
-			return new PdfRasterBudgetError({ fileName, message: res.message });
+			return new PdfRasterBudgetError({
+				fileName,
+				message:
+					(res.dpi ?? 0) > 72
+						? m.error_pdf_too_big_dpi({ dpi: res.dpi ?? 0 })
+						: m.error_pdf_too_big(),
+			});
 		case "worker":
-			return new PdfWorkerError({ fileName, message: res.message });
+			return new PdfWorkerError({
+				fileName,
+				message: res.detail ?? m.error_pdf_worker_failed(),
+			});
 		default:
-			return new InvalidPdfError({ fileName, message: res.message });
+			return new InvalidPdfError({
+				fileName,
+				message: res.detail ?? m.error_pdf_invalid(),
+			});
 	}
 };

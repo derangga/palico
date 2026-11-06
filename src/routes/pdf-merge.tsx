@@ -12,7 +12,9 @@ import { Button } from "#/components/ui/button.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
+import { filesLabel, pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-merge")({
 	head: () => seoHead("/pdf-merge"),
@@ -47,7 +49,10 @@ function PdfMergePage() {
 			loadPdf({ id, file, thumbnailLimit: 1 }, () => {}),
 		);
 
-		const result = toastOnExit(exit, `Couldn't open "${file.name}".`);
+		const result = toastOnExit(
+			exit,
+			m.pdf_open_failed_named({ name: file.name }),
+		);
 
 		if (Option.isNone(result)) {
 			setItems((prev) => prev.filter((item) => item.id !== id));
@@ -72,7 +77,7 @@ function PdfMergePage() {
 
 		for (const file of Array.from(fileList)) {
 			if (file.type !== "application/pdf") {
-				toast.error(`"${file.name}" is not a PDF.`);
+				toast.error(m.pdfmerge_not_a_pdf({ name: file.name }));
 				continue;
 			}
 
@@ -82,7 +87,7 @@ function PdfMergePage() {
 		const room = Math.max(MAX_MERGE_FILES - items.length, 0);
 
 		if (accepted.length > room) {
-			toast.error(`You can merge up to ${MAX_MERGE_FILES} PDFs at a time.`);
+			toast.error(m.pdfmerge_too_many({ max: MAX_MERGE_FILES }));
 		}
 
 		const taken = accepted.slice(0, room);
@@ -135,7 +140,7 @@ function PdfMergePage() {
 
 		setMerging(false);
 
-		const result = toastOnExit(exit, "Couldn't merge these PDFs.");
+		const result = toastOnExit(exit, m.pdfmerge_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, "merged.pdf");
@@ -149,28 +154,33 @@ function PdfMergePage() {
 	return (
 		<PageShell width="wide">
 			<PageHeader
-				title="Merge PDFs"
+				title={m.tool_pdf_merge_label()}
 				actions={
 					hasItems && (
 						<Button variant="outline" size="sm" onClick={reset}>
 							<RotateCcw />
-							Start over
+							{m.common_start_over()}
 						</Button>
 					)
 				}
 			>
-				Combine several PDFs into one, entirely in your browser. Drag the cards
-				to set the order. Each file up to {Math.round(MAX_PDF_BYTES / MB)} MB
-				and {MAX_PDF_PAGES} pages.
+				{m.pdfmerge_description({
+					mb: Math.round(MAX_PDF_BYTES / MB),
+					pages: MAX_PDF_PAGES,
+				})}
 			</PageHeader>
 
 			<Dropzone
-				label="Drag & drop PDFs here, or"
-				actionLabel="Choose files"
-				hint={`PDFs up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages each, ${MAX_MERGE_FILES} files at a time`}
+				label={m.pdfmerge_dropzone_label()}
+				actionLabel={m.common_choose_files()}
+				hint={m.pdfmerge_hint({
+					mb: Math.round(MAX_PDF_BYTES / MB),
+					pages: MAX_PDF_PAGES,
+					max: MAX_MERGE_FILES,
+				})}
 				accept="application/pdf"
 				multiple
-				ariaLabel="Choose PDFs to merge"
+				ariaLabel={m.pdfmerge_dropzone_aria()}
 				onFiles={addFiles}
 			/>
 
@@ -178,18 +188,18 @@ function PdfMergePage() {
 				<div className="mt-6">
 					<div className="mb-3 flex flex-wrap items-center justify-between gap-3">
 						<p className="text-sm text-muted-foreground">
-							{items.length} {items.length === 1 ? "file" : "files"}
+							{filesLabel(items.length)}
 							{allReady && (
 								<>
 									{" · "}
-									{totalPages} {totalPages === 1 ? "page" : "pages"} total
+									{m.pdfmerge_total({ pages: pagesLabel(totalPages) })}
 								</>
 							)}
-							{items.length < 2 && " · add at least 2 to merge"}
+							{items.length < 2 && ` · ${m.pdfmerge_add_two()}`}
 						</p>
 						<Button onClick={runMerge} disabled={!canMerge}>
 							{merging ? <Loader2 className="animate-spin" /> : <Download />}
-							Merge & download
+							{m.pdfmerge_action()}
 						</Button>
 					</div>
 

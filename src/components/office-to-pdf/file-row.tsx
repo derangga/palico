@@ -9,6 +9,7 @@ import { formatBytes } from "#/components/office-to-pdf/utils.ts";
 import { StatusPill } from "#/components/status-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export function FileRow({
 	item,
@@ -47,7 +48,7 @@ export function FileRow({
 			{item.status === "done" && item.outBlob && (
 				<Button variant="ghost" size="sm" onClick={onSave}>
 					<Download />
-					Save
+					{m.common_save()}
 				</Button>
 			)}
 			{!converting && (
@@ -55,7 +56,7 @@ export function FileRow({
 					type="button"
 					onClick={onRemove}
 					className="text-muted-foreground hover:text-foreground"
-					aria-label={`Remove ${item.file.name}`}
+					aria-label={m.common_remove_file({ name: item.file.name })}
 				>
 					<X className="size-4" />
 				</button>

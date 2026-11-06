@@ -25,7 +25,9 @@ import {
 	loadPdf,
 	splitPdf,
 } from "#/lib/file/pdf.ts";
+import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-split")({
 	head: () => seoHead("/pdf-split"),
@@ -59,7 +61,7 @@ function PdfSplitPage() {
 			),
 		);
 
-		const result = toastOnExit(exit, "Couldn't open this PDF.");
+		const result = toastOnExit(exit, m.pdf_open_failed());
 
 		if (Option.isNone(result)) {
 			dispatch({ type: "reset" });
@@ -87,7 +89,7 @@ function PdfSplitPage() {
 
 		dispatch({ type: "workEnd" });
 
-		const result = toastOnExit(exit, "Couldn't extract those pages.");
+		const result = toastOnExit(exit, m.pdfsplit_extract_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, `${baseName(state.file.name)}_extracted.pdf`);
@@ -103,7 +105,7 @@ function PdfSplitPage() {
 
 		dispatch({ type: "workEnd" });
 
-		const result = toastOnExit(exit, "Couldn't split this PDF.");
+		const result = toastOnExit(exit, m.pdfsplit_split_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(result.value, `${baseName(state.file.name)}_split.zip`);
@@ -116,7 +118,7 @@ function PdfSplitPage() {
 	return (
 		<PageShell width="wide">
 			<PageHeader
-				title="Split PDF"
+				title={m.tool_pdf_split_label()}
 				actions={
 					hasDocument && (
 						<Button
@@ -125,22 +127,28 @@ function PdfSplitPage() {
 							onClick={() => dispatch({ type: "reset" })}
 						>
 							<RotateCcw />
-							Choose another
+							{m.common_choose_another()}
 						</Button>
 					)
 				}
 			>
-				Open a PDF to see every page, then split it, entirely in your browser.
-				Up to {Math.round(MAX_PDF_BYTES / MB)} MB and {MAX_PDF_PAGES} pages.
+				{m.pdfsplit_description()}{" "}
+				{m.pdf_description_limits({
+					mb: Math.round(MAX_PDF_BYTES / MB),
+					pages: MAX_PDF_PAGES,
+				})}
 			</PageHeader>
 
 			{!hasDocument && (
 				<Dropzone
-					label="Drag & drop a PDF here, or"
-					actionLabel="Choose file"
-					hint={`PDF up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages`}
+					label={m.pdf_dropzone_label()}
+					actionLabel={m.common_choose_file()}
+					hint={m.pdf_hint({
+						mb: Math.round(MAX_PDF_BYTES / MB),
+						pages: MAX_PDF_PAGES,
+					})}
 					accept="application/pdf"
-					ariaLabel="Choose a PDF to split"
+					ariaLabel={m.pdfsplit_dropzone_aria()}
 					onFiles={handleFiles}
 				/>
 			)}
@@ -154,12 +162,10 @@ function PdfSplitPage() {
 						{state.rendering ? (
 							<span className="inline-flex items-center gap-1.5">
 								<Loader2 className="size-3.5 animate-spin" />
-								Rendering pages… {state.thumbnails.length}
+								{m.pdf_rendering({ count: state.thumbnails.length })}
 							</span>
 						) : (
-							<span>
-								{state.pageCount} {state.pageCount === 1 ? "page" : "pages"}
-							</span>
+							<span>{pagesLabel(state.pageCount)}</span>
 						)}
 					</div>
 

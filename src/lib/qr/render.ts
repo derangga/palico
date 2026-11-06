@@ -7,6 +7,7 @@ import {
 	ClipboardWriteError,
 	FileDownloadError,
 } from "#/lib/markdown/errors.ts";
+import { m } from "#/paraglide/messages.js";
 
 import type { QrCode } from "./encode.ts";
 import { QrRenderError } from "./errors.ts";
@@ -107,8 +108,8 @@ export const toPng = (
 			new QrRenderError({
 				message:
 					cause instanceof Error
-						? `Couldn't draw the PNG. ${cause.message}`
-						: "Couldn't draw the PNG.",
+						? m.qr_err_draw_png_detail({ detail: cause.message })
+						: m.qr_err_draw_png(),
 			}),
 	});
 
@@ -132,8 +133,7 @@ export const saveBlob = (
 		},
 		catch: (cause) =>
 			new FileDownloadError({
-				message:
-					cause instanceof Error ? cause.message : "Couldn't save the file.",
+				message: cause instanceof Error ? cause.message : m.qr_err_save_file(),
 			}),
 	});
 
@@ -143,7 +143,6 @@ export const copyPng = (blob: Blob): Effect.Effect<void, ClipboardWriteError> =>
 			navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]),
 		catch: () =>
 			new ClipboardWriteError({
-				message:
-					"Couldn't copy the image. Your browser may block it. Save the PNG instead.",
+				message: m.qr_err_copy_image(),
 			}),
 	});

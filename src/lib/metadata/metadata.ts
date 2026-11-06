@@ -8,7 +8,9 @@ import {
 } from "#/lib/file/pdf-worker-client.ts";
 import { FileTooLargeError } from "#/lib/image/errors.ts";
 import { MAX_FILE_BYTES } from "#/lib/image/types.ts";
+import { m } from "#/paraglide/messages.js";
 
+import { fieldLabel } from "./display.ts";
 import {
 	MetadataParseError,
 	MetadataStillPresentError,
@@ -58,7 +60,10 @@ const checkFile = (
 						fileName: file.name,
 						size: file.size,
 						limit: MAX_PDF_BYTES,
-						message: `"${file.name}" is larger than the ${MAX_PDF_BYTES / MB} MB limit.`,
+						message: m.error_pdf_too_large({
+							name: file.name,
+							limit: MAX_PDF_BYTES / MB,
+						}),
 					}),
 				)
 			: Effect.succeed("pdf");
@@ -69,7 +74,7 @@ const checkFile = (
 			new UnsupportedFormatError({
 				fileName: file.name,
 				mime: file.type || "unknown",
-				message: `"${file.name}" is not a JPEG, PNG, WebP or PDF file.`,
+				message: m.error_metadata_unsupported({ name: file.name }),
 			}),
 		);
 	}
@@ -80,7 +85,10 @@ const checkFile = (
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${MAX_FILE_BYTES / MB} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: MAX_FILE_BYTES / MB,
+					}),
 				}),
 			)
 		: Effect.succeed("image");
@@ -92,7 +100,7 @@ const readBytes = (file: File) =>
 		catch: (err) =>
 			new MetadataParseError({
 				fileName: file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 
@@ -137,9 +145,9 @@ export const stripFile = Effect.fn("Metadata.stripFile")(function* (
 		return yield* new MetadataStillPresentError({
 			fileName: file.name,
 			fields: after.fields.map((f) => f.label),
-			message: `Some data could not be removed: ${after.fields
-				.map((f) => f.label)
-				.join(", ")}.`,
+			message: m.error_metadata_still({
+				fields: after.fields.map((f) => fieldLabel(f.label)).join(", "),
+			}),
 		});
 	}
 

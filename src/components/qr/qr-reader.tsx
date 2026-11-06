@@ -14,6 +14,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { useQrCamera } from "#/hooks/use-qr-camera.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { readQrFromFile } from "#/lib/qr/worker-client.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface ReaderState {
 	readonly view: ResultView;
@@ -53,7 +54,7 @@ export function QrReader() {
 			setState({
 				view: {
 					phase: "failed",
-					message: `"${file.name}" isn't an image. Choose a PNG, JPG or WebP file.`,
+					message: m.qrread_not_image({ name: file.name }),
 				},
 				source: { kind: "other", name: file.name },
 			});
@@ -88,8 +89,7 @@ export function QrReader() {
 		setState({
 			view: {
 				phase: "failed",
-				message:
-					failure?.message ?? "Something went wrong while reading this image.",
+				message: failure?.message ?? m.qrread_failed(),
 			},
 			source,
 		});
@@ -162,9 +162,8 @@ export function QrReader() {
 
 	return (
 		<PageShell>
-			<PageHeader title="QR Code Reader">
-				Drop in a photo or screenshot of a QR code to see what is inside, or
-				scan one with your camera. Everything is read on your device.
+			<PageHeader title={m.tool_qr_reader_label()}>
+				{m.qrread_description()}
 			</PageHeader>
 
 			<div className="flex flex-col gap-4">
@@ -191,24 +190,24 @@ export function QrReader() {
 					<section
 						ref={idleRef}
 						tabIndex={-1}
-						aria-label="Choose a QR code image"
+						aria-label={m.qrread_choose_aria()}
 						className="flex flex-col gap-4 outline-none"
 					>
 						<Dropzone
-							label="Drag & drop a QR code image here, or"
-							actionLabel="Choose image"
-							hint="PNG, JPG, WebP or GIF, up to 25 MB"
+							label={m.qrread_dropzone_label()}
+							actionLabel={m.common_choose_image()}
+							hint={m.qrread_hint()}
 							accept="image/*"
-							ariaLabel="Choose an image that contains a QR code"
+							ariaLabel={m.qrread_dropzone_aria()}
 							onFiles={(files) => void readFile(files?.[0])}
 						/>
 						<div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
 							<p className="text-xs text-muted-foreground">
-								You can also paste a screenshot with Ctrl+V or ⌘+V.
+								{m.qrread_paste()}
 							</p>
 							<Button variant="outline" onClick={startCamera}>
 								<Camera />
-								Scan with camera
+								{m.qrread_scan_camera()}
 							</Button>
 						</div>
 					</section>

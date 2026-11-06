@@ -25,6 +25,7 @@ import {
 } from "#/components/ui/empty.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { toastOnExit } from "#/lib/exit-toast.ts";
+import { currentLocale } from "#/lib/i18n/state.ts";
 import {
 	ClipboardWriteError,
 	FileDownloadError,
@@ -46,25 +47,33 @@ import {
 	toSvg,
 } from "#/lib/qr/render.ts";
 import type { EccLevel } from "#/lib/qr/tables.ts";
+import { unitLabel } from "#/lib/qr/tables.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const DEFAULT_FOREGROUND = "#000000";
 const DEFAULT_BACKGROUND = "#ffffff";
 
 type PngSize = "512" | "1024" | "2048";
 
-const PNG_SIZES = [
-	{ value: "512", label: "Small", detail: "512 px" },
-	{ value: "1024", label: "Medium", detail: "1024 px" },
-	{ value: "2048", label: "Large", detail: "2048 px" },
-] as const;
+const pngSizes = () =>
+	[
+		{ value: "512", label: m.qrgen_size_small(), detail: "512 px" },
+		{ value: "1024", label: m.qrgen_size_medium(), detail: "1024 px" },
+		{ value: "2048", label: m.qrgen_size_large(), detail: "2048 px" },
+	] as const;
 
 type ExportKind = "png" | "svg" | "copy";
 
-const SUCCESS_TEXT: Record<ExportKind, string> = {
-	png: "PNG saved.",
-	svg: "SVG saved.",
-	copy: "Image copied.",
+const successText = (kind: ExportKind): string => {
+	switch (kind) {
+		case "png":
+			return m.qrgen_png_saved();
+		case "svg":
+			return m.qrgen_svg_saved();
+		case "copy":
+			return m.qrgen_image_copied();
+	}
 };
 
 const FLASH_MS = 1800;
@@ -157,7 +166,7 @@ function ExportButton({
 			) : (
 				icon
 			)}
-			{working ? "Working…" : finished ? doneLabel : label}
+			{working ? m.qrgen_working() : finished ? doneLabel : label}
 		</Button>
 	);
 }
@@ -218,8 +227,8 @@ export function QrGenerator() {
 
 		setBusy(null);
 
-		if (Option.isSome(toastOnExit(exit, "Couldn't export the code."))) {
-			toast.success(SUCCESS_TEXT[kind]);
+		if (Option.isSome(toastOnExit(exit, m.qrgen_export_failed()))) {
+			toast.success(successText(kind));
 			setDone(kind);
 			flashTimer.current = window.setTimeout(() => setDone(null), FLASH_MS);
 		}
@@ -232,19 +241,18 @@ export function QrGenerator() {
 
 	return (
 		<PageShell width="wide">
-			<PageHeader title="QR Code Generator">
-				Type a link or some text and save the code as a PNG or SVG. It is made
-				on your device, so what you type never leaves it.
+			<PageHeader title={m.tool_qr_generator_label()}>
+				{m.qrgen_description()}
 			</PageHeader>
 
 			<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
 				<section
-					aria-label="Code settings"
+					aria-label={m.qrgen_settings_aria()}
 					className="flex flex-col gap-5 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
 				>
 					<div>
 						<label htmlFor="qr-text" className="mb-2 block text-sm font-medium">
-							Text or link
+							{m.qrgen_text_label()}
 						</label>
 						<Textarea
 							id="qr-text"
@@ -264,20 +272,24 @@ export function QrGenerator() {
 							className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground"
 						>
 							<span>
-								{plan.length.toLocaleString("en-US")} {plan.unit}
+								{m.qrgen_length({
+									count: plan.length.toLocaleString(currentLocale()),
+									unit: unitLabel(plan.unit),
+								})}
 								{plan.modules !== undefined && (
-									<>
-										{" "}
-										· {plan.modules}×{plan.modules} modules
-									</>
+									<> · {m.qrgen_modules({ size: plan.modules })}</>
 								)}
 							</span>
-							<span>Up to {plan.limit.toLocaleString("en-US")}</span>
+							<span>
+								{m.qrgen_up_to({
+									limit: plan.limit.toLocaleString(currentLocale()),
+								})}
+							</span>
 						</div>
 						<div
 							// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- a styled bar whose fill animates by transform; the native <meter> cannot do that.
 							role="meter"
-							aria-label="How much of the code is used"
+							aria-label={m.qrgen_meter_aria()}
 							aria-valuemin={0}
 							aria-valuemax={plan.limit}
 							aria-valuenow={Math.min(plan.length, plan.limit)}
@@ -297,30 +309,29 @@ export function QrGenerator() {
 
 					<div>
 						<ChoiceGroup
-							legend="Error correction"
+							legend={m.qrgen_ecc_legend()}
 							name="qr-ecc"
 							value={ecc}
 							onChange={setEcc}
 							choices={ECC_OPTIONS.map((option) => ({
 								value: option.level,
 								label: option.label,
-								detail: `Repairs ${option.recovers}`,
+								detail: m.qrgen_repairs({ percent: option.recovers }),
 							}))}
 						/>
 						<p className="mt-2 text-xs text-muted-foreground">
-							{eccOption?.hint} Higher levels survive more damage but make the
-							code bigger.
+							{eccOption?.hint} {m.qrgen_ecc_note()}
 						</p>
 					</div>
 
 					<div className="flex flex-wrap items-end gap-x-6 gap-y-3">
 						<ColorField
-							label="Code color"
+							label={m.qrgen_color_code()}
 							value={foreground}
 							onChange={setForeground}
 						/>
 						<ColorField
-							label="Background"
+							label={m.qrgen_color_background()}
 							value={background}
 							onChange={setBackground}
 						/>
@@ -334,7 +345,7 @@ export function QrGenerator() {
 								}}
 							>
 								<RotateCcw />
-								Reset colors
+								{m.qrgen_reset_colors()}
 							</Button>
 						)}
 					</div>
@@ -343,7 +354,7 @@ export function QrGenerator() {
 				</section>
 
 				<section
-					aria-label="Your code"
+					aria-label={m.qrgen_your_code_aria()}
 					className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6 lg:sticky lg:top-20"
 				>
 					{qr && svg ? (
@@ -357,22 +368,30 @@ export function QrGenerator() {
 							>
 								<img
 									src={svgDataUrl(svg)}
-									alt={`QR code for ${deferredText.length > 60 ? `${deferredText.slice(0, 60)}…` : deferredText}`}
+									alt={m.qrgen_alt({
+										text:
+											deferredText.length > 60
+												? `${deferredText.slice(0, 60)}…`
+												: deferredText,
+									})}
 									className="size-full"
 									draggable={false}
 								/>
 							</div>
 							<p className="text-center text-xs text-muted-foreground">
-								Version {qr.version} · {qr.size}×{qr.size} modules · print at
-								least {minPrintWidthCm(qr.size)} cm wide
+								{m.qrgen_version({
+									version: qr.version,
+									size: qr.size,
+									cm: minPrintWidthCm(qr.size),
+								})}
 							</p>
 							<ChoiceGroup
-								legend="PNG size"
+								legend={m.qrgen_png_size()}
 								name="qr-png-size"
 								value={pngSize}
 								onChange={setPngSize}
 								columns="grid-cols-3 sm:grid-cols-3"
-								choices={PNG_SIZES}
+								choices={pngSizes()}
 							/>
 							<div className="flex flex-wrap gap-2">
 								<ExportButton
@@ -381,8 +400,8 @@ export function QrGenerator() {
 									done={done}
 									variant="default"
 									icon={<Download />}
-									label="Save PNG"
-									doneLabel="Saved"
+									label={m.qrgen_save_png()}
+									doneLabel={m.qrgen_saved()}
 									onClick={exportAs}
 								/>
 								<ExportButton
@@ -391,8 +410,8 @@ export function QrGenerator() {
 									done={done}
 									variant="outline"
 									icon={<FileImage />}
-									label="Save SVG"
-									doneLabel="Saved"
+									label={m.qrgen_save_svg()}
+									doneLabel={m.qrgen_saved()}
 									onClick={exportAs}
 								/>
 								<ExportButton
@@ -401,8 +420,8 @@ export function QrGenerator() {
 									done={done}
 									variant="outline"
 									icon={<Copy />}
-									label="Copy image"
-									doneLabel="Copied"
+									label={m.qrgen_copy_image()}
+									doneLabel={m.copy_copied()}
 									onClick={exportAs}
 								/>
 							</div>
@@ -416,11 +435,8 @@ export function QrGenerator() {
 								>
 									<TriangleAlert />
 								</EmptyMedia>
-								<EmptyTitle>This won't fit in a code</EmptyTitle>
-								<EmptyDescription>
-									Shorten the text or lower the error correction level. The
-									message above has the exact limit.
-								</EmptyDescription>
+								<EmptyTitle>{m.qrgen_wont_fit_title()}</EmptyTitle>
+								<EmptyDescription>{m.qrgen_wont_fit()}</EmptyDescription>
 							</EmptyHeader>
 						</Empty>
 					) : (
@@ -429,11 +445,8 @@ export function QrGenerator() {
 								<EmptyMedia variant="icon">
 									<QrCode />
 								</EmptyMedia>
-								<EmptyTitle>Your code appears here</EmptyTitle>
-								<EmptyDescription>
-									Start typing and it draws as you go. Then save it as a PNG or
-									SVG.
-								</EmptyDescription>
+								<EmptyTitle>{m.qrgen_empty_title()}</EmptyTitle>
+								<EmptyDescription>{m.qrgen_empty()}</EmptyDescription>
 							</EmptyHeader>
 						</Empty>
 					)}
