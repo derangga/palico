@@ -35,6 +35,9 @@ Read the matching file before starting that kind of work.
   `docs/extract-audio.md`, `docs/audio-cutter.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
   `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`:
   how each tool works end to end and why it is built that way.
+- `docs/bottom-sheets.md`: the swipeable bottom sheet (`ui/drawer.tsx`), where it
+  replaces a popup below 768px, and the markdown preview sheet. Read it before
+  adding a sheet or touching `src/components/markdown-preview-drawer.tsx`.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
   new tool needs `keywords` in `src/lib/tool-categories.ts`.

@@ -92,7 +92,7 @@ export function ScheduleReadout({
 						getText={() => expression.trim()}
 						copiedMessage={m.cron_copied({ expression: expression.trim() })}
 						failureMessage={m.cron_copy_failed()}
-						className="h-11 flex-1 sm:h-9 sm:flex-none"
+						className="h-11 sm:h-9"
 					/>
 				)}
 				<Button

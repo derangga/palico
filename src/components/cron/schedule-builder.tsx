@@ -1,6 +1,15 @@
-import { Info } from "lucide-react";
-import type { CSSProperties } from "react";
+import { ChevronDown, Info } from "lucide-react";
+import { type CSSProperties, useLayoutEffect, useRef } from "react";
 
+import { Button } from "#/components/ui/button.tsx";
+import {
+	Drawer,
+	DrawerClose,
+	DrawerContent,
+	DrawerHeader,
+	DrawerTitle,
+	DrawerTrigger,
+} from "#/components/ui/drawer.tsx";
 import {
 	Select,
 	SelectContent,
@@ -8,6 +17,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { useIsMobile } from "#/hooks/use-mobile.ts";
 import {
 	type BuilderMode,
 	type BuilderState,
@@ -274,6 +284,128 @@ function DayPicker({
 	);
 }
 
+// One scrollable list of radios. It opens scrolled to the chosen value. The
+// swipe-ignore attribute keeps a drag on the list from closing the drawer.
+function TimeColumn({
+	legend,
+	name,
+	values,
+	value,
+	onChange,
+}: {
+	readonly legend: string;
+	readonly name: string;
+	readonly values: ReadonlyArray<number>;
+	readonly value: number;
+	readonly onChange: (value: number) => void;
+}) {
+	const listRef = useRef<HTMLDivElement>(null);
+
+	useLayoutEffect(() => {
+		const list = listRef.current;
+		const chosen = list?.querySelector("input:checked")?.parentElement;
+
+		if (list && chosen) {
+			list.scrollTop =
+				chosen.offsetTop - (list.clientHeight - chosen.clientHeight) / 2;
+		}
+		// Only the first paint of the open drawer scrolls. A tap must not move the list.
+	}, []);
+
+	return (
+		<fieldset className="flex min-w-0 flex-1 flex-col">
+			<legend className="mb-2 w-full text-center text-[0.8125rem] font-semibold text-muted-foreground">
+				{legend}
+			</legend>
+			<div
+				ref={listRef}
+				data-base-ui-swipe-ignore
+				className="no-scrollbar relative flex h-56 flex-col gap-1 overflow-y-auto overscroll-contain rounded-lg border border-input bg-background p-1"
+			>
+				{values.map((entry) => (
+					<label
+						key={entry}
+						className={cn(CHIP, "w-full shrink-0 border-transparent")}
+					>
+						<input
+							type="radio"
+							name={name}
+							value={entry}
+							checked={entry === value}
+							onChange={() => onChange(entry)}
+							className="sr-only"
+						/>
+						{pad(entry)}
+					</label>
+				))}
+			</div>
+		</fieldset>
+	);
+}
+
+const HOUR_VALUES = Array.from({ length: 24 }, (_, at) => at);
+const MINUTE_VALUES = Array.from({ length: 60 }, (_, at) => at);
+
+// A phone gets one button with the time on it. It opens a drawer with an hour
+// list and a minute list, and each tap applies at once, like the selects do.
+function MobileTimeField({
+	hour,
+	minute,
+	onChange,
+}: {
+	readonly hour: number;
+	readonly minute: number;
+	readonly onChange: (time: { hour: number; minute: number }) => void;
+}) {
+	const time = `${pad(hour)}:${pad(minute)}`;
+
+	return (
+		<fieldset className="flex flex-col gap-2">
+			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">
+				{m.cron_time_legend()}
+			</legend>
+			<Drawer>
+				<DrawerTrigger
+					aria-label={m.cron_time_change({ time })}
+					className="flex h-11 w-36 items-center justify-between gap-1.5 rounded-md border border-input bg-background pr-2 pl-3 font-mono text-base shadow-xs transition-[color,border-color,box-shadow,scale] duration-150 ease-out outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.97] motion-reduce:active:scale-100"
+				>
+					{time}
+					<ChevronDown
+						aria-hidden
+						className="size-4 shrink-0 text-muted-foreground"
+					/>
+				</DrawerTrigger>
+				<DrawerContent>
+					<DrawerHeader>
+						<DrawerTitle>{m.cron_time_legend()}</DrawerTitle>
+					</DrawerHeader>
+					<div className="flex gap-3 px-4 pb-3">
+						<TimeColumn
+							legend={m.cron_hour_aria()}
+							name="cron-time-hour"
+							values={HOUR_VALUES}
+							value={hour}
+							onChange={(next) => onChange({ hour: next, minute })}
+						/>
+						<TimeColumn
+							legend={m.cron_minute_aria()}
+							name="cron-time-minute"
+							values={MINUTE_VALUES}
+							value={minute}
+							onChange={(next) => onChange({ hour, minute: next })}
+						/>
+					</div>
+					<div className="px-4 pb-4">
+						<DrawerClose render={<Button className="h-11 w-full" />}>
+							{m.sheet_done()}
+						</DrawerClose>
+					</div>
+				</DrawerContent>
+			</Drawer>
+		</fieldset>
+	);
+}
+
 function TimeField({
 	hour,
 	minute,
@@ -283,6 +415,12 @@ function TimeField({
 	readonly minute: number;
 	readonly onChange: (time: { hour: number; minute: number }) => void;
 }) {
+	const isMobile = useIsMobile();
+
+	if (isMobile) {
+		return <MobileTimeField hour={hour} minute={minute} onChange={onChange} />;
+	}
+
 	return (
 		<fieldset className="flex flex-col gap-2">
 			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">

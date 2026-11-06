@@ -12,6 +12,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "#/components/ui/empty.tsx";
+import { useIsMobile } from "#/hooks/use-mobile.ts";
 import type { DiffResult } from "#/lib/file/diff.ts";
 import type { DiffLanguage } from "#/lib/file/types.ts";
 import { m } from "#/paraglide/messages.js";
@@ -71,7 +72,7 @@ function DiffStatBar({
 	];
 
 	return (
-		<span className="flex items-center gap-0.5" aria-hidden>
+		<span className="hidden items-center gap-0.5 sm:flex" aria-hidden>
 			{squares.map((kind, i) => (
 				<span
 					// oxlint-disable-next-line react/no-array-index-key -- fixed-length static bar
@@ -92,6 +93,8 @@ export function DiffView({
 	onBack,
 }: DiffViewProps) {
 	const { resolvedTheme } = useTheme();
+	// Two columns of about 170px are too narrow to read on a phone.
+	const isMobile = useIsMobile();
 
 	// Rebuild the file contents from the raw text with the live language so the
 	// toolbar's language switch re-highlights without recomputing the diff.
@@ -115,7 +118,7 @@ export function DiffView({
 
 	return (
 		<div className="flex min-h-[calc(100svh-3.5rem)] flex-col">
-			<div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
+			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-3 sm:px-6">
 				<div className="flex items-center gap-2 text-sm font-semibold">
 					<span className="rounded-full bg-success/25 px-2 py-0.5 text-foreground">
 						+{result.additions}
@@ -146,7 +149,7 @@ export function DiffView({
 							oldFile={oldFile}
 							newFile={newFile}
 							options={{
-								diffStyle: "split",
+								diffStyle: isMobile ? "unified" : "split",
 								lineDiffType: "word",
 								expandUnchanged: true,
 								disableFileHeader: true,

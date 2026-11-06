@@ -10,23 +10,14 @@ import { m } from "#/paraglide/messages.js";
 
 const DOWNLOAD_FILENAME = "document.md";
 
-// The rendered preview plus its floating toolbar. The toolbar is pinned to the
-// top-right corner with a translucent, blurred backdrop so it reads as an
-// overlay on top of the content it controls rather than part of the document.
-// `previewSource` is the debounced text that gets rendered; `source` is the
-// live text so Copy/Download always act on exactly what's in the editor.
-export function MarkdownPreviewPanel({
+// Copy and Download buttons. They act on `source`, the live text in the editor,
+// so the desktop toolbar and the mobile drawer share them.
+export function MarkdownActions({
 	source,
-	previewSource,
-	isFullscreen,
-	onToggleFullscreen,
-	heightClass,
+	className,
 }: {
 	readonly source: string;
-	readonly previewSource: string;
-	readonly isFullscreen: boolean;
-	readonly onToggleFullscreen: () => void;
-	readonly heightClass: string;
+	readonly className?: string;
 }) {
 	async function handleCopy() {
 		const exit = await Effect.runPromiseExit(copyMarkdown(source));
@@ -52,6 +43,52 @@ export function MarkdownPreviewPanel({
 	}
 
 	return (
+		<>
+			<Button
+				type="button"
+				variant="ghost"
+				size="icon-sm"
+				className={className}
+				onClick={handleCopy}
+				aria-label={m.markdown_copy()}
+				title={m.markdown_copy()}
+			>
+				<Copy />
+			</Button>
+			<Button
+				type="button"
+				variant="ghost"
+				size="icon-sm"
+				className={className}
+				onClick={handleDownload}
+				aria-label={m.markdown_download()}
+				title={m.markdown_download()}
+			>
+				<Download />
+			</Button>
+		</>
+	);
+}
+
+// The rendered preview plus its floating toolbar. The toolbar is pinned to the
+// top-right corner with a translucent, blurred backdrop so it reads as an
+// overlay on top of the content it controls rather than part of the document.
+// `previewSource` is the debounced text that gets rendered; `source` is the
+// live text so Copy/Download always act on exactly what's in the editor.
+export function MarkdownPreviewPanel({
+	source,
+	previewSource,
+	isFullscreen,
+	onToggleFullscreen,
+	heightClass,
+}: {
+	readonly source: string;
+	readonly previewSource: string;
+	readonly isFullscreen: boolean;
+	readonly onToggleFullscreen: () => void;
+	readonly heightClass: string;
+}) {
+	return (
 		<div
 			className={cn(
 				"relative overflow-hidden rounded-md border border-input bg-background",
@@ -59,26 +96,7 @@ export function MarkdownPreviewPanel({
 			)}
 		>
 			<div className="absolute top-3 right-3 z-10 flex gap-1 rounded-md border border-border/60 bg-background/50 p-1 shadow-xs backdrop-blur-md">
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon-sm"
-					onClick={handleCopy}
-					aria-label={m.markdown_copy()}
-					title={m.markdown_copy()}
-				>
-					<Copy />
-				</Button>
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon-sm"
-					onClick={handleDownload}
-					aria-label={m.markdown_download()}
-					title={m.markdown_download()}
-				>
-					<Download />
-				</Button>
+				<MarkdownActions source={source} />
 				<Button
 					type="button"
 					variant="ghost"

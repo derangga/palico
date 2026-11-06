@@ -1,11 +1,16 @@
 import { Effect, Option, Exit } from "effect";
+import { Eye } from "lucide-react";
 import { useDeferredValue, useEffect, useState } from "react";
 
+import { MarkdownPreviewDrawer } from "#/components/markdown-preview-drawer.tsx";
 import { MarkdownPreviewPanel } from "#/components/markdown-preview-panel.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
+import { Button } from "#/components/ui/button.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
+import { useIsMobile } from "#/hooks/use-mobile.ts";
 import { sampleMarkdown } from "#/lib/markdown/sample.ts";
 import { loadMarkdown, saveMarkdown } from "#/lib/markdown/storage.ts";
+import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
 // Both panels are a fixed height in the normal split view; in fullscreen the
@@ -29,9 +34,15 @@ export function MarkdownWorkspace() {
 			: sampleMarkdown();
 	});
 
+	// A phone gets a Preview button and a bottom sheet instead of a second panel.
+	const isMobile = useIsMobile();
+	const [previewOpen, setPreviewOpen] = useState(false);
+
 	// Fullscreen is an in-layout toggle: the editor is hidden and the preview
-	// takes the full content width (the sidebar and top bar stay put).
-	const [isFullscreen, setIsFullscreen] = useState(false);
+	// takes the full content width (the sidebar and top bar stay put). It does
+	// not exist on a phone, where the sheet can be dragged to nearly full height.
+	const [fullscreenOn, setIsFullscreen] = useState(false);
+	const isFullscreen = fullscreenOn && !isMobile;
 	// Keep the expensive preview render (markdown parse + mermaid) off the
 	// keystroke path. useDeferredValue lets React interrupt superseded low-
 	// priority renders, so the preview only fully catches up once typing pauses —
@@ -60,11 +71,13 @@ export function MarkdownWorkspace() {
 			)}
 
 			<div
-				className={
-					isFullscreen
-						? "grid grid-cols-1 gap-4"
-						: "grid grid-cols-1 gap-4 lg:grid-cols-2"
-				}
+				className={cn(
+					"grid grid-cols-1 gap-4",
+					!isFullscreen && "lg:grid-cols-2",
+					// The open sheet covers the bottom half, so the page scrolls that far
+					// further and the end of the editor can still be reached.
+					isMobile && previewOpen && "pb-[50svh]",
+				)}
 			>
 				{!isFullscreen && (
 					<Textarea
@@ -72,18 +85,40 @@ export function MarkdownWorkspace() {
 						onChange={(event) => setSource(event.target.value)}
 						placeholder={m.markdown_placeholder()}
 						spellCheck={false}
-						className={`${PANEL_HEIGHT} resize-none overflow-auto font-mono text-sm`}
+						className={cn(
+							"resize-none overflow-auto font-mono text-sm",
+							isMobile ? "h-[55svh]" : PANEL_HEIGHT,
+						)}
 						aria-label={m.markdown_source_aria()}
 					/>
 				)}
 
-				<MarkdownPreviewPanel
-					source={source}
-					previewSource={deferredSource}
-					isFullscreen={isFullscreen}
-					onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
-					heightClass={isFullscreen ? FULLSCREEN_HEIGHT : PANEL_HEIGHT}
-				/>
+				{isMobile ? (
+					<>
+						<Button
+							type="button"
+							onClick={() => setPreviewOpen(true)}
+							className="sticky bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 h-11 w-full"
+						>
+							<Eye />
+							{m.markdown_preview()}
+						</Button>
+						<MarkdownPreviewDrawer
+							source={source}
+							previewSource={deferredSource}
+							open={previewOpen}
+							onOpenChange={setPreviewOpen}
+						/>
+					</>
+				) : (
+					<MarkdownPreviewPanel
+						source={source}
+						previewSource={deferredSource}
+						isFullscreen={isFullscreen}
+						onToggleFullscreen={() => setIsFullscreen((prev) => !prev)}
+						heightClass={isFullscreen ? FULLSCREEN_HEIGHT : PANEL_HEIGHT}
+					/>
+				)}
 			</div>
 		</PageShell>
 	);

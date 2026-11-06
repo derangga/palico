@@ -92,9 +92,16 @@ The page was reworked for a 375px screen first:
 - The time is two Base UI selects in a fieldset, hour (00 to 23) and minute
   (00 to 59), and the day of the month is a select too. A native `type="time"`
   or `<select>` opens a browser popup that CSS cannot style, so it clashed with
-  the theme. The cost is that phones no longer get the OS time wheel, and the
-  minute list has 60 items. Typing on an open list jumps to a match. A select
-  always holds a whole value, so there is no draft state.
+  the theme. Typing on an open list jumps to a match. A select always holds a
+  whole value, so there is no draft state.
+- Below 768px the time is one button showing `09:00`. It opens a bottom sheet
+  (see `docs/bottom-sheets.md`) with an hour list and a minute list, each a
+  radio group, and a Done button. Every tap applies at once, like the selects,
+  so there is still no draft state. The lists open scrolled to the chosen
+  value and carry `data-base-ui-swipe-ignore`, so scrolling one does not drag
+  the sheet. It is a styled list, not a wheel: the value changes on tap, not
+  when scrolling stops. A 60-row minute list is still long, but it scrolls
+  inside a fixed-height box instead of a popup.
 - The templates list is a bottom sheet, not a wrapping row of pills.
 - The sentence is a live region only while it holds a valid sentence. An error
   changes on almost every keystroke, so it is not announced, and the input points
