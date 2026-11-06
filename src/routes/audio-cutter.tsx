@@ -41,7 +41,7 @@ function AudioCutterPage() {
 	if (gate.phase.kind === "ready") return <CutterShell />;
 
 	return (
-		<PageShell>
+		<PageShell width="wide">
 			<PageHeader title={m.tool_audio_cutter_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
@@ -183,7 +183,7 @@ function CutterShell() {
 	const canProceed = duration > 0 && outputDuration > 0 && !trimming;
 
 	return (
-		<PageShell className="min-[769px]:max-w-6xl">
+		<PageShell width="wide">
 			<PageHeader title={m.tool_audio_cutter_label()}>{intro()}</PageHeader>
 
 			{!file ? (

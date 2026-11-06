@@ -40,7 +40,7 @@ function VideoCutterPage() {
 	if (gate.phase.kind === "ready") return <CutterShell />;
 
 	return (
-		<PageShell>
+		<PageShell width="wide">
 			<PageHeader title={m.tool_video_cutter_label()}>
 				{m.videocut_description()}
 			</PageHeader>
@@ -183,7 +183,7 @@ function CutterShell() {
 	const canProceed = duration > 0 && outputDuration > 0 && !trimming;
 
 	return (
-		<PageShell className="min-[769px]:max-w-6xl">
+		<PageShell width="wide">
 			<PageHeader title={m.tool_video_cutter_label()}>
 				{m.videocut_description()}
 			</PageHeader>

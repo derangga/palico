@@ -41,7 +41,7 @@ function VideoToGifPage() {
 	if (gate.phase.kind === "ready") return <GifShell />;
 
 	return (
-		<PageShell>
+		<PageShell width="wide">
 			<PageHeader title={m.tool_video_to_gif_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
@@ -184,7 +184,7 @@ function GifShell() {
 		!making;
 
 	return (
-		<PageShell className="min-[769px]:max-w-6xl">
+		<PageShell width="wide">
 			<PageHeader title={m.tool_video_to_gif_label()}>{intro()}</PageHeader>
 
 			{!file ? (
