@@ -382,7 +382,7 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		],
 		seoTitle: "Cron Expression Generator and Explainer",
 		seoDescription:
-			"Build a cron expression with presets or fields, read it in plain English and see the next run times. Runs in your browser, so nothing is uploaded.",
+			"Build a cron expression by choosing how often it runs, read it in plain English and see the next run times. Runs in your browser, so nothing is uploaded.",
 		icon: CalendarClock,
 		category: "developer",
 	},

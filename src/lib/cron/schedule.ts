@@ -295,3 +295,7 @@ export const parseCron = (
 			},
 		};
 	});
+
+/** The whitespace-separated fields of an expression, with a macro written out. */
+export const splitFields = (expression: string): Array<string> =>
+	expandMacro(expression.trim()).split(/\s+/);
