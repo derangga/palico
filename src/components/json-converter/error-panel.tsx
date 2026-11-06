@@ -29,7 +29,7 @@ export function ErrorPanel({
 		Match.tagsExhaustive({
 			ParseError: ({ format }) =>
 				m.jc_error_title_parse({ format: FORMAT_NAME[format] }),
-			UnsupportedShapeError: () => m.jc_error_title_shape(),
+			NotATableError: () => m.jc_error_title_shape(),
 			InputTooLargeError: () => m.jc_error_title_large(),
 			ConverterWorkerError: () => m.jc_error_title_worker(),
 		}),

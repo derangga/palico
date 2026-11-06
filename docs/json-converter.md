@@ -66,7 +66,7 @@ The business logic lives in `src/lib/json-converter/` (`convert.ts` is the whole
 pipeline), not in the component.
 
 Every failure is a tagged error on the Effect error channel: `ParseError` (with
-line and column), `UnsupportedShapeError` (JSON that cannot become CSV),
+line and column), `NotATableError` (JSON that cannot become CSV),
 `InputTooLargeError` and, from the client, `ConverterWorkerError`. A tagged error
 does not survive `postMessage`, so the worker sends it as plain data
 (`protocol.ts`) and the client rebuilds it.

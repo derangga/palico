@@ -11,8 +11,8 @@ export class ParseError extends Schema.TaggedError<ParseError>()("ParseError", {
 
 // The data is valid but cannot become a table (a top-level object, items that
 // are not objects, two fields that flatten to one column).
-export class UnsupportedShapeError extends Schema.TaggedError<UnsupportedShapeError>()(
-	"UnsupportedShapeError",
+export class NotATableError extends Schema.TaggedError<NotATableError>()(
+	"NotATableError",
 	{
 		message: Schema.String,
 	},
@@ -35,7 +35,4 @@ export class ConverterWorkerError extends Schema.TaggedError<ConverterWorkerErro
 	},
 ) {}
 
-export type ConvertError =
-	| ParseError
-	| UnsupportedShapeError
-	| InputTooLargeError;
+export type ConvertError = ParseError | NotATableError | InputTooLargeError;

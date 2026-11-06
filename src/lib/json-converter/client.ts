@@ -10,7 +10,7 @@ import {
 	ConverterWorkerError,
 	InputTooLargeError,
 	ParseError,
-	UnsupportedShapeError,
+	NotATableError,
 } from "./errors.ts";
 import type {
 	ConverterFailure,
@@ -36,8 +36,8 @@ const rebuild = (failure: ConverterFailure): RunError => {
 	switch (failure.tag) {
 		case "ParseError":
 			return new ParseError(failure);
-		case "UnsupportedShapeError":
-			return new UnsupportedShapeError({ message: failure.message });
+		case "NotATableError":
+			return new NotATableError({ message: failure.message });
 		case "InputTooLargeError":
 			return new InputTooLargeError(failure);
 		case "Defect":

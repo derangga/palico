@@ -30,8 +30,8 @@ const toFailure = (cause: Cause.Cause<ConvertError>): ConverterFailure => {
 				line,
 				column,
 			}),
-			UnsupportedShapeError: ({ message }): ConverterFailure => ({
-				tag: "UnsupportedShapeError",
+			NotATableError: ({ message }): ConverterFailure => ({
+				tag: "NotATableError",
 				message,
 			}),
 			InputTooLargeError: ({ message, size, limit }): ConverterFailure => ({

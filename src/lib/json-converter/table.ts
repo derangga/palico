@@ -3,7 +3,7 @@
 
 import { Effect, Predicate } from "effect";
 
-import { UnsupportedShapeError } from "./errors.ts";
+import { NotATableError } from "./errors.ts";
 import { say, type Texts } from "./say.ts";
 import type { JsonValue } from "./types.ts";
 import { isRecord, type JsonRecord } from "./value.ts";
@@ -69,17 +69,17 @@ const listKey = (value: JsonRecord) =>
 export const toTable = (
 	value: JsonValue,
 	texts: Texts,
-): Effect.Effect<Table, UnsupportedShapeError> =>
+): Effect.Effect<Table, NotATableError> =>
 	Effect.gen(function* () {
 		if (!Array.isArray(value)) {
 			const key = isRecord(value) ? listKey(value) : undefined;
 
 			return yield* Effect.fail(
-				new UnsupportedShapeError({
+				new NotATableError({
 					message:
 						key === undefined
-							? say(texts, "shape_not_list")
-							: say(texts, "shape_not_list_hint", { key }),
+							? say(texts, "table_not_list")
+							: say(texts, "table_not_list_hint", { key }),
 				}),
 			);
 		}
@@ -89,8 +89,8 @@ export const toTable = (
 		for (const [at, item] of value.entries()) {
 			if (!isRecord(item)) {
 				return yield* Effect.fail(
-					new UnsupportedShapeError({
-						message: say(texts, "shape_item", { index: at + 1 }),
+					new NotATableError({
+						message: say(texts, "table_item", { index: at + 1 }),
 					}),
 				);
 			}
@@ -116,8 +116,8 @@ export const toTable = (
 			if (!(cause instanceof Collision)) throw cause;
 
 			return yield* Effect.fail(
-				new UnsupportedShapeError({
-					message: say(texts, "shape_collision", { column: cause.column }),
+				new NotATableError({
+					message: say(texts, "table_collision", { column: cause.column }),
 				}),
 			);
 		}

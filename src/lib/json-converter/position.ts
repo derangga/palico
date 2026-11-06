@@ -1,8 +1,10 @@
+export interface Position {
+	readonly line: number;
+	readonly column: number;
+}
+
 /** The 1-based line and column of a character offset in `text`. */
-export function positionAt(
-	text: string,
-	offset: number,
-): { readonly line: number; readonly column: number } {
+export function positionAt(text: string, offset: number): Position {
 	let line = 1;
 	let lastBreak = -1;
 

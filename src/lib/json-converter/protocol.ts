@@ -20,7 +20,7 @@ export type ConverterFailure =
 			readonly line: number;
 			readonly column: number;
 	  }
-	| { readonly tag: "UnsupportedShapeError"; readonly message: string }
+	| { readonly tag: "NotATableError"; readonly message: string }
 	| {
 			readonly tag: "InputTooLargeError";
 			readonly message: string;

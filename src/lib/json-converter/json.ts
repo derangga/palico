@@ -43,16 +43,16 @@ const PLAIN = /[^"\\\u0000-\u001f]+/y;
 const SPACE = /[ \t\n\r]*/y;
 const HEX4 = /^[0-9a-fA-F]{4}$/;
 
-const ESCAPES: Record<string, string> = {
-	'"': '"',
-	"\\": "\\",
-	"/": "/",
-	b: "\b",
-	f: "\f",
-	n: "\n",
-	r: "\r",
-	t: "\t",
-};
+const ESCAPES = new Map([
+	['"', '"'],
+	["\\", "\\"],
+	["/", "/"],
+	["b", "\b"],
+	["f", "\f"],
+	["n", "\n"],
+	["r", "\r"],
+	["t", "\t"],
+]);
 
 function readJson(text: string): JsonValue {
 	const length = text.length;
@@ -114,11 +114,13 @@ function readJson(text: string): JsonValue {
 
 				out += String.fromCharCode(Number.parseInt(hex, 16));
 				at += 6;
-			} else if (next !== undefined && next in ESCAPES) {
-				out += ESCAPES[next];
-				at += 2;
 			} else {
-				return fail("bad_escape");
+				const escaped = ESCAPES.get(next ?? "");
+
+				if (escaped === undefined) return fail("bad_escape");
+
+				out += escaped;
+				at += 2;
 			}
 		}
 	};

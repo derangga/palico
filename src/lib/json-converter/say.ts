@@ -21,10 +21,10 @@ export type TextKey =
 	| "csv_unterminated"
 	| "csv_after_quote"
 	| "csv_ragged"
-	| "shape_not_list"
-	| "shape_not_list_hint"
-	| "shape_item"
-	| "shape_collision"
+	| "table_not_list"
+	| "table_not_list_hint"
+	| "table_item"
+	| "table_collision"
 	| "too_large";
 
 export type Texts = { readonly [Key in TextKey]: string };

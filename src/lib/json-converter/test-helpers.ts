@@ -1,11 +1,7 @@
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
 
 import { convert } from "./convert.ts";
-import type {
-	ConvertError,
-	ParseError,
-	UnsupportedShapeError,
-} from "./errors.ts";
+import type { ConvertError, ParseError, NotATableError } from "./errors.ts";
 import { messageTemplates } from "./texts.ts";
 import type { ConvertOptions } from "./types.ts";
 
@@ -53,14 +49,14 @@ export const parseFailure = (
 };
 
 /** The failure for data that should not become a table. */
-export const shapeFailure = (
+export const notATableFailure = (
 	text: string,
 	options: Partial<ConvertOptions>,
-): UnsupportedShapeError => {
+): NotATableError => {
 	const error = failure(text, options);
 
-	if (!Predicate.isTagged(error, "UnsupportedShapeError")) {
-		throw new Error(`expected an UnsupportedShapeError, got ${error._tag}`);
+	if (!Predicate.isTagged(error, "NotATableError")) {
+		throw new Error(`expected an NotATableError, got ${error._tag}`);
 	}
 
 	return error;

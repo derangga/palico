@@ -35,13 +35,13 @@ export const messageTemplates = (locale: Locale): Texts => {
 			{ count: "{count}", expected: "{expected}" },
 			options,
 		),
-		shape_not_list: m.jc_err_shape_not_list({}, options),
-		shape_not_list_hint: m.jc_err_shape_not_list_hint(
+		table_not_list: m.jc_err_shape_not_list({}, options),
+		table_not_list_hint: m.jc_err_shape_not_list_hint(
 			{ key: "{key}" },
 			options,
 		),
-		shape_item: m.jc_err_shape_item({ index: "{index}" }, options),
-		shape_collision: m.jc_err_shape_collision({ column: "{column}" }, options),
+		table_item: m.jc_err_shape_item({ index: "{index}" }, options),
+		table_collision: m.jc_err_shape_collision({ column: "{column}" }, options),
 		too_large: m.jc_err_too_large(
 			{ size: "{size}", limit: "{limit}" },
 			options,

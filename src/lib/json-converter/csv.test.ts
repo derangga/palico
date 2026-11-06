@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { detectDelimiter, guessCell } from "./csv.ts";
-import { failure, parseFailure, run, shapeFailure } from "./test-helpers.ts";
+import {
+	failure,
+	parseFailure,
+	run,
+	notATableFailure,
+} from "./test-helpers.ts";
 
 const toJson = (csv: string, extra = {}) =>
 	JSON.parse(
@@ -173,12 +178,12 @@ describe("JSON to CSV", () => {
 	});
 
 	it("says why a top-level object cannot become a table", () => {
-		const error = shapeFailure('{"a":1}', {
+		const error = notATableFailure('{"a":1}', {
 			source: "json",
 			target: "csv",
 		});
 
-		expect(error._tag).toBe("UnsupportedShapeError");
+		expect(error._tag).toBe("NotATableError");
 		expect(error.message).toMatch(/list of objects/);
 	});
 
@@ -194,7 +199,7 @@ describe("JSON to CSV", () => {
 	it("says which item is not an object", () => {
 		const error = failure('[{"a":1}, 5]', { source: "json", target: "csv" });
 
-		expect(error._tag).toBe("UnsupportedShapeError");
+		expect(error._tag).toBe("NotATableError");
 		expect(error.message).toMatch(/Item 2/);
 	});
 
