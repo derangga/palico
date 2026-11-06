@@ -78,10 +78,12 @@ export const Route = createRootRoute({
 
 // The top bar shows "Group / Tool" from the registry; the page h1 carries the
 // full tool name, so the bar keeps the short one and does not repeat it.
-function crumbOf(pathname: string): {
+interface Crumb {
 	readonly group?: string;
 	readonly title: string;
-} {
+}
+
+function crumbOf(pathname: string): Crumb {
 	if (pathname === "/") return { title: m.sidebar_home() };
 
 	const tool = TOOLS.find((t) => t.to === pathname);

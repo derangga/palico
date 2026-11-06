@@ -66,6 +66,7 @@ export function searchTools(
 				locale === BASE_LOCALE
 					? [tool.textIn(locale)]
 					: [tool.textIn(locale), tool.textIn(BASE_LOCALE)];
+
 			const scores = tokens.map((token) => scoreToken(texts, token));
 
 			return scores.every((score) => score > 0)
