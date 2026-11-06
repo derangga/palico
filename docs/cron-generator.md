@@ -151,6 +151,12 @@ ordinals, months, and a working-hours window. Up to six clock times are written
 out (`At 08:30, 12:30 and 18:30`). Past that it falls back to a list of minutes and
 hours. The tests in `describe.test.ts` hold the exact sentences.
 
+The sentence is written in the active language. Each phrase is one message with
+parameters (`cron_every_n_minutes`, `cron_on_weekday`), so Indonesian controls its
+own word order, and `describe.id.test.ts` holds the Indonesian sentences. Month
+and weekday names come from `Intl.DateTimeFormat`. Run times and "in 5 minutes"
+use the active locale too (`src/lib/cron/format.ts`). See `docs/i18n.md`.
+
 ## Tests
 
 - `schedule.test.ts`: every accepted form, every field error, macros, weekday 7,

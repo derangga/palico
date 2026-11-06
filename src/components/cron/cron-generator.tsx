@@ -26,6 +26,7 @@ import {
 	splitFields,
 } from "#/lib/cron/schedule.ts";
 import { DEFAULT_EXPRESSION } from "#/lib/cron/templates.ts";
+import { m } from "#/paraglide/messages.js";
 
 type Parsed =
 	| { readonly schedule: CronSchedule; readonly error: undefined }
@@ -120,9 +121,8 @@ export function CronGenerator() {
 
 	return (
 		<PageShell width="wide">
-			<PageHeader title="Cron Generator">
-				Choose how often a job runs, read the schedule in plain English and
-				check when it runs next. Everything happens on your device.
+			<PageHeader title={m.tool_cron_generator_label()}>
+				{m.cron_header_desc()}
 			</PageHeader>
 
 			<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
@@ -137,12 +137,12 @@ export function CronGenerator() {
 					/>
 
 					<section
-						aria-label="Schedule"
+						aria-label={m.cron_schedule_aria()}
 						className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
 					>
 						<div className="flex min-h-9 items-center justify-between gap-2">
 							<h2 className="text-sm font-semibold">
-								{editing ? "Cron expression" : "How often?"}
+								{editing ? m.cron_title_expression() : m.cron_title_how_often()}
 							</h2>
 							<TemplatePicker
 								current={expression.trim()}

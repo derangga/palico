@@ -3,19 +3,22 @@
 // an expression. Only the shapes the form can show are accepted. Anything else
 // returns undefined and the page falls back to the text editor.
 
+import { m } from "#/paraglide/messages.js";
+
 import type { CronField, CronSchedule } from "./schedule.ts";
 
 export type BuilderMode = "minutes" | "hourly" | "daily" | "weekly" | "monthly";
 
-export const BUILDER_MODES: ReadonlyArray<{
+// A function, because the labels depend on the active language.
+export const builderModes = (): ReadonlyArray<{
 	readonly mode: BuilderMode;
 	readonly label: string;
-}> = [
-	{ mode: "minutes", label: "Minutes" },
-	{ mode: "hourly", label: "Hourly" },
-	{ mode: "daily", label: "Daily" },
-	{ mode: "weekly", label: "Weekly" },
-	{ mode: "monthly", label: "Monthly" },
+}> => [
+	{ mode: "minutes", label: m.cron_mode_minutes() },
+	{ mode: "hourly", label: m.cron_mode_hourly() },
+	{ mode: "daily", label: m.cron_mode_daily() },
+	{ mode: "weekly", label: m.cron_mode_weekly() },
+	{ mode: "monthly", label: m.cron_mode_monthly() },
 ];
 
 export interface BuilderState {

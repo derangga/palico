@@ -2,49 +2,56 @@ import { useEffect, useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { fieldAtCaret, FIELD_LABELS } from "#/lib/cron/field-labels.ts";
+import { fieldAtCaret, fieldLabels } from "#/lib/cron/field-labels.ts";
 import { FIELD_NAMES } from "#/lib/cron/schedule.ts";
+import { m } from "#/paraglide/messages.js";
 
 const INPUT_ID = "cron-expression";
 
 // Symbols that are slow to find on a phone keyboard. Space moves to the next field.
-const KEYS: ReadonlyArray<{
+// Functions, because the words depend on the active language.
+const keys = (): ReadonlyArray<{
 	readonly insert: string;
 	readonly label: string;
 	readonly accessibleName: string;
 	readonly word?: boolean;
-}> = [
-	{ insert: "*", label: "*", accessibleName: "Insert *" },
-	{ insert: ",", label: ",", accessibleName: "Insert a comma" },
-	{ insert: "-", label: "-", accessibleName: "Insert a dash" },
-	{ insert: "/", label: "/", accessibleName: "Insert a slash" },
-	{ insert: " ", label: "space", accessibleName: "Insert a space", word: true },
+}> => [
+	{ insert: "*", label: "*", accessibleName: m.cron_key_star() },
+	{ insert: ",", label: ",", accessibleName: m.cron_key_comma() },
+	{ insert: "-", label: "-", accessibleName: m.cron_key_dash() },
+	{ insert: "/", label: "/", accessibleName: m.cron_key_slash() },
+	{
+		insert: " ",
+		label: m.cron_key_space_label(),
+		accessibleName: m.cron_key_space(),
+		word: true,
+	},
 ];
 
-const SYNTAX: ReadonlyArray<{
+const syntax = (): ReadonlyArray<{
 	readonly symbol: string;
 	readonly meaning: string;
 	readonly example: string;
-}> = [
+}> => [
 	{
 		symbol: "*",
-		meaning: "every value",
-		example: "* in hour means every hour",
+		meaning: m.cron_sym_star_meaning(),
+		example: m.cron_sym_star_example(),
 	},
 	{
 		symbol: ",",
-		meaning: "a list",
-		example: "1,15 in day of month means the 1st and 15th",
+		meaning: m.cron_sym_comma_meaning(),
+		example: m.cron_sym_comma_example(),
 	},
 	{
 		symbol: "-",
-		meaning: "a range",
-		example: "1-5 in day of week means Monday to Friday",
+		meaning: m.cron_sym_dash_meaning(),
+		example: m.cron_sym_dash_example(),
 	},
 	{
 		symbol: "/",
-		meaning: "a step",
-		example: "*/10 in minute means every 10 minutes",
+		meaning: m.cron_sym_slash_meaning(),
+		example: m.cron_sym_slash_example(),
 	},
 ];
 
@@ -114,7 +121,7 @@ export function ExpressionEditor({
 	return (
 		<div className="flex flex-col gap-3">
 			<label htmlFor={INPUT_ID} className="sr-only">
-				Cron expression
+				{m.cron_title_expression()}
 			</label>
 			<Input
 				ref={input}
@@ -142,15 +149,18 @@ export function ExpressionEditor({
 
 			<p className="min-h-5 text-xs text-muted-foreground">
 				{activeName
-					? `${FIELD_LABELS[activeName].name}: ${FIELD_LABELS[activeName].hint}`
-					: "Five fields: minute, hour, day of month, month, day of week."}
+					? m.cron_hint_field({
+							name: fieldLabels(activeName).name,
+							hint: fieldLabels(activeName).hint,
+						})
+					: m.cron_hint_default()}
 			</p>
 
 			{/* Keeps focus in the box, so the phone keyboard stays up between taps. */}
 			<fieldset className="pointer-fine:hidden">
-				<legend className="sr-only">Insert a symbol</legend>
+				<legend className="sr-only">{m.cron_insert_legend()}</legend>
 				<div className="grid grid-cols-5 gap-2">
-					{KEYS.map((key) => (
+					{keys().map((key) => (
 						<Button
 							key={key.label}
 							type="button"
@@ -174,10 +184,10 @@ export function ExpressionEditor({
 
 			<details className="border-t pt-2 text-sm">
 				<summary className="flex min-h-11 cursor-pointer sm:min-h-9 items-center font-semibold text-muted-foreground">
-					What do the symbols mean?
+					{m.cron_symbols_summary()}
 				</summary>
 				<dl className="mt-1 grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">
-					{SYNTAX.map(({ symbol, meaning, example }) => (
+					{syntax().map(({ symbol, meaning, example }) => (
 						<div key={symbol} className="contents">
 							<dt className="font-mono font-semibold">{symbol}</dt>
 							<dd className="text-muted-foreground">
@@ -187,8 +197,7 @@ export function ExpressionEditor({
 					))}
 				</dl>
 				<p className="mt-3 text-xs text-muted-foreground">
-					When both day of month and day of week are set, the job runs on either
-					one. Shortcuts like @daily and @hourly also work.
+					{m.cron_either_note()}
 				</p>
 			</details>
 		</div>

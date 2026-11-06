@@ -1,5 +1,7 @@
 import { Effect } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { ClipboardWriteError, FileDownloadError } from "./errors.ts";
 
 // Copy the raw Markdown source to the clipboard. Kept on the error channel so
@@ -12,9 +14,7 @@ export const copyMarkdown = (
 		catch: (cause) =>
 			new ClipboardWriteError({
 				message:
-					cause instanceof Error
-						? cause.message
-						: "Couldn't copy to the clipboard.",
+					cause instanceof Error ? cause.message : m.markdown_copy_failed(),
 			}),
 	});
 
@@ -42,8 +42,6 @@ export const downloadMarkdown = (
 		catch: (cause) =>
 			new FileDownloadError({
 				message:
-					cause instanceof Error
-						? cause.message
-						: "Couldn't download the file.",
+					cause instanceof Error ? cause.message : m.markdown_download_failed(),
 			}),
 	});

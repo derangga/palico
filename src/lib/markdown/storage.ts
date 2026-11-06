@@ -1,5 +1,7 @@
 import { Effect, Option } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { MarkdownStorageError } from "./errors.ts";
 
 const STORAGE_KEY = "palico:markdown-preview";
@@ -17,9 +19,7 @@ export const loadMarkdown: Effect.Effect<
 		new MarkdownStorageError({
 			operation: "load",
 			message:
-				cause instanceof Error
-					? cause.message
-					: "Couldn't read your saved Markdown.",
+				cause instanceof Error ? cause.message : m.markdown_read_saved_failed(),
 		}),
 });
 
@@ -34,8 +34,6 @@ export const saveMarkdown = (
 			new MarkdownStorageError({
 				operation: "save",
 				message:
-					cause instanceof Error
-						? cause.message
-						: "Couldn't save your Markdown.",
+					cause instanceof Error ? cause.message : m.markdown_save_failed(),
 			}),
 	});

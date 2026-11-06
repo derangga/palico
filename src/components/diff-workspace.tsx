@@ -8,11 +8,11 @@ import { toast } from "sonner";
 
 import { DIFF_THEME, DiffView } from "#/components/diff-view.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
-import { DIFF_DESCRIPTION } from "#/components/page-skeletons.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { computeDiff, type DiffResult } from "#/lib/file/diff.ts";
 import type { DiffLanguage } from "#/lib/file/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Warm the singleton worker pool as soon as the workspace mounts so the first
 // in-view language switch highlights without a cold-start stall. Idempotent;
@@ -67,7 +67,7 @@ export function DiffWorkspace() {
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 
 		if (failure) console.error(failure);
-		toast.error(failure?.message ?? "Couldn't compute the difference.");
+		toast.error(failure?.message ?? m.diff_compute_failed());
 	}
 
 	return (
@@ -88,29 +88,31 @@ export function DiffWorkspace() {
 				/>
 			) : (
 				<PageShell width="full">
-					<PageHeader title="File Diff Viewer">{DIFF_DESCRIPTION}</PageHeader>
+					<PageHeader title={m.diff_page_title()}>
+						{m.diff_description()}
+					</PageHeader>
 
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
-								Original
+								{m.diff_original()}
 							</span>
 							<Textarea
 								value={original}
 								onChange={(e) => setOriginal(e.target.value)}
-								placeholder="Paste the original text…"
+								placeholder={m.diff_placeholder_original()}
 								spellCheck={false}
 								className="h-[55vh] resize-none font-mono text-sm"
 							/>
 						</div>
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
-								Changed
+								{m.diff_changed()}
 							</span>
 							<Textarea
 								value={changed}
 								onChange={(e) => setChanged(e.target.value)}
-								placeholder="Paste the changed text…"
+								placeholder={m.diff_placeholder_changed()}
 								spellCheck={false}
 								className="h-[55vh] resize-none font-mono text-sm"
 							/>
@@ -120,7 +122,7 @@ export function DiffWorkspace() {
 					<div className="mt-6 flex justify-center">
 						<Button onClick={findDifference} disabled={!canDiff || running}>
 							{running ? <Loader2 className="animate-spin" /> : <FileDiff />}
-							Find Difference
+							{m.diff_find()}
 						</Button>
 					</div>
 				</PageShell>

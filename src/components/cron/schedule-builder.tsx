@@ -9,28 +9,38 @@ import {
 	SelectValue,
 } from "#/components/ui/select.tsx";
 import {
-	BUILDER_MODES,
 	type BuilderMode,
 	type BuilderState,
+	builderModes,
 	WEEK_ORDER,
 } from "#/lib/cron/builder.ts";
-import { ordinal, pad } from "#/lib/cron/describe.ts";
+import { ordinal, pad, weekdayName } from "#/lib/cron/describe.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const EVERY_CHOICES = [1, 2, 5, 10, 15, 20, 30];
 const MINUTE_CHOICES = [0, 15, 30, 45];
 
 // Indexed by the cron weekday number (0 is Sunday), not by where the button is
 // drawn, so the order in WEEK_ORDER never has to line up with this by position.
-const DAY_LABELS = [
-	{ short: "Su", name: "Sunday" },
-	{ short: "Mo", name: "Monday" },
-	{ short: "Tu", name: "Tuesday" },
-	{ short: "We", name: "Wednesday" },
-	{ short: "Th", name: "Thursday" },
-	{ short: "Fr", name: "Friday" },
-	{ short: "Sa", name: "Saturday" },
-] as const;
+const shortDay = (day: number): string => {
+	switch (day) {
+		case 0:
+			return m.cron_day_su();
+		case 1:
+			return m.cron_day_mo();
+		case 2:
+			return m.cron_day_tu();
+		case 3:
+			return m.cron_day_we();
+		case 4:
+			return m.cron_day_th();
+		case 5:
+			return m.cron_day_fr();
+		default:
+			return m.cron_day_sa();
+	}
+};
 
 // Keeps a value the chips do not list (typed in as text, say) visible and checked.
 const withValue = (choices: ReadonlyArray<number>, value: number) =>
@@ -52,10 +62,12 @@ const MINUTES = toItems(
 	pad,
 );
 
-const DAYS_OF_MONTH = toItems(
-	Array.from({ length: 31 }, (_, at) => at + 1),
-	ordinal,
-);
+// A function: the ordinals depend on the active language.
+const daysOfMonth = () =>
+	toItems(
+		Array.from({ length: 31 }, (_, at) => at + 1),
+		ordinal,
+	);
 
 // h-11 keeps the 44px touch target. It has to name the data-size variant, because
 // SelectTrigger sets its own height through one and a plain h-11 would lose.
@@ -121,18 +133,19 @@ function Frequency({
 	readonly mode: BuilderMode | undefined;
 	readonly onChange: (mode: BuilderMode) => void;
 }) {
-	const index = BUILDER_MODES.findIndex((entry) => entry.mode === mode);
+	const modes = builderModes();
+	const index = modes.findIndex((entry) => entry.mode === mode);
 
 	// SAFETY: React types style by known property names only. --i and --n are
 	// custom properties that the class names below read through var().
 	const style = {
 		"--i": Math.max(index, 0),
-		"--n": BUILDER_MODES.length,
+		"--n": modes.length,
 	} as CSSProperties;
 
 	return (
 		<fieldset>
-			<legend className="sr-only">How often</legend>
+			<legend className="sr-only">{m.cron_how_often_legend()}</legend>
 			<div
 				className="relative grid grid-cols-[repeat(var(--n),minmax(0,1fr))] rounded-lg border border-input bg-background p-[3px]"
 				style={style}
@@ -145,7 +158,7 @@ function Frequency({
 						index < 0 && "opacity-0",
 					)}
 				/>
-				{BUILDER_MODES.map((entry) => (
+				{modes.map((entry) => (
 					<label
 						key={entry.mode}
 						className={cn(
@@ -229,12 +242,10 @@ function DayPicker({
 	return (
 		<fieldset className="flex flex-col gap-2">
 			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">
-				On which days?
+				{m.cron_days_legend()}
 			</legend>
 			<div className="grid grid-cols-7 gap-1 sm:gap-2">
 				{WEEK_ORDER.map((day) => {
-					const weekday = DAY_LABELS[day];
-
 					return (
 						<label
 							key={day}
@@ -250,16 +261,14 @@ function DayPicker({
 								onChange={() => toggle(day)}
 								className="sr-only"
 							/>
-							<span aria-hidden>{weekday?.short}</span>
-							<span className="sr-only">{weekday?.name}</span>
+							<span aria-hidden>{shortDay(day)}</span>
+							<span className="sr-only">{weekdayName(day)}</span>
 						</label>
 					);
 				})}
 			</div>
 			{lastDay !== undefined && (
-				<p className="text-xs text-muted-foreground">
-					A weekly schedule keeps at least one day.
-				</p>
+				<p className="text-xs text-muted-foreground">{m.cron_week_min_one()}</p>
 			)}
 		</fieldset>
 	);
@@ -277,11 +286,11 @@ function TimeField({
 	return (
 		<fieldset className="flex flex-col gap-2">
 			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">
-				At what time?
+				{m.cron_time_legend()}
 			</legend>
 			<div className="flex items-center gap-2">
 				<NumberSelect
-					aria-label="Hour"
+					aria-label={m.cron_hour_aria()}
 					items={HOURS}
 					value={hour}
 					onChange={(next) => onChange({ hour: next, minute })}
@@ -292,7 +301,7 @@ function TimeField({
 					:
 				</span>
 				<NumberSelect
-					aria-label="Minute"
+					aria-label={m.cron_minute_aria()}
 					items={MINUTES}
 					value={minute}
 					onChange={(next) => onChange({ hour, minute: next })}
@@ -317,20 +326,18 @@ function DayOfMonthField({
 				id="cron-day-of-month"
 				className="text-[0.8125rem] font-semibold text-muted-foreground"
 			>
-				On which day of the month?
+				{m.cron_dom_label()}
 			</span>
 			<NumberSelect
 				aria-labelledby="cron-day-of-month"
-				items={DAYS_OF_MONTH}
+				items={daysOfMonth()}
 				value={value}
 				onChange={onChange}
 				triggerClassName="w-28 font-sans"
 				contentClassName="min-w-28"
 			/>
 			{value > 28 && (
-				<p className="text-xs text-muted-foreground">
-					Months with fewer days are skipped.
-				</p>
+				<p className="text-xs text-muted-foreground">{m.cron_dom_skip()}</p>
 			)}
 		</div>
 	);
@@ -365,14 +372,13 @@ export function ScheduleBuilder({
 			{!state && (
 				<p className="flex gap-2.5 rounded-lg bg-info/20 p-3 text-sm">
 					<Info aria-hidden className="mt-0.5 size-4 shrink-0" />
-					The builder cannot show this schedule. Pick how often to replace it,
-					or keep editing it as text.
+					{m.cron_builder_cannot()}
 				</p>
 			)}
 
 			{state?.mode === "minutes" && (
 				<ChipChoice
-					legend="Every how many minutes?"
+					legend={m.cron_every_legend()}
 					name="cron-every"
 					choices={EVERY_CHOICES}
 					value={state.every}
@@ -383,7 +389,7 @@ export function ScheduleBuilder({
 
 			{state?.mode === "hourly" && (
 				<ChipChoice
-					legend="At which minute of the hour?"
+					legend={m.cron_minute_legend()}
 					name="cron-minute"
 					choices={MINUTE_CHOICES}
 					value={state.minute}

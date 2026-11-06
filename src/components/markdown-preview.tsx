@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 import type { PluggableList } from "unified";
 
 import { MermaidDiagram } from "#/components/mermaid-diagram.tsx";
+import { m } from "#/paraglide/messages.js";
 
 // Rendering markdown is a pure view concern, so it lives in the UI layer with
 // react-markdown rather than behind an Effect. remark-gfm brings the
@@ -66,9 +67,7 @@ const COMPONENTS: Components = {
 export function MarkdownPreview({ source }: { readonly source: string }) {
 	if (source.trim().length === 0) {
 		return (
-			<p className="text-sm text-muted-foreground">
-				Your rendered markdown will appear here.
-			</p>
+			<p className="text-sm text-muted-foreground">{m.markdown_empty()}</p>
 		);
 	}
 

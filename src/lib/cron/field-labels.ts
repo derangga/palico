@@ -1,25 +1,50 @@
+import { m } from "#/paraglide/messages.js";
+
 import type { CronFieldName } from "./schedule.ts";
 
+interface FieldLabel {
+	readonly label: string;
+	readonly name: string;
+	readonly hint: string;
+}
+
 // How each field is named on the page. `label` fits a narrow cell, `name`
-// reads in a sentence and `hint` says what the field accepts.
-export const FIELD_LABELS: Record<
-	CronFieldName,
-	{
-		readonly label: string;
-		readonly name: string;
-		readonly hint: string;
+// reads in a sentence and `hint` says what the field accepts. A function,
+// because the words depend on the active language.
+export function fieldLabels(field: CronFieldName): FieldLabel {
+	switch (field) {
+		case "minute":
+			return {
+				label: m.cron_label_minute(),
+				name: m.cron_label_minute(),
+				hint: m.cron_hint_minute(),
+			};
+		case "hour":
+			return {
+				label: m.cron_label_hour(),
+				name: m.cron_label_hour(),
+				hint: m.cron_hint_hour(),
+			};
+		case "dayOfMonth":
+			return {
+				label: m.cron_label_day(),
+				name: m.cron_name_day_of_month(),
+				hint: m.cron_hint_day_of_month(),
+			};
+		case "month":
+			return {
+				label: m.cron_label_month(),
+				name: m.cron_label_month(),
+				hint: m.cron_hint_month(),
+			};
+		case "dayOfWeek":
+			return {
+				label: m.cron_label_weekday(),
+				name: m.cron_name_day_of_week(),
+				hint: m.cron_hint_day_of_week(),
+			};
 	}
-> = {
-	minute: { label: "Minute", name: "Minute", hint: "0 to 59" },
-	hour: { label: "Hour", name: "Hour", hint: "0 to 23" },
-	dayOfMonth: { label: "Day", name: "Day of month", hint: "1 to 31" },
-	month: { label: "Month", name: "Month", hint: "1 to 12 or JAN to DEC" },
-	dayOfWeek: {
-		label: "Weekday",
-		name: "Day of week",
-		hint: "0 to 6 or SUN to SAT",
-	},
-};
+}
 
 /** Which of the five fields the caret sits in, by counting the gaps before it. */
 export function fieldAtCaret(text: string, caret: number): number {

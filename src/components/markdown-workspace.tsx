@@ -3,10 +3,10 @@ import { useDeferredValue, useEffect, useState } from "react";
 
 import { MarkdownPreviewPanel } from "#/components/markdown-preview-panel.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
-import { MARKDOWN_DESCRIPTION } from "#/components/page-skeletons.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
-import { SAMPLE_MARKDOWN } from "#/lib/markdown/sample.ts";
+import { sampleMarkdown } from "#/lib/markdown/sample.ts";
 import { loadMarkdown, saveMarkdown } from "#/lib/markdown/storage.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Both panels are a fixed height in the normal split view; in fullscreen the
 // preview grows to fill the viewport below the app's top bar (h-14 / 3.5rem)
@@ -25,8 +25,8 @@ export function MarkdownWorkspace() {
 		const exit = Effect.runSyncExit(loadMarkdown);
 
 		return Exit.isSuccess(exit)
-			? Option.getOrElse(exit.value, () => SAMPLE_MARKDOWN)
-			: SAMPLE_MARKDOWN;
+			? Option.getOrElse(exit.value, sampleMarkdown)
+			: sampleMarkdown();
 	});
 
 	// Fullscreen is an in-layout toggle: the editor is hidden and the preview
@@ -42,14 +42,21 @@ export function MarkdownWorkspace() {
 	// Best-effort persistence of the deferred document; ignore storage failures.
 	// `source` is seeded from storage above, so the first write is a harmless
 	// no-op rather than clobbering the stored document with an empty state.
+	// The seeded sample is not saved. It is shown in the active language, so a
+	// first visit that switches language sees the sample follow it. The first
+	// edit makes the document the person's own and saves it.
 	useEffect(() => {
+		if (deferredSource === sampleMarkdown()) return;
+
 		Effect.runSyncExit(saveMarkdown(deferredSource));
 	}, [deferredSource]);
 
 	return (
 		<PageShell width="full">
 			{!isFullscreen && (
-				<PageHeader title="Markdown Preview">{MARKDOWN_DESCRIPTION}</PageHeader>
+				<PageHeader title={m.tool_markdown_preview_label()}>
+					{m.markdown_description()}
+				</PageHeader>
 			)}
 
 			<div
@@ -63,10 +70,10 @@ export function MarkdownWorkspace() {
 					<Textarea
 						value={source}
 						onChange={(event) => setSource(event.target.value)}
-						placeholder="Type Markdown here…"
+						placeholder={m.markdown_placeholder()}
 						spellCheck={false}
 						className={`${PANEL_HEIGHT} resize-none overflow-auto font-mono text-sm`}
-						aria-label="Markdown source"
+						aria-label={m.markdown_source_aria()}
 					/>
 				)}
 

@@ -1,5 +1,7 @@
 import { Effect, Option, Ref } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { MermaidLoadError, MermaidRenderError } from "./errors.ts";
 
 type MermaidApi = typeof import("mermaid").default;
@@ -101,7 +103,7 @@ const loadMermaid: Effect.Effect<MermaidApi, MermaidLoadError> = Effect.gen(
 					message:
 						cause instanceof Error
 							? cause.message
-							: "Couldn't load the diagram renderer.",
+							: m.markdown_renderer_load_failed(),
 				}),
 		});
 
@@ -135,7 +137,7 @@ export const renderMermaid = (
 					message:
 						cause instanceof Error
 							? cause.message
-							: "This diagram couldn't be rendered.",
+							: m.markdown_diagram_failed(),
 				}),
 		});
 
