@@ -10,6 +10,7 @@
 	"sortImports": {},
 	"ignorePatterns": [
 		"src/routeTree.gen.ts",
+		"src/paraglide",
 		"src/components/ui",
 		"src/styles.css"
 	]

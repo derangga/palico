@@ -38,6 +38,10 @@ Read the matching file before starting that kind of work.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
   new tool needs `keywords` in `src/lib/tool-categories.ts`.
+- `docs/i18n.md`: the English and Indonesian messages, how the language is chosen
+  and switched, and how to add a string. Read it before adding any user-facing
+  text. Every new string needs a key in both `messages/en.json` and
+  `messages/id.json`.
 - `docs/offline-pwa.md`: the service worker, offline status pills, update flow and
   storage handling. Read it before touching `src/sw.ts`, `public/_headers`,
   `src/lib/offline/` or an engine's cache.

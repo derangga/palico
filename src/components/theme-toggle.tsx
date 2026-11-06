@@ -4,6 +4,7 @@ import { useRef, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 
 import { Button } from "#/components/ui/button.tsx";
+import { m } from "#/paraglide/messages.js";
 
 const REVEAL_MS = 350;
 
@@ -28,10 +29,10 @@ export function ThemeToggle() {
 	const isDark = resolvedTheme === "dark";
 
 	const label = !mounted
-		? "Switch theme"
+		? m.theme_toggle_default()
 		: isDark
-			? "Switch to light theme"
-			: "Switch to dark theme";
+			? m.theme_toggle_to_light()
+			: m.theme_toggle_to_dark();
 
 	// Circular reveal from the button via the View Transitions API. Instant when
 	// the API is missing or reduced motion is set; ignored while one is running.

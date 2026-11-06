@@ -8,9 +8,16 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Effect, Fiber } from "effect";
-import { useEffect, useState } from "react";
+import {
+	Fragment,
+	useEffect,
+	useLayoutEffect,
+	useReducer,
+	useState,
+} from "react";
 
 import { AppSidebar } from "#/components/app-sidebar.tsx";
+import { LanguageSwitcher } from "#/components/language-switcher.tsx";
 import { UpdatePrompt } from "#/components/offline/update-prompt.tsx";
 import { SearchButton } from "#/components/search/search-button.tsx";
 import { SearchPalette } from "#/components/search/search-palette.tsx";
@@ -22,6 +29,9 @@ import {
 	SidebarTrigger,
 } from "#/components/ui/sidebar.tsx";
 import { Toaster } from "#/components/ui/sonner.tsx";
+import { useLocale } from "#/hooks/use-locale.ts";
+import { resolveLocale } from "#/lib/i18n/locale.ts";
+import { localeRuntime } from "#/lib/i18n/runtime.ts";
 import { startOffline } from "#/lib/offline/register.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { cn } from "#/lib/utils.ts";
@@ -98,6 +108,21 @@ const PAGE_CRUMBS = new Map<
 function RootLayout() {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const crumb = PAGE_CRUMBS.get(pathname) ?? { title: "Palico" };
+	// Subscribing here re-renders the header and sidebar on a language change.
+	// The page content below is keyed on it, because `m.*()` calls are not reactive.
+	const locale = useLocale();
+
+	// The store starts at English so the prerendered shell and hydration agree.
+	// Switch to the saved or browser language before the first paint. The resolve is
+	// synchronous (localStorage and navigator only). The store hook subscribes in a
+	// passive effect, which can run after paint on hydration, so a state update here
+	// forces the render that reads the new locale.
+	const [, renderAgain] = useReducer((count: number) => count + 1, 0);
+
+	useLayoutEffect(() => {
+		localeRuntime.runSync(resolveLocale);
+		renderAgain();
+	}, []);
 
 	// Production only: the worker would cache stale modules during `vite dev`.
 	useEffect(() => {
@@ -160,6 +185,7 @@ function RootLayout() {
 					</nav>
 					<div className="ml-auto flex items-center gap-2">
 						<SearchButton onClick={() => setSearchOpen(true)} />
+						<LanguageSwitcher />
 						<ThemeToggle />
 					</div>
 				</header>
@@ -167,7 +193,9 @@ function RootLayout() {
 					key={pathname}
 					className={cn("flex-1", fadeIn && "animate-route-in")}
 				>
-					<Outlet />
+					<Fragment key={locale}>
+						<Outlet />
+					</Fragment>
 				</div>
 			</SidebarInset>
 		</SidebarProvider>
