@@ -90,7 +90,7 @@ export function OutputPane({
 	return (
 		<section
 			aria-label={m.jc_output_title()}
-			className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
+			className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
 		>
 			<div className="flex min-h-9 items-center justify-between gap-2">
 				<div className="flex items-center gap-1">

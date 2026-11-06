@@ -100,6 +100,12 @@ is the cron generator's pill pattern made reusable. Motion is limited to that pi
 sliding, the chevron turning and the drag-over border, all transform, opacity or
 colour, each with a reduced-motion version.
 
+The two-pane grid names its mobile column (`grid-cols-1`, which is
+`minmax(0,1fr)`) and both panes are `min-w-0`. Without that the implicit `auto`
+column grows to the widest output line: an `overflow-auto` box scrolls its own
+content, but its content still counts toward the min-content width of the pane
+around it, so a long JSON or CSV line made the whole page wider than the screen.
+
 ## Tests
 
 All in `src/lib/json-converter/*.test.ts`:
