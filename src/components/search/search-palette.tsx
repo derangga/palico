@@ -1,10 +1,12 @@
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import { Dialog } from "@base-ui/react/dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { SearchIcon, XIcon } from "lucide-react";
+import { type CSSProperties, useEffect, useState } from "react";
 
 import { OfflineDot } from "#/components/offline/offline-pill.tsx";
+import { Button } from "#/components/ui/button.tsx";
+import { useKeyboardInset } from "#/hooks/use-keyboard-inset.ts";
 import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
 import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import {
@@ -79,6 +81,7 @@ export function SearchPalette({
 	const navigate = useNavigate();
 	const results = searchTools(query);
 	const searching = query.trim() !== "";
+	const keyboard = useKeyboardInset(open);
 
 	// Fires inside text fields too, like Cmd/Ctrl+B for the sidebar.
 	useEffect(() => {
@@ -153,8 +156,29 @@ export function SearchPalette({
 			}}
 		>
 			<Dialog.Portal>
-				<Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/25 supports-backdrop-filter:backdrop-blur-xs dark:bg-ctp-crust/60" />
-				<Dialog.Popup className="fixed top-[12dvh] left-1/2 z-50 flex max-h-[76dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-xl ring-1 ring-border outline-none">
+				<Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/25 supports-backdrop-filter:backdrop-blur-xs max-md:transition-opacity max-md:duration-150 max-md:ease-out max-md:data-ending-style:opacity-0 max-md:data-starting-style:opacity-0 dark:bg-ctp-crust/60" />
+				<Dialog.Popup
+					// The keyboard values only apply below md, where the popup is a sheet.
+					style={
+						{
+							"--kb-bottom": `${keyboard?.bottom ?? 0}px`,
+							"--kb-height": keyboard ? `${keyboard.height}px` : "100dvh",
+							"--kb-pad": keyboard?.bottom
+								? "0px"
+								: "env(safe-area-inset-bottom)",
+						} as CSSProperties
+					}
+					className={cn(
+						"fixed z-50 flex flex-col overflow-hidden bg-popover text-popover-foreground shadow-xl outline-none",
+						// Desktop: centered card, no animation (Cmd/Ctrl+K is a keyboard action).
+						"md:top-[12dvh] md:left-1/2 md:max-h-[76dvh] md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:rounded-xl md:ring-1 md:ring-border",
+						// Mobile: bottom sheet. Opens in 220ms, closes faster.
+						"max-md:inset-x-0 max-md:bottom-(--kb-bottom) max-md:max-h-[min(85dvh,calc(var(--kb-height)-1rem))] max-md:rounded-t-2xl max-md:border-t max-md:border-border max-md:pb-(--kb-pad)",
+						"max-md:transition-[translate,opacity] max-md:duration-[220ms] max-md:ease-drawer max-md:data-ending-style:duration-150 max-md:data-ending-style:ease-out",
+						"max-md:motion-safe:data-ending-style:translate-y-full max-md:motion-safe:data-starting-style:translate-y-full",
+						"max-md:motion-reduce:data-ending-style:opacity-0 max-md:motion-reduce:data-starting-style:opacity-0",
+					)}
+				>
 					<Dialog.Title className="sr-only">
 						{m.search_button_label()}
 					</Dialog.Title>
@@ -168,8 +192,8 @@ export function SearchPalette({
 						value={query}
 						onValueChange={setQuery}
 					>
-						<div className="border-b border-border p-2">
-							<div className="relative">
+						<div className="flex items-center gap-1 border-b border-border p-2">
+							<div className="relative min-w-0 flex-1">
 								<SearchIcon
 									className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
 									aria-hidden
@@ -181,6 +205,15 @@ export function SearchPalette({
 									className="h-10 w-full min-w-0 rounded-md border border-input bg-background pr-3 pl-9 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
 								/>
 							</div>
+							{/* A sheet needs a visible way out. Swipe is not one. */}
+							<Dialog.Close
+								render={
+									<Button variant="ghost" className="size-11 md:hidden" />
+								}
+							>
+								<XIcon className="size-5" aria-hidden />
+								<span className="sr-only">{m.sheet_close()}</span>
+							</Dialog.Close>
 						</div>
 						<Autocomplete.List className="min-h-0 flex-1 overflow-y-auto p-2">
 							{(section: Section) => (
