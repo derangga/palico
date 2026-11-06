@@ -63,10 +63,18 @@ has no failure path.
 
 ## Keywords
 
-Every `Tool` has a required `keywords` array. People search for the job or the
+Keywords are messages, not a TypeScript array: each tool has a `tool_<id>_keywords`
+message in `messages/en.json` and `messages/id.json`, a comma separated list.
+`searchTools` scores a token against the text of the active language and against
+the English text, and keeps the better score. A person on `id` can type
+"kompres" or "compress" and find the same tool. The Indonesian list names the
+Indonesian words and keeps the format terms ("jpg", "mp3"). See `docs/i18n.md`.
+
+Every `Tool` has keywords. People search for the job or the
 format ("gif", "mp3", "exif"), and the label and blurb miss most of those. The
-field is required on purpose, so adding a 23rd tool fails the typecheck until
-someone thinks about how it will be searched for.
+message is required in both catalogs on purpose, so adding a tool fails the
+typecheck and the catalog parity test until someone thinks about how it will be
+searched for.
 
 Write only what the tool really does. Take terms from its `docs/` file and its
 accepted formats, not from guesses. For example the image converter has no
@@ -93,7 +101,8 @@ second press moved it. I did not trace why inside the library. Trying
 `autoHighlight="always"` and a `value` on each row changed nothing. With real
 `items` the first ArrowDown moves to the second row. Both views use the same section shape (`value`, optional
 `category`, `items`), a labelled group per category when empty and one group
-labelled "Results" for screen readers only when searching.
+labelled with the `search_results_group` message ("Results") for screen readers
+only when searching.
 
 ## UI notes
 

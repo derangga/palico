@@ -27,8 +27,15 @@ import {
 	toolGroups,
 } from "#/lib/tool-categories.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
-const homeItem = { to: "/", label: "Home", icon: Home } as const;
+const homeItem = {
+	to: "/",
+	get label() {
+		return m.sidebar_home();
+	},
+	icon: Home,
+};
 
 type NavItem = Pick<Tool, "to" | "label" | "icon"> &
 	Partial<Pick<Tool, "category" | "engine">>;
@@ -184,7 +191,7 @@ export function AppSidebar() {
 					>
 						<span className="text-base font-bold">Palico</span>
 						<span className="text-muted-foreground text-xs">
-							Client first tools
+							{m.sidebar_tagline()}
 						</span>
 					</div>
 				</div>
@@ -218,7 +225,7 @@ export function AppSidebar() {
 			</SidebarContent>
 			<SidebarFooter>
 				<p className="text-muted-foreground px-2 text-xs group-data-[collapsible=icon]:hidden">
-					100% on-device. No uploads, no tracking.
+					{m.sidebar_footer()}
 				</p>
 			</SidebarFooter>
 		</Sidebar>

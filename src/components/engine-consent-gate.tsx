@@ -10,11 +10,12 @@ import { type ReactNode, useState } from "react";
 import { DownloadConsentDialog } from "#/components/download-consent-dialog.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
+import { m } from "#/paraglide/messages.js";
 
 export function EngineCheckingSkeleton() {
 	return (
 		<output
-			aria-label="Checking for a cached engine"
+			aria-label={m.engine_checking_label()}
 			className="flex items-center gap-3 rounded-xl border bg-card p-6"
 		>
 			<Skeleton className="size-5 shrink-0 rounded-full" />

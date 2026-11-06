@@ -2,6 +2,7 @@ import { Effect, SubscriptionRef } from "effect";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+import { useLocale } from "#/hooks/use-locale.ts";
 import { useStore } from "#/hooks/use-offline-status.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { reloadNeededRef } from "#/lib/offline/state.ts";
@@ -11,6 +12,7 @@ import {
 	updateStore,
 } from "#/lib/offline/stores.ts";
 import { applyUpdate } from "#/lib/offline/update.ts";
+import { m } from "#/paraglide/messages.js";
 
 const UPDATE_ID = "palico-update";
 const RELOAD_ID = "palico-reload";
@@ -22,8 +24,8 @@ const runUpdate = () =>
 				UpdateBlockedError: (e) => Effect.sync(() => toast.message(e.message)),
 				SwUpdateError: () =>
 					Effect.sync(() =>
-						toast.error("Reload to finish updating", {
-							description: "The new version is ready after a manual reload.",
+						toast.error(m.update_failed_title(), {
+							description: m.update_failed_description(),
 						}),
 					),
 			}),
@@ -39,6 +41,8 @@ export function UpdatePrompt() {
 	const update = useStore(updateStore);
 	const busy = useStore(busyStore);
 	const reloadNeeded = useStore(reloadNeededStore);
+	// A toast keeps the language it was raised in, so raise it again on a switch.
+	const locale = useLocale();
 
 	useEffect(() => {
 		if (update === "idle") {
@@ -48,27 +52,28 @@ export function UpdatePrompt() {
 		}
 
 		const canApply = busy === 0 && update === "waiting";
-		toast.info("A new version is ready", {
+		toast.info(m.update_ready_title(), {
 			id: UPDATE_ID,
 			duration: Number.POSITIVE_INFINITY,
-			description: canApply
-				? "Files you haven't saved will be lost when the page reloads."
-				: "You can update once the current job finishes.",
+			description: canApply ? m.update_ready_apply() : m.update_ready_wait(),
 			action: canApply
-				? { label: "Update", onClick: () => void runUpdate() }
+				? { label: m.update_action(), onClick: () => void runUpdate() }
 				: undefined,
 		});
-	}, [update, busy]);
+	}, [update, busy, locale]);
 
 	useEffect(() => {
 		if (!reloadNeeded) return;
-		toast.warning("Reload to continue", {
+		toast.warning(m.update_reload_title(), {
 			id: RELOAD_ID,
 			duration: Number.POSITIVE_INFINITY,
-			description: "A newer version was installed in another tab.",
-			action: { label: "Reload", onClick: () => location.reload() },
+			description: m.update_reload_description(),
+			action: {
+				label: m.update_reload_action(),
+				onClick: () => location.reload(),
+			},
 		});
-	}, [reloadNeeded]);
+	}, [reloadNeeded, locale]);
 
 	// A lazy chunk of an old build failed to load: the same "reload" state.
 	useEffect(() => {

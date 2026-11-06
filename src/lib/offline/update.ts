@@ -1,5 +1,7 @@
 import { Effect, Fiber, Option, Ref, SubscriptionRef } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { SwUpdateError, UpdateBlockedError } from "./errors.ts";
 import { ServiceWorkerHost } from "./hosts.ts";
 import { busyRef, handleRef, updateRef } from "./state.ts";
@@ -14,7 +16,7 @@ export const applyUpdate = Effect.gen(function* () {
 	if (busy > 0) {
 		return yield* new UpdateBlockedError({
 			busy,
-			message: "Finish the current job before updating.",
+			message: m.error_update_blocked(),
 		});
 	}
 
@@ -22,7 +24,7 @@ export const applyUpdate = Effect.gen(function* () {
 
 	if (Option.isNone(handle)) {
 		return yield* new SwUpdateError({
-			message: "Offline mode is not running.",
+			message: m.error_offline_not_running(),
 		});
 	}
 
@@ -34,7 +36,7 @@ export const applyUpdate = Effect.gen(function* () {
 			duration: "5 seconds",
 			orElse: () =>
 				Effect.fail(
-					new SwUpdateError({ message: "The update did not finish." }),
+					new SwUpdateError({ message: m.error_update_unfinished() }),
 				),
 		}),
 	);

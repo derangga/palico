@@ -1,9 +1,14 @@
 import { readFileSync } from "node:fs";
 
-import { describe, expect, it } from "vitest";
+import { Effect, SubscriptionRef } from "effect";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { LOCALES } from "./i18n/shapes.ts";
+import { localeRef, resetLocale } from "./i18n/state.ts";
 import { SITE_URL, seoHead } from "./seo.ts";
 import { TOOLS } from "./tool-categories.ts";
+
+afterEach(() => Effect.runSync(resetLocale));
 
 describe("seo", () => {
 	it("lists the home page and every tool in sitemap.xml", () => {
@@ -21,10 +26,16 @@ describe("seo", () => {
 		);
 	});
 
-	it("keeps titles and descriptions inside search result limits", () => {
-		for (const tool of TOOLS) {
-			expect(`${tool.seoTitle} | Palico`.length).toBeLessThanOrEqual(60);
-			expect(tool.seoDescription.length).toBeLessThanOrEqual(160);
+	it("keeps titles and descriptions inside search result limits in every language", () => {
+		for (const locale of LOCALES) {
+			Effect.runSync(SubscriptionRef.set(localeRef, locale));
+
+			for (const tool of TOOLS) {
+				expect(`${tool.seoTitle} | Palico`.length, locale).toBeLessThanOrEqual(
+					60,
+				);
+				expect(tool.seoDescription.length, locale).toBeLessThanOrEqual(160);
+			}
 		}
 	});
 
