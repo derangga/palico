@@ -235,7 +235,7 @@ tile and icon fill; the second is the tint or secondary detail.
 | Video & Audio (`video`) | Peach + Yellow | Video converter, video cutter, video compressor, video to GIF, extract audio, audio cutter |
 | File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, QR code generator, QR code reader |
 | Color | Blue + Sapphire | Palette extractor, color picker |
-| Developer | Lavender + Flamingo | Cron generator, Markdown preview, diff viewer |
+| Developer | Lavender + Flamingo | Cron generator, Markdown preview, diff viewer, JSON converter |
 
 Color tools read or help you choose colors. A tool that takes an image and
 returns a changed image (grayscale, make a color transparent) stays in Image.
