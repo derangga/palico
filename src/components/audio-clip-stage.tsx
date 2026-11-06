@@ -6,13 +6,15 @@ import { TrimTimeline } from "#/components/trim-timeline.tsx";
 import { Waveform } from "#/components/waveform.tsx";
 import type { ClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useWaveform } from "#/hooks/use-waveform.ts";
+import { m } from "#/paraglide/messages.js";
 
-const NOTES = {
-	decoding: "Reading the waveform…",
-	unavailable: "No waveform for this file. You can still trim by time.",
-	ready:
-		"Audio is cut without re-encoding, so the sound keeps its quality. A cut can land a few hundredths of a second from your selection.",
-} as const;
+// A function, not a constant: a constant would keep the language it was built in.
+const notes = () =>
+	({
+		decoding: m.audiocut_decoding(),
+		unavailable: m.audiocut_no_waveform(),
+		ready: m.audiocut_ready_note(),
+	}) as const;
 
 interface AudioClipStageProps {
 	player: ClipPlayer<HTMLAudioElement>;
@@ -40,7 +42,7 @@ export function AudioClipStage({
 			<audio
 				ref={mediaRef}
 				src={objectUrl ?? undefined}
-				aria-label="Audio preview"
+				aria-label={m.audiocut_preview()}
 				onLoadedMetadata={(e) => {
 					player.onLoadedMetadata();
 
@@ -72,7 +74,7 @@ export function AudioClipStage({
 			/>
 
 			<output className="text-xs text-muted-foreground">
-				{NOTES[waveform.status]}
+				{notes()[waveform.status]}
 			</output>
 		</div>
 	);

@@ -34,6 +34,7 @@ import {
 	setSuppressSmallWarning,
 } from "#/lib/video/preferences.ts";
 import { VIDEO_OUTPUT_FORMATS } from "#/lib/video/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/video-converter")({
 	head: () => seoHead("/video-converter"),
@@ -42,13 +43,9 @@ export const Route = createFileRoute("/video-converter")({
 
 // Static consent copy — hoisted to module scope so it isn't rebuilt each render
 // and doesn't force VideoEnginePanel to redraw.
-const CONVERTER_CONSENT_DESCRIPTION = (
-	<>
-		Video conversion runs entirely on your device, but the engine itself is a
-		one-time {ENGINE_SIZE_LABEL} download. It is cached after the first load, so
-		return visits are instant. Nothing leaves your browser.
-	</>
-);
+// A function, not a constant: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.videoconv_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
 function VideoConverterPage() {
 	const gate = useEngineGate();
@@ -59,17 +56,17 @@ function VideoConverterPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Video Converter">
-				Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your browser.
+			<PageHeader title={m.tool_video_converter_label()}>
+				{m.videoconv_intro()}
 			</PageHeader>
 
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={Film}
-				consentDescription={CONVERTER_CONSENT_DESCRIPTION}
-				disabledTitle="Video conversion is disabled"
-				enableLabel="Enable video conversion"
+				consentDescription={consentDescription()}
+				disabledTitle={m.videoconv_disabled()}
+				enableLabel={m.videoconv_enable()}
 			/>
 		</PageShell>
 	);
@@ -99,7 +96,7 @@ function ConverterShell() {
 
 		for (const file of Array.from(fileList)) {
 			if (!file.type.startsWith("video/")) {
-				toast.error(`"${file.name}" is not a video.`);
+				toast.error(m.common_not_a_video({ name: file.name }));
 				continue;
 			}
 
@@ -109,14 +106,22 @@ function ConverterShell() {
 				// Rejected files never enter the queue, so conversion never runs
 				// on them — no engine work is triggered.
 				toast.error(
-					`"${file.name}" is ${formatBytes(file.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB; for larger files, please use a desktop video editor.`,
+					`${m.common_file_over_limit({
+						name: file.name,
+						size: formatBytes(file.size),
+						limit: verdict.capMB,
+					})} ${m.videoconv_over_cap({ cap: verdict.capMB })}`,
 				);
 				continue;
 			}
 
 			if (verdict.kind === "warn") {
 				toast(
-					`"${file.name}" is ${formatBytes(file.size)}. This may take several minutes to convert.`,
+					m.common_large_file_notice({
+						name: file.name,
+						size: formatBytes(file.size),
+						note: m.videoconv_slow_notice(),
+					}),
 				);
 			}
 
@@ -133,7 +138,7 @@ function ConverterShell() {
 			const room = Math.max(MAX_FILES - items.length, 0);
 
 			if (accepted.length > room) {
-				toast.error(`You can convert up to ${MAX_FILES} videos at a time.`);
+				toast.error(m.videoconv_too_many({ max: MAX_FILES }));
 			}
 
 			dispatch({ type: "addItems", items: accepted.slice(0, room) });
@@ -241,21 +246,23 @@ function ConverterShell() {
 
 			if (ok > 0) {
 				toast.success(
-					`Converted ${ok} video${ok === 1 ? "" : "s"} to ${formatLabel}.`,
+					ok === 1
+						? m.videoconv_success_one({ count: ok, label: formatLabel })
+						: m.videoconv_success_other({ count: ok, label: formatLabel }),
 				);
 			}
 
 			if (failed > 0) {
 				toast.error(
-					`${failed} video${failed === 1 ? "" : "s"} could not be converted.`,
+					failed === 1
+						? m.videoconv_failed_one({ count: failed })
+						: m.videoconv_failed_other({ count: failed }),
 				);
 			}
 		} catch (err) {
 			if (token.cancelled) return;
 			toast.error(
-				err instanceof Error
-					? err.message
-					: "Video conversion failed unexpectedly.",
+				err instanceof Error ? err.message : m.videoconv_unexpected(),
 			);
 		} finally {
 			if (!token.cancelled) dispatch({ type: "runEnd" });
@@ -283,26 +290,24 @@ function ConverterShell() {
 	);
 
 	const convertLabel = isRunning
-		? `Converting ${batchDone} / ${batchTotal}`
+		? m.videoconv_converting({ done: batchDone, total: batchTotal })
 		: convertable.length <= 1
-			? "Convert"
-			: `Convert ${convertable.length} files`;
+			? m.videoconv_convert()
+			: m.videoconv_convert_files({ count: convertable.length });
 
 	return (
 		<PageShell>
-			<PageHeader title="Video Converter">
-				Convert videos to MP4, WebM, MOV, MKV, or AVI, entirely in your browser.
-				Files convert one at a time to keep memory in check, up to {MAX_FILES}{" "}
-				per batch.
+			<PageHeader title={m.tool_video_converter_label()}>
+				{m.videoconv_description({ max: MAX_FILES })}
 			</PageHeader>
 
 			<Dropzone
-				label="Drag & drop videos here, or"
-				actionLabel="Choose files"
-				hint={`Video files, up to ${MAX_FILES} per batch`}
+				label={m.videoconv_dropzone_label()}
+				actionLabel={m.common_choose_files()}
+				hint={m.videoconv_hint({ max: MAX_FILES })}
 				accept="video/*"
 				multiple
-				ariaLabel="Choose videos to convert"
+				ariaLabel={m.videoconv_dropzone_aria()}
 				disabled={isRunning}
 				onFiles={addFiles}
 			/>

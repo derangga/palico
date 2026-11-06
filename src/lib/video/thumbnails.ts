@@ -7,6 +7,8 @@
 
 import { Effect, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 export class ThumbnailError extends Schema.TaggedError<ThumbnailError>()(
 	"ThumbnailError",
 	{ message: Schema.String },
@@ -123,7 +125,6 @@ export const generateThumbnails = (
 		try: () => extract(file, count, frameWidth),
 		catch: (cause) =>
 			new ThumbnailError({
-				message:
-					cause instanceof Error ? cause.message : "Could not read frames.",
+				message: cause instanceof Error ? cause.message : m.error_frames_read(),
 			}),
 	});

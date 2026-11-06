@@ -11,6 +11,7 @@ import {
 	AlertDialogMedia,
 	AlertDialogTitle,
 } from "#/components/ui/alert-dialog.tsx";
+import { m } from "#/paraglide/messages.js";
 
 export function CancelDialog({
 	open,
@@ -28,17 +29,16 @@ export function CancelDialog({
 					<AlertDialogMedia>
 						<Ban />
 					</AlertDialogMedia>
-					<AlertDialogTitle>Cancel conversion?</AlertDialogTitle>
+					<AlertDialogTitle>{m.videoconv_cancel_title()}</AlertDialogTitle>
 					<AlertDialogDescription>
-						The current file and any remaining files in the queue will not be
-						converted. Videos you&apos;ve already downloaded stay available.
+						{m.videoconv_cancel_description()}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Keep converting</AlertDialogCancel>
+					<AlertDialogCancel>{m.videoconv_keep_converting()}</AlertDialogCancel>
 					<AlertDialogAction variant="destructive" onClick={onConfirm}>
 						<Ban />
-						Cancel conversion
+						{m.videoconv_cancel_action()}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

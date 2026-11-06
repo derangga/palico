@@ -5,6 +5,8 @@
 
 import { Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 export const GifFps = Schema.Literals([8, 12, 15]);
 
 export type GifFps = Schema.Schema.Type<typeof GifFps>;
@@ -22,9 +24,24 @@ export const GIF_SIZE_OPTIONS: ReadonlyArray<{
 	readonly value: GifSize;
 	readonly label: string;
 }> = [
-	{ value: 320, label: "Small" },
-	{ value: 480, label: "Medium" },
-	{ value: 640, label: "Large" },
+	{
+		value: 320,
+		get label() {
+			return m.option_gif_small();
+		},
+	},
+	{
+		value: 480,
+		get label() {
+			return m.option_gif_medium();
+		},
+	},
+	{
+		value: 640,
+		get label() {
+			return m.option_gif_large();
+		},
+	},
 ];
 
 export const DEFAULT_GIF_SIZE: GifSize = 480;

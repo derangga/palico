@@ -19,8 +19,9 @@ import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
-import { checkCutterFileSize } from "#/lib/video/limits.ts";
+import { checkCutterFileSize, overCapMessage } from "#/lib/video/limits.ts";
 import { inputExtension, parseVideoOutputFormat } from "#/lib/video/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/video-cutter")({
 	head: () => seoHead("/video-cutter"),
@@ -29,13 +30,9 @@ export const Route = createFileRoute("/video-cutter")({
 
 // Static consent copy — hoisted to module scope so it isn't rebuilt each render
 // and doesn't force VideoEnginePanel to redraw.
-const CUTTER_CONSENT_DESCRIPTION = (
-	<>
-		Trimming runs entirely on your device, but the engine itself is a one-time{" "}
-		{ENGINE_SIZE_LABEL} download. It is cached after the first load, so return
-		visits are instant. Nothing leaves your browser.
-	</>
-);
+// A function, not a constant: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.videocut_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
 function VideoCutterPage() {
 	const gate = useEngineGate();
@@ -44,17 +41,16 @@ function VideoCutterPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Video Cutter">
-				Trim a clip out of any video, entirely in your browser. The output keeps
-				the original format.
+			<PageHeader title={m.tool_video_cutter_label()}>
+				{m.videocut_description()}
 			</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={Scissors}
-				consentDescription={CUTTER_CONSENT_DESCRIPTION}
-				disabledTitle="Video cutting is disabled"
-				enableLabel="Enable video cutting"
+				consentDescription={consentDescription()}
+				disabledTitle={m.videocut_disabled()}
+				enableLabel={m.videocut_enable()}
 			/>
 		</PageShell>
 	);
@@ -74,14 +70,14 @@ function CutterShell() {
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
-			toast.error(`"${f.name}" is not a video.`);
+			toast.error(m.common_not_a_video({ name: f.name }));
 
 			return;
 		}
 
 		// Output keeps the input container, so the input must be one we can mux.
 		if (Result.isFailure(parseVideoOutputFormat(inputExtension(f)))) {
-			toast.error("Supported formats: MP4, WebM, MOV, MKV, AVI.");
+			toast.error(m.videocut_formats());
 
 			return;
 		}
@@ -89,16 +85,18 @@ function CutterShell() {
 		const verdict = checkCutterFileSize(f.size, deviceClass());
 
 		if (verdict.kind === "rejected") {
-			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
-			);
+			toast.error(overCapMessage(f.name, formatBytes(f.size), verdict.capMB));
 
 			return;
 		}
 
 		if (verdict.kind === "warn") {
 			toast(
-				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while trimming.`,
+				m.common_large_file_notice({
+					name: f.name,
+					size: formatBytes(f.size),
+					note: m.videocut_large_note(),
+				}),
 			);
 		}
 
@@ -150,12 +148,12 @@ function CutterShell() {
 					type: "trimSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
-				toast.success("Your trimmed clip is ready. Hit Save to download it.");
+				toast.success(`${m.videocut_ready()} ${m.common_output_ready_hint()}`);
 			} else {
 				// Both failure types (EngineNotLoadedError | VideoTrimError) carry a
 				// typed `message`; defects (non-Fail causes) fall back to a generic.
 				const message = Option.match(Cause.findErrorOption(exit.cause), {
-					onNone: () => "Could not trim the video.",
+					onNone: () => m.videocut_failed(),
 					onSome: (error) => error.message,
 				});
 
@@ -163,11 +161,7 @@ function CutterShell() {
 			}
 		} catch (err) {
 			if (token.cancelled) return;
-			toast.error(
-				err instanceof Error
-					? err.message
-					: "Video trimming failed unexpectedly.",
-			);
+			toast.error(err instanceof Error ? err.message : m.videocut_unexpected());
 		} finally {
 			if (!token.cancelled) dispatch({ type: "trimEnd" });
 		}
@@ -190,18 +184,17 @@ function CutterShell() {
 
 	return (
 		<PageShell className="min-[769px]:max-w-6xl">
-			<PageHeader title="Video Cutter">
-				Trim a clip out of any video, entirely in your browser. The output keeps
-				the original format.
+			<PageHeader title={m.tool_video_cutter_label()}>
+				{m.videocut_description()}
 			</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					label="Drag & drop a video here, or"
-					actionLabel="Choose a video"
-					hint="One video file at a time"
+					label={m.common_video_dropzone_label()}
+					actionLabel={m.common_choose_a_video()}
+					hint={m.video_hint_one_file()}
 					accept="video/*"
-					ariaLabel="Choose a video to trim"
+					ariaLabel={m.videocut_dropzone_aria()}
 					onFiles={addFiles}
 				/>
 			) : (
@@ -213,7 +206,7 @@ function CutterShell() {
 					<VideoClipStage
 						player={player}
 						disabled={trimming}
-						note="Cuts snap to the nearest keyframe, so the clip may start up to a second or two before your selection."
+						note={m.videocut_keyframe_note()}
 					/>
 
 					<TrimPanel

@@ -6,6 +6,8 @@
 
 import { Data, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 export const CompressQuality = Schema.Literals(["high", "medium", "low"]);
 
 export type CompressQuality = Schema.Schema.Type<typeof CompressQuality>;
@@ -20,9 +22,24 @@ export const QUALITY_OPTIONS: ReadonlyArray<{
 	readonly value: CompressQuality;
 	readonly label: string;
 }> = [
-	{ value: "high", label: "High" },
-	{ value: "medium", label: "Medium" },
-	{ value: "low", label: "Low" },
+	{
+		value: "high",
+		get label() {
+			return m.option_quality_high();
+		},
+	},
+	{
+		value: "medium",
+		get label() {
+			return m.option_quality_medium();
+		},
+	},
+	{
+		value: "low",
+		get label() {
+			return m.option_quality_low();
+		},
+	},
 ];
 
 export const DEFAULT_QUALITY: CompressQuality = "medium";
@@ -36,7 +53,12 @@ export const RESOLUTION_OPTIONS: ReadonlyArray<{
 	readonly value: Resolution;
 	readonly label: string;
 }> = [
-	{ value: "original", label: "Original" },
+	{
+		value: "original",
+		get label() {
+			return m.compare_original();
+		},
+	},
 	{ value: "1080", label: "1080p" },
 	{ value: "720", label: "720p" },
 	{ value: "480", label: "480p" },
@@ -147,13 +169,13 @@ export const checkCustomSize = (
 	const mb = Number(text);
 
 	if (text.trim() === "" || !Number.isFinite(mb) || mb <= 0) {
-		return { kind: "invalid", message: "Enter a size in MB." };
+		return { kind: "invalid", message: m.error_custom_size_empty() };
 	}
 
 	if (isUnderTarget(fileBytes, mb)) {
 		return {
 			kind: "invalid",
-			message: "This video is already under that size.",
+			message: m.error_custom_size_under(),
 		};
 	}
 

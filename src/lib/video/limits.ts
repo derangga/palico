@@ -8,6 +8,8 @@
 
 import { Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import type { VideoOutputFormat } from "./types.ts";
 
 export const MB = 1024 * 1024;
@@ -142,3 +144,14 @@ export const processTimeWarningLevel = (
 
 	return "none";
 };
+
+/**
+ * The toast for a file over the hard cap: its size against the limit, then why
+ * the cap exists. `size` is already formatted by the caller.
+ */
+export const overCapMessage = (
+	name: string,
+	size: string,
+	capMB: number,
+): string =>
+	`${m.common_file_over_limit({ name, size, limit: capMB })} ${m.common_memory_cap({ cap: capMB })}`;

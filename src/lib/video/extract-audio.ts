@@ -11,6 +11,8 @@
 
 import { Effect, Option, Result } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	type AudioFormat,
 	type AudioStream,
@@ -41,7 +43,7 @@ export interface ExtractAudioOutput {
 	readonly copied: boolean;
 }
 
-const UNREADABLE = "Could not read the audio in this video.";
+const unreadable = () => m.error_audio_unreadable();
 
 // ffprobe the staged input for its first audio stream.
 const probeAudio = (
@@ -63,14 +65,14 @@ const probeAudio = (
 				"json",
 				inputName,
 			],
-			unreadable: UNREADABLE,
+			unreadable: unreadable(),
 			error: (message) => new AudioExtractError({ fileName, message }),
 		});
 
 		const parsed = parseAudioProbe(json);
 
 		if (Result.isFailure(parsed)) {
-			return yield* new AudioExtractError({ fileName, message: UNREADABLE });
+			return yield* new AudioExtractError({ fileName, message: unreadable() });
 		}
 
 		return yield* Option.match(parsed.success, {
@@ -78,7 +80,7 @@ const probeAudio = (
 				Effect.fail(
 					new NoAudioTrackError({
 						fileName,
-						message: "This video has no sound to extract.",
+						message: m.error_no_audio(),
 					}),
 				),
 			onSome: (stream) => Effect.succeed(stream),
@@ -123,9 +125,8 @@ const extractOne = (
 					}),
 				),
 			outputMime: meta.mime,
-			label: "Audio encoder",
-			oomMessage:
-				"Your device ran out of memory. Try a smaller file, or MP3 instead of WAV.",
+			label: m.job_stage_audio_encoder(),
+			oomMessage: m.error_oom_extract(),
 			readError: error,
 			jobError: error,
 			// A stream copy emits no progress; the route shows a spinner until a
@@ -159,7 +160,7 @@ export const extractAudio = (
 		if (isCancelled()) {
 			return yield* new AudioExtractError({
 				fileName: input.file.name,
-				message: "Cancelled.",
+				message: m.error_cancelled(),
 			});
 		}
 

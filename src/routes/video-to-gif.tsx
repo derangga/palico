@@ -21,23 +21,19 @@ import {
 	initialGifEnd,
 	MAX_GIF_SECONDS,
 } from "#/lib/video/gif-options.ts";
-import { checkFileSize } from "#/lib/video/limits.ts";
+import { checkFileSize, overCapMessage } from "#/lib/video/limits.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/video-to-gif")({
 	head: () => seoHead("/video-to-gif"),
 	component: VideoToGifPage,
 });
 
-const GIF_CONSENT_DESCRIPTION = (
-	<>
-		GIFs are made entirely on your device, but the engine itself is a one-time{" "}
-		{ENGINE_SIZE_LABEL} download. It is cached after the first load, so return
-		visits are instant. Nothing leaves your browser.
-	</>
-);
+// Functions, not constants: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.videogif_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
-const INTRO =
-	"Turn a short clip of any video into an animated GIF, entirely in your browser.";
+const intro = () => m.videogif_intro();
 
 function VideoToGifPage() {
 	const gate = useEngineGate();
@@ -46,14 +42,14 @@ function VideoToGifPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Video to GIF">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_video_to_gif_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={ImagePlay}
-				consentDescription={GIF_CONSENT_DESCRIPTION}
-				disabledTitle="GIF making is disabled"
-				enableLabel="Enable GIF making"
+				consentDescription={consentDescription()}
+				disabledTitle={m.videogif_disabled()}
+				enableLabel={m.videogif_enable()}
 			/>
 		</PageShell>
 	);
@@ -76,7 +72,7 @@ function GifShell() {
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
-			toast.error(`"${f.name}" is not a video.`);
+			toast.error(m.common_not_a_video({ name: f.name }));
 
 			return;
 		}
@@ -85,16 +81,18 @@ function GifShell() {
 		const verdict = checkFileSize(f.size, deviceClass());
 
 		if (verdict.kind === "rejected") {
-			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
-			);
+			toast.error(overCapMessage(f.name, formatBytes(f.size), verdict.capMB));
 
 			return;
 		}
 
 		if (verdict.kind === "warn") {
 			toast(
-				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while making the GIF.`,
+				m.common_large_file_notice({
+					name: f.name,
+					size: formatBytes(f.size),
+					note: m.videogif_large_note(),
+				}),
 			);
 		}
 
@@ -149,10 +147,10 @@ function GifShell() {
 					type: "makeSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
-				toast.success("Your GIF is ready. Hit Save to download it.");
+				toast.success(`${m.videogif_ready()} ${m.common_output_ready_hint()}`);
 			} else {
 				const message = Option.match(Cause.findErrorOption(exit.cause), {
-					onNone: () => "Could not make the GIF.",
+					onNone: () => m.videogif_failed(),
 					onSome: (error) => error.message,
 				});
 
@@ -160,11 +158,7 @@ function GifShell() {
 			}
 		} catch (err) {
 			if (token.cancelled) return;
-			toast.error(
-				err instanceof Error
-					? err.message
-					: "Making the GIF failed unexpectedly.",
-			);
+			toast.error(err instanceof Error ? err.message : m.videogif_unexpected());
 		} finally {
 			if (!token.cancelled) dispatch({ type: "makeEnd" });
 		}
@@ -191,15 +185,15 @@ function GifShell() {
 
 	return (
 		<PageShell className="min-[769px]:max-w-6xl">
-			<PageHeader title="Video to GIF">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_video_to_gif_label()}>{intro()}</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					label="Drag & drop a video here, or"
-					actionLabel="Choose a video"
-					hint={`One video file at a time. GIFs can be up to ${MAX_GIF_SECONDS} seconds long.`}
+					label={m.common_video_dropzone_label()}
+					actionLabel={m.common_choose_a_video()}
+					hint={m.videogif_hint({ seconds: MAX_GIF_SECONDS })}
 					accept="video/*"
-					ariaLabel="Choose a video to turn into a GIF"
+					ariaLabel={m.videogif_dropzone_aria()}
 					onFiles={addFiles}
 				/>
 			) : (
@@ -208,7 +202,7 @@ function GifShell() {
 						player={player}
 						disabled={making}
 						maxSelection={MAX_GIF_SECONDS}
-						note={`Pick up to ${MAX_GIF_SECONDS} seconds. Shorter clips make smaller GIFs.`}
+						note={m.videogif_note({ seconds: MAX_GIF_SECONDS })}
 					/>
 
 					<GifPanel

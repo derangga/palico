@@ -17,23 +17,19 @@ import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
-import { checkCutterFileSize } from "#/lib/video/limits.ts";
+import { checkCutterFileSize, overCapMessage } from "#/lib/video/limits.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/extract-audio")({
 	head: () => seoHead("/extract-audio"),
 	component: ExtractAudioPage,
 });
 
-const AUDIO_CONSENT_DESCRIPTION = (
-	<>
-		Audio is extracted entirely on your device, but the engine itself is a
-		one-time {ENGINE_SIZE_LABEL} download. It is cached after the first load, so
-		return visits are instant. Nothing leaves your browser.
-	</>
-);
+// Functions, not constants: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.extract_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
-const INTRO =
-	"Save the sound of any video as MP3, M4A, Opus or WAV, entirely in your browser.";
+const intro = () => m.extract_intro();
 
 function ExtractAudioPage() {
 	const gate = useEngineGate();
@@ -42,14 +38,14 @@ function ExtractAudioPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Extract Audio">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_extract_audio_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={AudioLines}
-				consentDescription={AUDIO_CONSENT_DESCRIPTION}
-				disabledTitle="Audio extraction is disabled"
-				enableLabel="Enable audio extraction"
+				consentDescription={consentDescription()}
+				disabledTitle={m.extract_disabled()}
+				enableLabel={m.extract_enable()}
 			/>
 		</PageShell>
 	);
@@ -66,7 +62,7 @@ function ExtractShell() {
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
-			toast.error(`"${f.name}" is not a video.`);
+			toast.error(m.common_not_a_video({ name: f.name }));
 
 			return;
 		}
@@ -76,16 +72,18 @@ function ExtractShell() {
 		const verdict = checkCutterFileSize(f.size, deviceClass());
 
 		if (verdict.kind === "rejected") {
-			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
-			);
+			toast.error(overCapMessage(f.name, formatBytes(f.size), verdict.capMB));
 
 			return;
 		}
 
 		if (verdict.kind === "warn") {
 			toast(
-				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while extracting.`,
+				m.common_large_file_notice({
+					name: f.name,
+					size: formatBytes(f.size),
+					note: m.extract_large_note(),
+				}),
 			);
 		}
 
@@ -132,14 +130,14 @@ function ExtractShell() {
 				});
 				toast.success(
 					out.copied
-						? "Your audio is ready, with the original sound kept as is. Hit Save to download it."
-						: "Your audio is ready. Hit Save to download it.",
+						? `${m.extract_ready_copied()} ${m.common_output_ready_hint()}`
+						: `${m.extract_ready()} ${m.common_output_ready_hint()}`,
 				);
 			} else {
 				// Every failure (EngineNotLoadedError | NoAudioTrackError |
 				// AudioExtractError) carries a typed, user-facing `message`.
 				const message = Option.match(Cause.findErrorOption(exit.cause), {
-					onNone: () => "Could not extract the audio.",
+					onNone: () => m.extract_failed(),
 					onSome: (error) => error.message,
 				});
 
@@ -147,11 +145,7 @@ function ExtractShell() {
 			}
 		} catch (err) {
 			if (token.cancelled) return;
-			toast.error(
-				err instanceof Error
-					? err.message
-					: "Extracting the audio failed unexpectedly.",
-			);
+			toast.error(err instanceof Error ? err.message : m.extract_unexpected());
 		} finally {
 			if (!token.cancelled) dispatch({ type: "extractEnd" });
 		}
@@ -171,15 +165,15 @@ function ExtractShell() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Extract Audio">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_extract_audio_label()}>{intro()}</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					label="Drag & drop a video here, or"
-					actionLabel="Choose a video"
-					hint="One video file at a time"
+					label={m.common_video_dropzone_label()}
+					actionLabel={m.common_choose_a_video()}
+					hint={m.video_hint_one_file()}
 					accept="video/*"
-					ariaLabel="Choose a video to extract audio from"
+					ariaLabel={m.extract_dropzone_aria()}
 					onFiles={addFiles}
 				/>
 			) : (

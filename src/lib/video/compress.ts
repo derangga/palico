@@ -11,6 +11,8 @@
 
 import { Effect, Result, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	AUDIO_KBPS_QUALITY,
 	AUDIO_KBPS_SIZE,
@@ -124,7 +126,7 @@ export const parseDurationProbe = (
 				: Result.fail("No duration in probe output."),
 	);
 
-const NO_LENGTH = "Could not read this video's length. Try Quality mode.";
+const noLength = () => m.error_no_length();
 
 // Probe → plan → argv for size mode. Fails before any encode when the length
 // is unreadable or the target is too small for it.
@@ -148,13 +150,13 @@ const sizeModeArgs = (
 				"json",
 				inputName,
 			],
-			unreadable: NO_LENGTH,
+			unreadable: noLength(),
 			error: (message) => new VideoCompressError({ fileName, message }),
 		});
 
 		const duration = yield* Result.match(parseDurationProbe(json), {
 			onFailure: () =>
-				Effect.fail(new VideoCompressError({ fileName, message: NO_LENGTH })),
+				Effect.fail(new VideoCompressError({ fileName, message: noLength() })),
 			onSuccess: (seconds) => Effect.succeed(seconds),
 		});
 
@@ -165,7 +167,7 @@ const sizeModeArgs = (
 				fileName,
 				targetMB,
 				minMB: plan.minMB,
-				message: `This video needs at least ${plan.minMB} MB at this length.`,
+				message: m.error_target_too_small({ min: plan.minMB }),
 			});
 		}
 
@@ -209,8 +211,8 @@ export const compressOne = (
 						)
 				: buildCompressArgs(inputName, outputName, mode, resolution),
 			outputMime: "video/mp4",
-			label: "Encoder",
-			oomMessage: "Your device ran out of memory. Try 720p or a smaller file.",
+			label: m.job_stage_encoder(),
+			oomMessage: m.error_oom_compress(),
 			readError: error,
 			jobError: error,
 			onPercent,
@@ -249,7 +251,7 @@ export const compressVideo = (
 		if (isCancelled()) {
 			return yield* new VideoCompressError({
 				fileName: input.file.name,
-				message: "Cancelled.",
+				message: m.error_cancelled(),
 			});
 		}
 

@@ -15,6 +15,7 @@ import {
 } from "#/components/engine-consent-gate.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { ENGINE_SIZE_LABEL, type LoadPhase } from "#/lib/video/cache.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface VideoEnginePanelProps {
 	phase: LoadPhase;
@@ -39,12 +40,14 @@ export function VideoEnginePanel({
 				<div className="flex items-start gap-3">
 					<CircleAlert className="size-5 shrink-0 text-destructive" />
 					<div className="flex-1">
-						<p className="text-sm font-medium">Could not load the engine</p>
+						<p className="text-sm font-medium">
+							{m.video_engine_error_title()}
+						</p>
 						<p className="mt-1 text-sm text-muted-foreground">
 							{phase.message}
 						</p>
 						<Button className="mt-4" onClick={onStart}>
-							Try again
+							{m.common_try_again()}
 						</Button>
 					</div>
 				</div>
@@ -59,9 +62,9 @@ export function VideoEnginePanel({
 			<EngineConsentCard
 				icon={Icon}
 				title={disabledTitle}
-				body={`The ${ENGINE_SIZE_LABEL} engine download is required to use this tool.`}
+				body={m.video_engine_consent_body({ size: ENGINE_SIZE_LABEL })}
 				enableLabel={enableLabel}
-				dialogTitle={`Download the video engine (${ENGINE_SIZE_LABEL})`}
+				dialogTitle={m.video_engine_dialog_title({ size: ENGINE_SIZE_LABEL })}
 				dialogDescription={consentDescription}
 				onConfirm={onStart}
 			/>
@@ -72,20 +75,20 @@ export function VideoEnginePanel({
 	const { status, percent, detail } = Match.value(phase).pipe(
 		Match.discriminators("kind")({
 			downloading: ({ percent }) => ({
-				status: `Downloading engine ${percent}%`,
+				status: m.video_engine_downloading({ percent }),
 				percent,
-				detail: "Fetching the engine. It will be cached for next time.",
+				detail: m.video_engine_downloading_hint(),
 			}),
 			caching: () => ({
-				status: "Caching engine",
+				status: m.video_engine_caching(),
 				percent: 100,
-				detail: "Saving the engine to your browser cache.",
+				detail: m.video_engine_caching_hint(),
 			}),
 		}),
 		Match.orElse(() => ({
-			status: "Preparing tools",
+			status: m.video_engine_preparing(),
 			percent: 100,
-			detail: "Initializing the engine in a worker thread (1–2s).",
+			detail: m.video_engine_preparing_hint(),
 		})),
 	);
 

@@ -19,23 +19,19 @@ import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { CompressMode, CompressOutput } from "#/lib/video/compress-options.ts";
-import { checkFileSize } from "#/lib/video/limits.ts";
+import { checkFileSize, overCapMessage } from "#/lib/video/limits.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/video-compressor")({
 	head: () => seoHead("/video-compressor"),
 	component: VideoCompressorPage,
 });
 
-const COMPRESS_CONSENT_DESCRIPTION = (
-	<>
-		Videos are compressed entirely on your device, but the engine itself is a
-		one-time {ENGINE_SIZE_LABEL} download. It is cached after the first load, so
-		return visits are instant. Nothing leaves your browser.
-	</>
-);
+// Functions, not constants: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.videocomp_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
-const INTRO =
-	"Shrink a video to fit an upload limit, entirely in your browser.";
+const intro = () => m.videocomp_intro();
 
 function VideoCompressorPage() {
 	const gate = useEngineGate();
@@ -44,14 +40,14 @@ function VideoCompressorPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Compress Video">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_video_compressor_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={Minimize2}
-				consentDescription={COMPRESS_CONSENT_DESCRIPTION}
-				disabledTitle="Video compression is disabled"
-				enableLabel="Enable video compression"
+				consentDescription={consentDescription()}
+				disabledTitle={m.videocomp_disabled()}
+				enableLabel={m.videocomp_enable()}
 			/>
 		</PageShell>
 	);
@@ -68,7 +64,7 @@ function CompressShell() {
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
-			toast.error(`"${f.name}" is not a video.`);
+			toast.error(m.common_not_a_video({ name: f.name }));
 
 			return;
 		}
@@ -77,16 +73,18 @@ function CompressShell() {
 		const verdict = checkFileSize(f.size, deviceClass());
 
 		if (verdict.kind === "rejected") {
-			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
-			);
+			toast.error(overCapMessage(f.name, formatBytes(f.size), verdict.capMB));
 
 			return;
 		}
 
 		if (verdict.kind === "warn") {
 			toast(
-				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while compressing.`,
+				m.common_large_file_notice({
+					name: f.name,
+					size: formatBytes(f.size),
+					note: m.videocomp_large_note(),
+				}),
 			);
 		}
 
@@ -134,7 +132,7 @@ function CompressShell() {
 
 				if (CompressOutput.$is("kept")(out)) {
 					dispatch({ type: "compressSuccess", output: { kind: "kept" } });
-					toast("Already small, kept the original.");
+					toast(m.videocomp_kept());
 
 					return;
 				}
@@ -152,7 +150,7 @@ function CompressShell() {
 								: null,
 					},
 				});
-				toast.success("Your video is ready. Hit Save to download it.");
+				toast.success(`${m.videocomp_ready()} ${m.common_output_ready_hint()}`);
 
 				return;
 			}
@@ -160,7 +158,7 @@ function CompressShell() {
 			// TargetTooSmallError goes next to the size field; every other failure
 			// (EngineNotLoadedError | VideoCompressError) is a toast.
 			Option.match(Cause.findErrorOption(exit.cause), {
-				onNone: () => toast.error("Could not compress the video."),
+				onNone: () => toast.error(m.videocomp_failed()),
 				onSome: (error) =>
 					Predicate.isTagged(error, "TargetTooSmallError")
 						? dispatch({ type: "sizeError", message: error.message })
@@ -169,9 +167,7 @@ function CompressShell() {
 		} catch (err) {
 			if (token.cancelled) return;
 			toast.error(
-				err instanceof Error
-					? err.message
-					: "Compressing the video failed unexpectedly.",
+				err instanceof Error ? err.message : m.videocomp_unexpected(),
 			);
 		} finally {
 			if (!token.cancelled) dispatch({ type: "compressEnd" });
@@ -192,15 +188,15 @@ function CompressShell() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Compress Video">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_video_compressor_label()}>{intro()}</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					label="Drag & drop a video here, or"
-					actionLabel="Choose a video"
-					hint="One video file at a time. Saved as MP4."
+					label={m.common_video_dropzone_label()}
+					actionLabel={m.common_choose_a_video()}
+					hint={m.videocomp_hint()}
 					accept="video/*"
-					ariaLabel="Choose a video to compress"
+					ariaLabel={m.videocomp_dropzone_aria()}
 					onFiles={addFiles}
 				/>
 			) : (

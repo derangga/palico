@@ -6,6 +6,8 @@
 
 import { Effect, Result, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { type EngineHandle, getEngine } from "./engine.ts";
 import {
 	type ConvertVideoError,
@@ -100,9 +102,8 @@ const convertOne = (
 			outputName,
 			args: ["-i", inputName, ...ENCODER_ARGS[input.format], outputName],
 			outputMime: meta.mime,
-			label: "Encoder",
-			oomMessage:
-				"Your device ran out of memory. This video is too large or high-resolution to convert in the browser. Try a shorter clip or a lower-resolution copy.",
+			label: m.job_stage_encoder(),
+			oomMessage: m.error_oom_convert(),
 			readError: (message) =>
 				new VideoDecodeError({ fileName: input.file.name, message }),
 			jobError: (message) =>
@@ -156,7 +157,7 @@ export const convertVideos = (
 							new VideoEncodeError({
 								fileName: input.file.name,
 								format: input.format,
-								message: "Cancelled.",
+								message: m.error_cancelled(),
 							}),
 						);
 					}

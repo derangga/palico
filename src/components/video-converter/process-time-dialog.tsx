@@ -19,6 +19,7 @@ import {
 	VIDEO_OUTPUT_FORMATS,
 	type VideoOutputFormat,
 } from "#/lib/video/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface ProcessTimeDialogProps {
 	pending: Item[] | null;
@@ -59,12 +60,16 @@ export function ProcessTimeDialog({
 					<AlertDialogMedia>
 						<Clock />
 					</AlertDialogMedia>
-					<AlertDialogTitle>This one will take a few minutes</AlertDialogTitle>
+					<AlertDialogTitle>{m.videoconv_time_title()}</AlertDialogTitle>
 					<AlertDialogDescription>
-						This file is ~{Math.round(largest / MB)} MB. Converting to{" "}
-						{formatLabel} typically takes{" "}
-						{minutes === 1 ? "about a minute" : `~${minutes} minutes`} on this
-						hardware. Everything runs on your device. Please keep this tab open.
+						{m.videoconv_time_description({
+							mb: Math.round(largest / MB),
+							format: formatLabel,
+							duration:
+								minutes === 1
+									? m.duration_about_a_minute()
+									: m.duration_about_minutes({ minutes }),
+						})}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				{suppressible && (
@@ -79,13 +84,13 @@ export function ProcessTimeDialog({
 								onDontShowAgainChange(checked === true)
 							}
 						/>
-						Don&apos;t show this again for files under 50 MB
+						{m.videoconv_time_suppress()}
 					</label>
 				)}
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
 					<AlertDialogAction onClick={onConfirm}>
-						Convert anyway
+						{m.videoconv_convert_anyway()}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

@@ -20,7 +20,8 @@ import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { audioCutFormat } from "#/lib/video/audio.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
-import { checkCutterFileSize } from "#/lib/video/limits.ts";
+import { checkCutterFileSize, overCapMessage } from "#/lib/video/limits.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/audio-cutter")({
 	head: () => seoHead("/audio-cutter"),
@@ -28,16 +29,11 @@ export const Route = createFileRoute("/audio-cutter")({
 });
 
 // Static consent copy, hoisted so it is not rebuilt each render.
-const AUDIO_CUTTER_CONSENT_DESCRIPTION = (
-	<>
-		Trimming runs entirely on your device, but the engine itself is a one-time{" "}
-		{ENGINE_SIZE_LABEL} download. It is cached after the first load, so return
-		visits are instant. Nothing leaves your browser.
-	</>
-);
+// Functions, not constants: a constant would keep the language it was built in.
+const consentDescription = () =>
+	`${m.audiocut_consent({ size: ENGINE_SIZE_LABEL })} ${m.video_engine_consent_tail()}`;
 
-const INTRO =
-	"Trim a clip out of any audio file, entirely in your browser. The output keeps the original format.";
+const intro = () => m.audiocut_intro();
 
 function AudioCutterPage() {
 	const gate = useEngineGate();
@@ -46,14 +42,14 @@ function AudioCutterPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Audio Cutter">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_audio_cutter_label()}>{intro()}</PageHeader>
 			<VideoEnginePanel
 				phase={gate.phase}
 				onStart={gate.startLoad}
 				icon={AudioWaveform}
-				consentDescription={AUDIO_CUTTER_CONSENT_DESCRIPTION}
-				disabledTitle="Audio cutting is disabled"
-				enableLabel="Enable audio cutting"
+				consentDescription={consentDescription()}
+				disabledTitle={m.audiocut_disabled()}
+				enableLabel={m.audiocut_enable()}
 			/>
 		</PageShell>
 	);
@@ -75,7 +71,7 @@ function CutterShell() {
 		// The output keeps the input container, so the input must be one we can
 		// copy back out. The extension decides: FLAC and Opus often have no MIME type.
 		if (Option.isNone(audioCutFormat(f))) {
-			toast.error("Supported formats: MP3, M4A, WAV, OGG, Opus, FLAC.");
+			toast.error(m.error_audio_formats());
 
 			return;
 		}
@@ -83,16 +79,18 @@ function CutterShell() {
 		const verdict = checkCutterFileSize(f.size, deviceClass());
 
 		if (verdict.kind === "rejected") {
-			toast.error(
-				`"${f.name}" is ${formatBytes(f.size)}, over the ${verdict.capMB} MB limit. Browser memory caps this tool at ${verdict.capMB} MB.`,
-			);
+			toast.error(overCapMessage(f.name, formatBytes(f.size), verdict.capMB));
 
 			return;
 		}
 
 		if (verdict.kind === "warn") {
 			toast(
-				`"${f.name}" is ${formatBytes(f.size)}. Large files use more memory while trimming.`,
+				m.common_large_file_notice({
+					name: f.name,
+					size: formatBytes(f.size),
+					note: m.videocut_large_note(),
+				}),
 			);
 		}
 
@@ -109,9 +107,7 @@ function CutterShell() {
 		// A media error mid-trim must not drop the file under the running job.
 		if (trimming) return;
 
-		toast.error(
-			"This browser cannot play that audio file. Try another format.",
-		);
+		toast.error(m.audiocut_unplayable());
 		reset();
 	}
 
@@ -152,12 +148,12 @@ function CutterShell() {
 					type: "trimSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
-				toast.success("Your trimmed clip is ready. Hit Save to download it.");
+				toast.success(`${m.videocut_ready()} ${m.common_output_ready_hint()}`);
 			} else {
 				// Both failure types (EngineNotLoadedError | AudioTrimError) carry a
 				// typed `message`; defects fall back to a generic one.
 				const message = Option.match(Cause.findErrorOption(exit.cause), {
-					onNone: () => "Could not trim the audio.",
+					onNone: () => m.audiocut_failed(),
 					onSome: (error) => error.message,
 				});
 
@@ -165,11 +161,7 @@ function CutterShell() {
 			}
 		} catch (err) {
 			if (token.cancelled) return;
-			toast.error(
-				err instanceof Error
-					? err.message
-					: "Audio trimming failed unexpectedly.",
-			);
+			toast.error(err instanceof Error ? err.message : m.audiocut_unexpected());
 		} finally {
 			if (!token.cancelled) dispatch({ type: "trimEnd" });
 		}
@@ -192,15 +184,15 @@ function CutterShell() {
 
 	return (
 		<PageShell className="min-[769px]:max-w-6xl">
-			<PageHeader title="Audio Cutter">{INTRO}</PageHeader>
+			<PageHeader title={m.tool_audio_cutter_label()}>{intro()}</PageHeader>
 
 			{!file ? (
 				<Dropzone
-					label="Drag & drop an audio file here, or"
-					actionLabel="Choose an audio file"
-					hint="MP3, M4A, WAV, OGG, Opus or FLAC. One file at a time"
+					label={m.audiocut_dropzone_label()}
+					actionLabel={m.audiocut_choose()}
+					hint={m.audiocut_hint()}
 					accept="audio/*,.flac,.opus"
-					ariaLabel="Choose an audio file to trim"
+					ariaLabel={m.audiocut_dropzone_aria()}
 					onFiles={addFiles}
 				/>
 			) : (
@@ -216,7 +208,7 @@ function CutterShell() {
 
 					<TrimPanel
 						file={file}
-						formatTitle="Current audio format"
+						formatTitle={m.trim_current_audio_format()}
 						ResultIcon={AudioWaveform}
 						outputDuration={outputDuration}
 						trimming={trimming}
