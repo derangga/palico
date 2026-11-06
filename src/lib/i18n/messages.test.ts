@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
+import { Schema } from "effect";
 import { describe, expect, it } from "vitest";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -11,12 +12,15 @@ const settings: { locales: Array<string> } = JSON.parse(
 );
 
 // Message key to text. Keys starting with "$" (the schema pointer) are not messages.
+const Catalog = Schema.Record(Schema.String, Schema.String);
+
 const load = (file: string): ReadonlyMap<string, string> =>
 	new Map(
-		Object.entries(JSON.parse(readFileSync(`${dir}${file}`, "utf8"))).flatMap(
-			([key, text]) =>
-				!key.startsWith("$") && typeof text === "string" ? [[key, text]] : [],
-		),
+		Object.entries(
+			Schema.decodeUnknownSync(Catalog)(
+				JSON.parse(readFileSync(`${dir}${file}`, "utf8")),
+			),
+		).filter(([key]) => !key.startsWith("$")),
 	);
 
 const params = (text: string) =>

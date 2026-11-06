@@ -5,6 +5,7 @@ import { baseLocale, locales } from "#/paraglide/runtime.js";
 // The locales come from project.inlang/settings.json through the compiled
 // runtime, so adding a language there is the only edit this file needs.
 export const Locale = Schema.Literals(locales);
+
 export type Locale = typeof Locale.Type;
 
 export const BASE_LOCALE: Locale = baseLocale;

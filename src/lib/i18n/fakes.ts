@@ -5,6 +5,13 @@ import { LocaleStorageError } from "./errors.ts";
 import { LocaleHost } from "./hosts.ts";
 import type { Locale } from "./shapes.ts";
 
+interface FakeLocaleState {
+	stored: string | undefined;
+	documentLang: string | undefined;
+	// How many times a write was attempted, whether or not it succeeded.
+	writeAttempts: number;
+}
+
 export const makeFakeLocaleHost = (
 	opts: {
 		stored?: string;
@@ -13,12 +20,11 @@ export const makeFakeLocaleHost = (
 		failWrite?: boolean;
 	} = {},
 ) => {
-	const state: {
-		stored: string | undefined;
-		documentLang: string | undefined;
-		// How many times a write was attempted, whether or not it succeeded.
-		writeAttempts: number;
-	} = { stored: opts.stored, documentLang: undefined, writeAttempts: 0 };
+	const state: FakeLocaleState = {
+		stored: opts.stored,
+		documentLang: undefined,
+		writeAttempts: 0,
+	};
 
 	const write = (locale: Locale) =>
 		Effect.suspend(() => {
