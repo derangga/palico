@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { Check, Copy } from "lucide-react";
+import type { ComponentProps } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { useFlash } from "#/hooks/use-flash.ts";
@@ -19,6 +20,7 @@ export function CopyTextButton({
 	copiedMessage,
 	failureMessage,
 	className,
+	variant,
 }: {
 	readonly label: string;
 	readonly getText: () => string;
@@ -26,6 +28,7 @@ export function CopyTextButton({
 	readonly copiedMessage: string;
 	readonly failureMessage: string;
 	readonly className?: string;
+	readonly variant?: ComponentProps<typeof Button>["variant"];
 }) {
 	const [copied, flash] = useFlash(FLASH_MS);
 
@@ -37,7 +40,7 @@ export function CopyTextButton({
 
 	return (
 		<>
-			<Button onClick={copy} className={className}>
+			<Button onClick={copy} className={className} variant={variant}>
 				{copied ? <Check /> : <Copy />}
 				{copied ? m.copy_copied() : label}
 			</Button>

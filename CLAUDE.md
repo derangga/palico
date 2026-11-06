@@ -33,7 +33,7 @@ Read the matching file before starting that kind of work.
   `docs/pdf-organize.md`, `docs/pdf-to-images.md`,
   `docs/video-converter.md`, `docs/video-cutter.md`, `docs/video-to-gif.md`,
   `docs/extract-audio.md`, `docs/audio-cutter.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
-  `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`, `docs/json-converter.md`:
+  `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`, `docs/json-converter.md`, `docs/jwt-decoder.md`:
   how each tool works end to end and why it is built that way.
 - `docs/bottom-sheets.md`: the swipeable bottom sheet (`ui/drawer.tsx`), where it
   replaces a popup below 768px, and the markdown preview sheet. Read it before
