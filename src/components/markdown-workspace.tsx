@@ -42,7 +42,12 @@ export function MarkdownWorkspace() {
 	// Best-effort persistence of the deferred document; ignore storage failures.
 	// `source` is seeded from storage above, so the first write is a harmless
 	// no-op rather than clobbering the stored document with an empty state.
+	// The seeded sample is not saved. It is shown in the active language, so a
+	// first visit that switches language sees the sample follow it. The first
+	// edit makes the document the person's own and saves it.
 	useEffect(() => {
+		if (deferredSource === sampleMarkdown()) return;
+
 		Effect.runSyncExit(saveMarkdown(deferredSource));
 	}, [deferredSource]);
 

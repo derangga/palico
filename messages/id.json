@@ -939,7 +939,7 @@
 	"color_type_hint": "Ketik nilai HEX, RGB, HSL, atau OKLCH. Klik satu baris untuk menyalinnya.",
 	"markdown_description": "Ketik Markdown di kiri dan lihat hasilnya langsung di kanan. Semuanya berjalan di perangkatmu. Tidak ada yang diunggah.",
 	"diff_description": "Tempel teks asli dan teks yang diubah berdampingan, lalu cari perbedaannya. Semuanya berjalan di perangkatmu. Tidak ada yang diunggah.",
-	"diff_page_title": "Pembanding File",
+	"diff_page_title": "Pembanding Teks",
 	"markdown_placeholder": "Ketik Markdown di sini…",
 	"markdown_source_aria": "Sumber Markdown",
 	"markdown_empty": "Markdown yang dirender akan muncul di sini.",
