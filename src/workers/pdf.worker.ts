@@ -150,20 +150,19 @@ async function mapWithConcurrency<T, R>(
 // internal failures (copy/save) are left to the top-level "worker" catch.
 interface LoadFailure {
 	readonly reason: "encrypted" | "invalid";
-	readonly message: string;
+	readonly detail?: string;
 }
 
 function classifyLoadError(cause: unknown): LoadFailure {
 	const name = cause instanceof Error ? cause.name : undefined;
 
 	if (name === "PasswordException" || name === "EncryptedPDFError") {
-		return { reason: "encrypted", message: "This PDF is password-protected." };
+		return { reason: "encrypted" };
 	}
 
 	return {
 		reason: "invalid",
-		message:
-			cause instanceof Error ? cause.message : "This file isn't a valid PDF.",
+		detail: cause instanceof Error ? cause.message : undefined,
 	};
 }
 
@@ -188,15 +187,13 @@ async function render(req: RenderRequest): Promise<void> {
 				type: "error",
 				id: req.id,
 				reason: "encrypted",
-				message: "This PDF is password-protected.",
 			});
 		} else {
 			post({
 				type: "error",
 				id: req.id,
 				reason: "invalid",
-				message:
-					err instanceof Error ? err.message : "This file isn't a valid PDF.",
+				detail: err instanceof Error ? err.message : undefined,
 			});
 		}
 
@@ -211,7 +208,6 @@ async function render(req: RenderRequest): Promise<void> {
 				type: "error",
 				id: req.id,
 				reason: "too-many-pages",
-				message: `This PDF has ${pageCount} pages, over the ${req.maxPages}-page limit.`,
 				pageCount,
 			});
 
@@ -243,7 +239,6 @@ async function render(req: RenderRequest): Promise<void> {
 					type: "error",
 					id: req.id,
 					reason: "worker",
-					message: "Could not get a 2D canvas context.",
 				});
 
 				return;
@@ -463,7 +458,6 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 				type: "error",
 				id: req.id,
 				reason: "too-many-pages",
-				message: `This PDF has ${pageCount} pages, over the ${req.maxPages}-page limit.`,
 				pageCount,
 			});
 
@@ -488,10 +482,7 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 				type: "error",
 				id: req.id,
 				reason: "too-large",
-				message:
-					req.dpi > 72
-						? `This PDF is too big to turn into images at ${req.dpi} DPI in your browser. Try a lower DPI.`
-						: "This PDF is too big to turn into images in your browser.",
+				dpi: req.dpi,
 			});
 
 			return;
@@ -585,7 +576,7 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 			type: "error",
 			id: req.id,
 			reason: "worker",
-			message: cause instanceof Error ? cause.message : "PDF worker failed.",
+			detail: cause instanceof Error ? cause.message : undefined,
 		});
 
 	if (req.type === "render") {

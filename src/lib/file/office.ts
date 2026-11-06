@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { zip } from "fflate";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	OfficeBatchTooLargeError,
 	OfficeConvertError,
@@ -29,7 +31,7 @@ const validateFile = (
 			return Effect.fail(
 				new OfficeUnsupportedFormatError({
 					fileName: file.name,
-					message: `"${file.name}" isn't a supported Office document (.docx, .doc, .odt, .rtf).`,
+					message: m.error_office_unsupported({ name: file.name }),
 				}),
 			);
 		case "too-large":
@@ -38,9 +40,10 @@ const validateFile = (
 					fileName: file.name,
 					size: file.size,
 					limit: check.limitBytes,
-					message: `"${file.name}" is larger than the ${Math.round(
-						check.limitBytes / MB,
-					)} MB per-file limit.`,
+					message: m.error_office_too_large({
+						name: file.name,
+						limit: Math.round(check.limitBytes / MB),
+					}),
 				}),
 			);
 	}
@@ -57,10 +60,10 @@ export const validateBatch = (
 
 	const message =
 		check.kind === "too-many"
-			? `You can convert up to ${check.limit} files at a time.`
-			: `That batch is larger than the ${Math.round(
-					check.limitBytes / MB,
-				)} MB combined limit.`;
+			? m.error_office_too_many({ limit: check.limit })
+			: m.error_office_batch_too_large({
+					limit: Math.round(check.limitBytes / MB),
+				});
 
 	return Effect.fail(
 		new OfficeBatchTooLargeError({
@@ -79,8 +82,7 @@ const readBytes = (file: File): Effect.Effect<Uint8Array, OfficeConvertError> =>
 		catch: (cause) =>
 			new OfficeConvertError({
 				fileName: file.name,
-				message:
-					cause instanceof Error ? cause.message : "Could not read file.",
+				message: cause instanceof Error ? cause.message : m.error_read_file(),
 			}),
 	});
 
@@ -139,7 +141,7 @@ export const zipPdfs = (
 						message:
 							cause instanceof Error
 								? cause.message
-								: "Could not read a converted PDF.",
+								: m.error_office_read_pdf(),
 					}),
 			});
 

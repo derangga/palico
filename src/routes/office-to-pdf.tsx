@@ -9,6 +9,7 @@ import { isEngineCached, type LoadPhase } from "#/lib/file/office-types.ts";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/office-to-pdf")({
 	head: () => seoHead("/office-to-pdf"),
@@ -37,9 +38,7 @@ function OfficeToPdfPage() {
 			setPhase({
 				kind: "error",
 				message:
-					err instanceof Error
-						? err.message
-						: "Could not load the office engine.",
+					err instanceof Error ? err.message : m.office_engine_load_failed(),
 			});
 		}
 	}, []);
@@ -72,9 +71,8 @@ function OfficeToPdfPage() {
 				<OfficeShell />
 			) : (
 				<PageShell>
-					<PageHeader title="Word to PDF">
-						Convert Word, OpenDocument, and RTF files to PDF, entirely in your
-						browser. Nothing is uploaded.
+					<PageHeader title={m.tool_office_to_pdf_label()}>
+						{m.office_gate_description()}
 					</PageHeader>
 					<EnginePanel phase={phase} onStart={startLoad} />
 				</PageShell>

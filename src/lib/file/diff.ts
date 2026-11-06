@@ -5,6 +5,9 @@ import {
 } from "@pierre/diffs";
 import { Effect, Schema } from "effect";
 
+import { currentLocale } from "#/lib/i18n/state.ts";
+import { m } from "#/paraglide/messages.js";
+
 import {
 	type DiffError,
 	DiffInputTooLargeError,
@@ -55,7 +58,9 @@ const validateSize = (
 				new DiffInputTooLargeError({
 					size,
 					limit: MAX_DIFF_INPUT_CHARS,
-					message: `Each side is limited to ${MAX_DIFF_INPUT_CHARS.toLocaleString()} characters. Trim the input and try again.`,
+					message: m.error_diff_too_large({
+						limit: MAX_DIFF_INPUT_CHARS.toLocaleString(currentLocale()),
+					}),
 				}),
 			)
 		: Effect.void;
@@ -79,9 +84,7 @@ export const computeDiff = (
 			catch: (cause) =>
 				new DiffParseError({
 					message:
-						cause instanceof Error
-							? cause.message
-							: "Couldn't compute the difference between these inputs.",
+						cause instanceof Error ? cause.message : m.error_diff_failed(),
 				}),
 		});
 

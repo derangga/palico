@@ -25,7 +25,9 @@ import {
 	RasterFormat,
 } from "#/lib/file/pdf-types.ts";
 import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
+import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-to-images")({
 	head: () => seoHead("/pdf-to-images"),
@@ -34,10 +36,10 @@ export const Route = createFileRoute("/pdf-to-images")({
 
 const MB = 1024 * 1024;
 
-const DPI_OPTIONS: ReadonlyArray<{ value: RasterDpi; label: string }> = [
-	{ value: 72, label: "72 DPI · screen, small files" },
-	{ value: 150, label: "150 DPI · sharp, recommended" },
-	{ value: 300, label: "300 DPI · print" },
+const dpiOptions = (): ReadonlyArray<{ value: RasterDpi; label: string }> => [
+	{ value: 72, label: m.pdfimg_dpi_72() },
+	{ value: 150, label: m.pdfimg_dpi_150() },
+	{ value: 300, label: m.pdfimg_dpi_300() },
 ];
 
 function PdfToImagesPage() {
@@ -59,7 +61,10 @@ function PdfToImagesPage() {
 			loadPdf({ id, file, thumbnailLimit: 1 }, () => {}),
 		);
 
-		const result = toastOnExit(exit, `Couldn't open "${file.name}".`);
+		const result = toastOnExit(
+			exit,
+			m.pdf_open_failed_named({ name: file.name }),
+		);
 
 		if (Option.isNone(result)) {
 			setItem(null);
@@ -88,7 +93,7 @@ function PdfToImagesPage() {
 		);
 
 		setProgress(null);
-		const result = toastOnExit(exit, "Couldn't turn this PDF into images.");
+		const result = toastOnExit(exit, m.pdfimg_failed());
 
 		if (Option.isNone(result)) return;
 		downloadBlob(
@@ -108,7 +113,7 @@ function PdfToImagesPage() {
 	return (
 		<PageShell>
 			<PageHeader
-				title="PDF to Images"
+				title={m.tool_pdf_to_images_label()}
 				actions={
 					item && (
 						<Button
@@ -118,22 +123,28 @@ function PdfToImagesPage() {
 							disabled={working}
 						>
 							<RotateCcw />
-							Choose another
+							{m.common_choose_another()}
 						</Button>
 					)
 				}
 			>
-				Save every page of a PDF as a JPG or PNG, entirely in your browser. Up
-				to {Math.round(MAX_PDF_BYTES / MB)} MB and {MAX_PDF_PAGES} pages.
+				{m.pdfimg_description()}{" "}
+				{m.pdf_description_limits({
+					mb: Math.round(MAX_PDF_BYTES / MB),
+					pages: MAX_PDF_PAGES,
+				})}
 			</PageHeader>
 
 			{!item && (
 				<Dropzone
-					label="Drag & drop a PDF here, or"
-					actionLabel="Choose file"
-					hint={`PDF up to ${Math.round(MAX_PDF_BYTES / MB)} MB and ${MAX_PDF_PAGES} pages`}
+					label={m.pdf_dropzone_label()}
+					actionLabel={m.common_choose_file()}
+					hint={m.pdf_hint({
+						mb: Math.round(MAX_PDF_BYTES / MB),
+						pages: MAX_PDF_PAGES,
+					})}
 					accept="application/pdf"
-					ariaLabel="Choose a PDF to turn into images"
+					ariaLabel={m.pdfimg_dropzone_aria()}
 					onFiles={(files) => {
 						const picked = files?.[0];
 
@@ -149,9 +160,7 @@ function PdfToImagesPage() {
 						<div className="min-w-0">
 							<p className="truncate text-sm font-medium">{item.file.name}</p>
 							<p className="text-xs text-muted-foreground">
-								{ready
-									? `${item.pageCount} ${item.pageCount === 1 ? "page" : "pages"}`
-									: "reading…"}
+								{ready ? pagesLabel(item.pageCount) : m.pdfimg_reading()}
 							</p>
 						</div>
 					</div>
@@ -159,7 +168,7 @@ function PdfToImagesPage() {
 					<div className="flex flex-wrap items-end gap-4">
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
-								Format
+								{m.pdfimg_format()}
 							</span>
 							<Tabs
 								value={format}
@@ -179,7 +188,7 @@ function PdfToImagesPage() {
 						</div>
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
-								Resolution
+								{m.pdfimg_resolution()}
 							</span>
 							<Select
 								value={dpi}
@@ -188,13 +197,16 @@ function PdfToImagesPage() {
 								}}
 								disabled={working}
 							>
-								<SelectTrigger className="w-64" aria-label="Resolution">
+								<SelectTrigger
+									className="w-64"
+									aria-label={m.pdfimg_resolution()}
+								>
 									<SelectValue>
-										{() => DPI_OPTIONS.find((o) => o.value === dpi)?.label}
+										{() => dpiOptions().find((o) => o.value === dpi)?.label}
 									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
-									{DPI_OPTIONS.map((o) => (
+									{dpiOptions().map((o) => (
 										<SelectItem key={o.value} value={o.value}>
 											{o.label}
 										</SelectItem>
@@ -208,7 +220,7 @@ function PdfToImagesPage() {
 							disabled={!ready || working}
 						>
 							{working ? <Loader2 className="animate-spin" /> : <Download />}
-							Convert & download zip
+							{m.pdfimg_action()}
 						</Button>
 					</div>
 
@@ -218,7 +230,7 @@ function PdfToImagesPage() {
 								className="h-1 w-full overflow-hidden rounded-full bg-muted"
 								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- native <progress> cannot draw the striped fill.
 								role="progressbar"
-								aria-label="Pages converted"
+								aria-label={m.pdfimg_progress_aria()}
 								aria-valuemin={0}
 								aria-valuemax={progress.total}
 								aria-valuenow={progress.done}
@@ -229,15 +241,15 @@ function PdfToImagesPage() {
 								/>
 							</div>
 							<p className="mt-1.5 text-xs text-muted-foreground">
-								Page {progress.done} of {progress.total}
+								{m.pdfimg_progress({
+									done: progress.done,
+									total: progress.total,
+								})}
 							</p>
 						</div>
 					)}
 
-					<p className="text-xs text-muted-foreground">
-						PNG keeps text crisp. JPG makes smaller files for photos and scans.
-						Very large pages are capped at 16 megapixels.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.pdfimg_note()}</p>
 				</div>
 			)}
 		</PageShell>

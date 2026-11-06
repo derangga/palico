@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { openCamera } from "#/lib/qr/camera.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { openFrameReader } from "#/lib/qr/worker-client.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type CameraStatus = "idle" | "starting" | "scanning" | "error";
 
@@ -96,7 +97,7 @@ export function useQrCamera() {
 				);
 
 				if (generation === generationRef.current) {
-					fail(error?.message ?? "Couldn't start the camera.");
+					fail(error?.message ?? m.qrcam_err_start());
 				}
 
 				return;
@@ -149,7 +150,7 @@ export function useQrCamera() {
 			for (const track of stream.getTracks()) {
 				track.onended = () => {
 					if (loop.active) {
-						fail("The camera was disconnected. Check it and try again.");
+						fail(m.qrcam_err_disconnected());
 					}
 				};
 			}
@@ -160,9 +161,7 @@ export function useQrCamera() {
 				await video.play();
 			} catch {
 				if (generation === generationRef.current) {
-					fail(
-						"Couldn't show the camera. Try again, or choose an image instead.",
-					);
+					fail(m.qrcam_err_show());
 				}
 
 				return;
@@ -202,10 +201,7 @@ export function useQrCamera() {
 								Cause.findErrorOption(exit.cause),
 							);
 
-							fail(
-								error?.message ??
-									"The QR reader stopped unexpectedly. Try again.",
-							);
+							fail(error?.message ?? m.qrcam_err_reader());
 
 							return;
 						}
@@ -218,7 +214,7 @@ export function useQrCamera() {
 							return;
 						}
 					} catch {
-						if (loop.active) fail("Couldn't read the camera image. Try again.");
+						if (loop.active) fail(m.qrcam_err_frame());
 
 						return;
 					}

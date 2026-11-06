@@ -217,8 +217,12 @@ export const PdfWorkerResponse = Schema.Union([
 		type: Schema.Literal("error"),
 		id: Schema.String,
 		reason: PdfWorkerErrorReason,
-		message: Schema.String,
+		// The browser or pdf.js error text, when there was one. The worker has no
+		// active language, so the client words the failure (see pdf-worker-client.ts).
+		detail: Schema.optional(Schema.String),
 		pageCount: Schema.optional(Schema.Number),
+		// Set with "too-large": the DPI the budget failed at.
+		dpi: Schema.optional(Schema.Number),
 	}),
 ]);
 

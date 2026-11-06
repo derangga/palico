@@ -2,6 +2,10 @@
 // dense the result is, and what will make scanners struggle. Pure functions,
 // so the page can recompute them on every keystroke.
 
+import { formatDecimal } from "#/lib/format-bytes.ts";
+import { currentLocale } from "#/lib/i18n/state.ts";
+import { m } from "#/paraglide/messages.js";
+
 import { classify } from "./encode.ts";
 import {
 	type EccLevel,
@@ -12,6 +16,7 @@ import {
 	sizeOfVersion,
 	smallestVersion,
 } from "./tables.ts";
+import { unitLabel } from "./units.ts";
 
 export const QUIET_ZONE_MODULES = 4;
 
@@ -26,27 +31,43 @@ export interface EccOption {
 export const ECC_OPTIONS: ReadonlyArray<EccOption> = [
 	{
 		level: "L",
-		label: "Low",
+		get label() {
+			return m.qr_ecc_low();
+		},
 		recovers: "7%",
-		hint: "Smallest code. For clean screens.",
+		get hint() {
+			return m.qr_ecc_low_hint();
+		},
 	},
 	{
 		level: "M",
-		label: "Medium",
+		get label() {
+			return m.qr_ecc_medium();
+		},
 		recovers: "15%",
-		hint: "A good default for most uses.",
+		get hint() {
+			return m.qr_ecc_medium_hint();
+		},
 	},
 	{
 		level: "Q",
-		label: "Quartile",
+		get label() {
+			return m.qr_ecc_quartile();
+		},
 		recovers: "25%",
-		hint: "For print that may get scuffed.",
+		get hint() {
+			return m.qr_ecc_quartile_hint();
+		},
 	},
 	{
 		level: "H",
-		label: "High",
+		get label() {
+			return m.qr_ecc_high();
+		},
 		recovers: "30%",
-		hint: "Biggest code. Survives the most damage.",
+		get hint() {
+			return m.qr_ecc_high_hint();
+		},
 	},
 ];
 
@@ -180,7 +201,10 @@ export function adviseOn(input: AdviceInput): Advice[] {
 			severity: "error",
 			// No live count here: this text sits in an alert region, and a changing
 			// number would be announced again on every keystroke.
-			message: `This is too long for a code at this level, which holds at most ${plan.limit.toLocaleString("en-US")} ${plan.unit}. Shorten the text, or use a lower error correction level.`,
+			message: m.qr_advice_too_long({
+				limit: plan.limit.toLocaleString(currentLocale()),
+				unit: unitLabel(plan.unit),
+			}),
 		});
 	}
 
@@ -191,14 +215,13 @@ export function adviseOn(input: AdviceInput): Advice[] {
 			advice.push({
 				kind: "contrast",
 				severity: "warning",
-				message: `These colors are too close (${ratio.toFixed(1)}:1). Many scanners will fail. Aim for 4:1 or more.`,
+				message: m.qr_advice_contrast({ ratio: formatDecimal(ratio, 1) }),
 			});
 		} else if (luminance(foreground) > luminance(background)) {
 			advice.push({
 				kind: "inverted",
 				severity: "warning",
-				message:
-					"Light modules on a dark background. Some scanners can't read inverted codes, so test yours.",
+				message: m.qr_advice_inverted(),
 			});
 		}
 	}
@@ -207,7 +230,7 @@ export function adviseOn(input: AdviceInput): Advice[] {
 		advice.push({
 			kind: "bare-link",
 			severity: "tip",
-			message: "Start the address with https:// so phones open it as a link.",
+			message: m.qr_advice_bare_link(),
 		});
 	}
 
@@ -215,7 +238,7 @@ export function adviseOn(input: AdviceInput): Advice[] {
 		advice.push({
 			kind: "dense",
 			severity: "tip",
-			message: `This code is dense. Print it at least ${minPrintWidthCm(plan.modules)} cm wide, or shorten the text (a short link helps) for a code that is easier to scan.`,
+			message: m.qr_advice_dense({ cm: minPrintWidthCm(plan.modules) }),
 		});
 	}
 
@@ -230,27 +253,51 @@ export interface Tip {
 /** The static checklist shown under the generator. */
 export const SCAN_TIPS: ReadonlyArray<Tip> = [
 	{
-		title: "Leave a clear margin",
-		body: "Keep the white border around the code, at least 4 modules wide. Scanners use it to find the edges.",
+		get title() {
+			return m.qr_tip_margin_title();
+		},
+		get body() {
+			return m.qr_tip_margin_body();
+		},
 	},
 	{
-		title: "Use dark on light",
-		body: "Dark modules on a light background scan best. Keep the contrast at 4:1 or higher, and avoid inverting the colors.",
+		get title() {
+			return m.qr_tip_dark_title();
+		},
+		get body() {
+			return m.qr_tip_dark_body();
+		},
 	},
 	{
-		title: "Print big enough",
-		body: "Aim for at least 2 cm across for a short link. Dense codes need more. Scan distance should be no more than about ten times the code's width.",
+		get title() {
+			return m.qr_tip_size_title();
+		},
+		get body() {
+			return m.qr_tip_size_body();
+		},
 	},
 	{
-		title: "Keep the text short",
-		body: "Less data means bigger modules and a code that scans from further away. A short link beats a long one.",
+		get title() {
+			return m.qr_tip_short_title();
+		},
+		get body() {
+			return m.qr_tip_short_body();
+		},
 	},
 	{
-		title: "Pick the right correction level",
-		body: "Medium suits most uses. Choose Quartile or High if the code will be printed on something that gets worn, or if you'll place a sticker on it. Higher levels make the code larger.",
+		get title() {
+			return m.qr_tip_ecc_title();
+		},
+		get body() {
+			return m.qr_tip_ecc_body();
+		},
 	},
 	{
-		title: "Test before you print",
-		body: "Scan it with two different phones, from the distance people will use, before you print a thousand of them.",
+		get title() {
+			return m.qr_tip_test_title();
+		},
+		get body() {
+			return m.qr_tip_test_body();
+		},
 	},
 ];

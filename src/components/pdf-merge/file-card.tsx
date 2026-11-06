@@ -2,16 +2,9 @@ import { GripVertical, X } from "lucide-react";
 
 import { CoverThumbnail } from "#/components/pdf-merge/cover-thumbnail.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
-
-const MB = 1024 * 1024;
-
-function formatBytes(n: number) {
-	if (n < 1024) return `${n} B`;
-
-	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
-
-	return `${(n / MB).toFixed(2)} MB`;
-}
+import { formatBytes } from "#/lib/format-bytes.ts";
+import { pagesLabel } from "#/lib/i18n/counts.ts";
+import { m } from "#/paraglide/messages.js";
 
 // One file's card: drag handle, cover thumbnail, name + size + page count, and a
 // remove button. The whole row is draggable so the cards can be reordered.
@@ -52,12 +45,15 @@ export function FileCard({
 					{item.status === "ready" && (
 						<>
 							{" · "}
-							{item.pageCount} {item.pageCount === 1 ? "page" : "pages"}
+							{pagesLabel(item.pageCount)}
 						</>
 					)}
-					{item.status === "loading" && " · reading…"}
+					{item.status === "loading" && ` · ${m.pdfmerge_reading()}`}
 					{item.status === "error" && (
-						<span className="text-destructive"> · failed</span>
+						<span className="text-destructive">
+							{" "}
+							· {m.pdfmerge_card_failed()}
+						</span>
 					)}
 				</p>
 			</div>
@@ -65,7 +61,7 @@ export function FileCard({
 				type="button"
 				onClick={onRemove}
 				className="text-muted-foreground hover:text-foreground"
-				aria-label={`Remove ${item.file.name}`}
+				aria-label={m.common_remove_file({ name: item.file.name })}
 			>
 				<X className="size-4" />
 			</button>

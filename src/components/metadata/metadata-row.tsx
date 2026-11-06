@@ -11,8 +11,16 @@ import { downloadBlob, formatBytes } from "#/components/converter/utils.ts";
 import { useJustDone } from "#/components/done-burst.tsx";
 import { type PillState, StatusPill } from "#/components/status-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	fieldLabel,
+	fieldValue,
+	groupLabel,
+	itemCount,
+	keptLabel,
+} from "#/lib/metadata/display.ts";
 import type { MetadataGroup, MetadataReport } from "#/lib/metadata/types.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type MetadataItemStatus =
 	| "reading"
@@ -41,25 +49,25 @@ const GROUP_ORDER: ReadonlyArray<MetadataGroup> = [
 	"Other",
 ];
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
 function pill(item: MetadataItem): { state: PillState; label: string } | null {
 	switch (item.status) {
 		case "reading":
-			return { state: "working", label: "Reading" };
+			return { state: "working", label: m.metadata_pill_reading() };
 		case "stripping":
-			return { state: "working", label: "Removing" };
+			return { state: "working", label: m.metadata_pill_removing() };
 		case "found":
 			return {
 				state: "warning",
-				label: `${plural(item.before?.fields.length ?? 0, "item")} found`,
+				label: m.metadata_pill_found({
+					items: itemCount(item.before?.fields.length ?? 0),
+				}),
 			};
 		case "nothing":
-			return { state: "info", label: "Nothing hidden" };
+			return { state: "info", label: m.metadata_pill_nothing() };
 		case "clean":
-			return { state: "done", label: "Clean" };
+			return { state: "done", label: m.metadata_pill_clean() };
 		case "error":
-			return { state: "failed", label: "Failed" };
+			return { state: "failed", label: m.metadata_pill_failed() };
 	}
 }
 
@@ -70,7 +78,7 @@ function Findings({ report }: { report: MetadataReport }) {
 				<p className="flex items-start gap-2 rounded-md bg-warning/20 px-3 py-2 text-sm text-foreground">
 					<MapPin aria-hidden className="mt-0.5 size-4 shrink-0" />
 					<span>
-						This photo records where it was taken:{" "}
+						{m.metadata_gps_note()}{" "}
 						<span className="font-mono">
 							{report.gps.lat.toFixed(5)}, {report.gps.lon.toFixed(5)}
 						</span>
@@ -85,14 +93,16 @@ function Findings({ report }: { report: MetadataReport }) {
 				return (
 					<div key={group}>
 						<p className="text-xs font-semibold text-muted-foreground">
-							{group}
+							{groupLabel(group)}
 						</p>
 						<dl className="mt-1 grid grid-cols-[minmax(6rem,auto)_1fr] gap-x-4 gap-y-0.5 text-sm">
 							{fields.map((f) => (
 								<div key={`${f.label}:${f.value}`} className="contents">
-									<dt className="text-muted-foreground">{f.label}</dt>
-									<dd className="min-w-0 truncate" title={f.value}>
-										{f.value}
+									<dt className="text-muted-foreground">
+										{fieldLabel(f.label)}
+									</dt>
+									<dd className="min-w-0 truncate" title={fieldValue(f.value)}>
+										{fieldValue(f.value)}
 									</dd>
 								</div>
 							))}
@@ -151,7 +161,7 @@ export function MetadataRow({
 						onClick={() => item.blob && downloadBlob(item.blob, item.file.name)}
 					>
 						<Download />
-						Save
+						{m.common_save()}
 					</Button>
 				)}
 				{!isRunning && (
@@ -159,7 +169,7 @@ export function MetadataRow({
 						type="button"
 						onClick={onRemove}
 						className="text-muted-foreground hover:text-foreground"
-						aria-label={`Remove ${item.file.name}`}
+						aria-label={m.common_remove_file({ name: item.file.name })}
 					>
 						<X className="size-4" />
 					</button>
@@ -172,19 +182,18 @@ export function MetadataRow({
 			{item.status === "nothing" && (
 				<p className="mt-2 flex items-center gap-2 text-sm">
 					<CircleCheck aria-hidden className="size-4 text-success" />
-					Nothing hidden in this file.
+					{m.metadata_nothing_hidden()}
 				</p>
 			)}
 			{(item.status === "found" || item.status === "stripping") &&
 				item.before && <Findings report={item.before} />}
 			{item.status === "clean" && (
 				<p className="mt-2 text-sm">
-					Removed {plural(removed, "item")}. A second read of the new file found
-					nothing left.
+					{m.metadata_removed({ items: itemCount(removed) })}
 					{kept.length > 0 && (
 						<span className="text-muted-foreground">
 							{" "}
-							Kept: {kept.join(", ")}.
+							{m.metadata_kept({ list: kept.map(keptLabel).join(", ") })}
 						</span>
 					)}
 				</p>

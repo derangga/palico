@@ -1,13 +1,6 @@
 import type { OfficeItem } from "#/components/office-to-pdf/types.ts";
-import { MB } from "#/lib/file/office-types.ts";
 
-export function formatBytes(n: number) {
-	if (n < 1024) return `${n} B`;
-
-	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
-
-	return `${(n / MB).toFixed(2)} MB`;
-}
+export { formatBytes } from "#/lib/format-bytes.ts";
 
 export function downloadBlob(blob: Blob, name: string) {
 	const url = URL.createObjectURL(blob);

@@ -13,6 +13,7 @@ import {
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { MAX_PDF_BYTES } from "#/lib/file/pdf-types.ts";
+import { filesLabel } from "#/lib/i18n/counts.ts";
 import { MAX_FILE_BYTES, MAX_FILES } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
 import {
@@ -23,6 +24,7 @@ import {
 } from "#/lib/metadata/metadata.ts";
 import { ACCEPTED_MIME_TYPES } from "#/lib/metadata/types.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/strip-metadata")({
 	head: () => seoHead("/strip-metadata"),
@@ -51,7 +53,7 @@ function StripMetadataPage() {
 		const files = Array.from(fileList);
 
 		if (files.length > room) {
-			toast.error(`You can check up to ${MAX_FILES} files at a time.`);
+			toast.error(m.metadata_too_many({ max: MAX_FILES }));
 		}
 
 		const added: MetadataItem[] = files.slice(0, room).map((file) => ({
@@ -107,7 +109,9 @@ function StripMetadataPage() {
 
 		if (ok > 0) {
 			toast.success(
-				`Removed hidden data from ${ok} file${ok === 1 ? "" : "s"}.`,
+				ok === 1
+					? m.metadata_success_one({ count: ok })
+					: m.metadata_success_other({ count: ok }),
 			);
 		}
 
@@ -115,7 +119,9 @@ function StripMetadataPage() {
 
 		if (failed > 0) {
 			toast.error(
-				`${failed} file${failed === 1 ? "" : "s"} could not be cleaned.`,
+				failed === 1
+					? m.metadata_failed_one({ count: failed })
+					: m.metadata_failed_other({ count: failed }),
 			);
 		}
 	}
@@ -141,7 +147,7 @@ function StripMetadataPage() {
 		const exit = await Effect.runPromiseExit(program);
 
 		if (Exit.isFailure(exit)) {
-			toast.error("Could not build the zip file.");
+			toast.error(m.common_zip_failed());
 
 			return;
 		}
@@ -151,19 +157,21 @@ function StripMetadataPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Remove Metadata">
-				See what your photos and PDFs reveal (location, camera, author, dates)
-				and remove it. Files are checked and cleaned on your device and never
-				uploaded.
+			<PageHeader title={m.tool_strip_metadata_label()}>
+				{m.metadata_description()}
 			</PageHeader>
 
 			<Dropzone
-				label="Drag & drop photos or PDFs here, or"
-				actionLabel="Choose files"
-				hint={`JPEG, PNG and WebP up to ${MAX_FILE_BYTES / MB} MB, PDF up to ${MAX_PDF_BYTES / MB} MB, ${MAX_FILES} files at a time`}
+				label={m.metadata_dropzone_label()}
+				actionLabel={m.common_choose_files()}
+				hint={m.metadata_hint({
+					imageMb: MAX_FILE_BYTES / MB,
+					pdfMb: MAX_PDF_BYTES / MB,
+					max: MAX_FILES,
+				})}
 				accept={ACCEPTED_MIME_TYPES.join(",")}
 				multiple
-				ariaLabel="Choose photos or PDFs to check"
+				ariaLabel={m.metadata_dropzone_aria()}
 				onFiles={addFiles}
 			/>
 
@@ -171,7 +179,7 @@ function StripMetadataPage() {
 				<>
 					<div className="mt-6 flex flex-wrap items-center gap-2">
 						<p className="mr-auto text-sm text-muted-foreground">
-							{items.length} file{items.length === 1 ? "" : "s"}
+							{filesLabel(items.length)}
 						</p>
 						<Button
 							variant="ghost"
@@ -179,7 +187,7 @@ function StripMetadataPage() {
 							onClick={() => setItems([])}
 							disabled={isRunning}
 						>
-							Clear all
+							{m.metadata_clear_all()}
 						</Button>
 						{cleanItems.length > 1 && (
 							<Button
@@ -188,15 +196,15 @@ function StripMetadataPage() {
 								disabled={isRunning}
 							>
 								<FileArchive />
-								Download all (.zip)
+								{m.common_download_all_zip()}
 							</Button>
 						)}
 						{(strippable.length > 0 || isRunning) && (
 							<Button onClick={handleStrip} disabled={isRunning}>
 								{isRunning ? <Loader2 className="animate-spin" /> : null}
 								{isRunning
-									? "Removing…"
-									: `Remove metadata (${strippable.length})`}
+									? m.metadata_removing()
+									: m.metadata_remove({ count: strippable.length })}
 							</Button>
 						)}
 					</div>

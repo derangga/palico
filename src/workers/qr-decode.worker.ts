@@ -28,8 +28,7 @@ async function decodeFile(
 		return {
 			id,
 			ok: false,
-			reason: "image",
-			message: "Couldn't open this file as an image.",
+			reason: "open",
 		};
 	}
 
@@ -53,15 +52,13 @@ async function decodeFile(
 					id,
 					ok: false,
 					reason: "not-found",
-					message: "No QR code found in this image.",
 				};
 	} catch (cause) {
 		return {
 			id,
 			ok: false,
 			reason: "image",
-			message:
-				cause instanceof Error ? cause.message : "Couldn't read this image.",
+			detail: cause instanceof Error ? cause.message : undefined,
 		};
 	} finally {
 		bitmap.close();
@@ -89,17 +86,13 @@ function decodeCameraFrame(
 					id: request.id,
 					ok: false,
 					reason: "not-found",
-					message: "No code in this frame.",
 				};
 	} catch (cause) {
 		return {
 			id: request.id,
 			ok: false,
 			reason: "image",
-			message:
-				cause instanceof Error
-					? cause.message
-					: "Couldn't read this camera frame.",
+			detail: cause instanceof Error ? cause.message : undefined,
 		};
 	}
 }

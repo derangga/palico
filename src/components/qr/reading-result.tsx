@@ -29,6 +29,7 @@ import {
 } from "#/lib/qr/content.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type ResultView =
 	| { readonly phase: "reading" }
@@ -44,25 +45,34 @@ export type ResultSource =
 const FLASH_MS = 1800;
 
 // What each phase says on the card. A lookup keeps the three phases in one place.
-const PHASES: Record<
+const phases = (): Record<
 	ResultView["phase"],
 	{ readonly detail: string; readonly pill: PillState; readonly label: string }
-> = {
+> => ({
 	reading: {
-		detail: "Looking for a QR code…",
+		detail: m.qrresult_detail_reading(),
 		pill: "working",
-		label: "Reading",
+		label: m.qrresult_pill_reading(),
 	},
-	found: { detail: "Read on your device", pill: "done", label: "Found" },
-	failed: { detail: "Nothing was read", pill: "failed", label: "Not read" },
-};
+	found: {
+		detail: m.qrresult_detail_found(),
+		pill: "done",
+		label: m.qrresult_pill_found(),
+	},
+	failed: {
+		detail: m.qrresult_detail_failed(),
+		pill: "failed",
+		label: m.qrresult_pill_failed(),
+	},
+});
 
-const READ_TIPS = [
-	"Crop closer, so the code fills most of the picture.",
-	"Make sure all three corner squares are in view.",
-	"Avoid glare and shadows across the code.",
-	"If it is on a screen, take a screenshot instead of a photo.",
-] as const;
+const readTips = () =>
+	[
+		m.qrresult_tip_crop(),
+		m.qrresult_tip_corners(),
+		m.qrresult_tip_glare(),
+		m.qrresult_tip_screen(),
+	] as const;
 
 function IconTile({ children }: { readonly children: React.ReactNode }) {
 	return (
@@ -98,16 +108,16 @@ function CopyButton({
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(text));
 
-		if (Option.isSome(toastOnExit(exit, "Couldn't copy the text."))) {
+		if (Option.isSome(toastOnExit(exit, m.qrresult_copy_failed()))) {
 			flash();
-			toast.success("Copied.");
+			toast.success(m.qrresult_copied_toast());
 		}
 	}
 
 	return (
 		<Button variant={variant} size={size} onClick={copy}>
 			{copied ? <Check /> : <Copy />}
-			{copied ? "Copied" : label}
+			{copied ? m.copy_copied() : label}
 		</Button>
 	);
 }
@@ -116,8 +126,8 @@ function WifiRows({ wifi }: { readonly wifi: WifiDetails }) {
 	const [shown, setShown] = useState(false);
 
 	const rows = [
-		{ label: "Network", value: wifi.ssid },
-		{ label: "Security", value: wifi.security },
+		{ label: m.qrresult_network(), value: wifi.ssid },
+		{ label: m.qrresult_security(), value: wifi.security },
 	];
 
 	return (
@@ -133,7 +143,7 @@ function WifiRows({ wifi }: { readonly wifi: WifiDetails }) {
 			))}
 			{wifi.password !== "" && (
 				<div className="flex items-center justify-between gap-3 px-3 py-1.5">
-					<dt className="text-muted-foreground">Password</dt>
+					<dt className="text-muted-foreground">{m.qrresult_password()}</dt>
 					<dd className="flex min-w-0 items-center gap-1">
 						<span className="min-w-0 font-mono break-all">
 							{shown
@@ -143,7 +153,9 @@ function WifiRows({ wifi }: { readonly wifi: WifiDetails }) {
 						<Button
 							variant="ghost"
 							size="icon-sm"
-							aria-label={shown ? "Hide password" : "Show password"}
+							aria-label={
+								shown ? m.qrresult_hide_password() : m.qrresult_show_password()
+							}
 							aria-pressed={shown}
 							onClick={() => setShown((value) => !value)}
 						>
@@ -189,12 +201,16 @@ function FoundBody({
 					content.wifi.password !== "" && (
 						<CopyButton
 							text={content.wifi.password}
-							label="Copy password"
+							label={m.qrresult_copy_password()}
 							variant="default"
 						/>
 					)
 				) : (
-					<CopyButton text={reading.text} label="Copy text" variant="default" />
+					<CopyButton
+						text={reading.text}
+						label={m.qrresult_copy_text()}
+						variant="default"
+					/>
 				)}
 				{content.href && (
 					<a
@@ -208,7 +224,9 @@ function FoundBody({
 						)}
 					>
 						<ExternalLink />
-						<span className="truncate">Open {content.host}</span>
+						<span className="truncate">
+							{m.qrresult_open_host({ host: content.host ?? content.href })}
+						</span>
 					</a>
 				)}
 			</div>
@@ -230,7 +248,7 @@ export function ReadingResult({
 	readonly onReset: () => void;
 }) {
 	const justFound = useJustDone(view.phase === "found");
-	const phase = PHASES[view.phase];
+	const phase = phases()[view.phase];
 
 	const content =
 		view.phase === "found" ? describeContent(view.reading.text) : undefined;
@@ -240,7 +258,7 @@ export function ReadingResult({
 	const title = Match.value(source).pipe(
 		Match.when({ kind: "image" }, (image) => image.file.name),
 		Match.when({ kind: "other" }, (other) => other.name),
-		Match.orElse(() => "Camera scan"),
+		Match.orElse(() => m.qrresult_camera_scan()),
 	);
 
 	// A new result is a new place on the page. Put focus on its title so a
@@ -251,7 +269,7 @@ export function ReadingResult({
 
 	return (
 		<section
-			aria-label="Result"
+			aria-label={m.qrresult_aria()}
 			aria-busy={view.phase === "reading"}
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
 		>
@@ -291,8 +309,8 @@ export function ReadingResult({
 			{/* Always mounted, so a screen reader hears each change. Failures are
 			    announced by their own alert below. */}
 			<output className="sr-only">
-				{view.phase === "reading" && "Reading the image."}
-				{content && `QR code found. ${content.label}.`}
+				{view.phase === "reading" && m.qrresult_reading_sr()}
+				{content && m.qrresult_found_sr({ label: content.label })}
 			</output>
 
 			{view.phase === "reading" && (
@@ -317,7 +335,7 @@ export function ReadingResult({
 						{view.message}
 					</p>
 					<ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-						{READ_TIPS.map((tip) => (
+						{readTips().map((tip) => (
 							<li key={tip}>{tip}</li>
 						))}
 					</ul>
@@ -331,7 +349,9 @@ export function ReadingResult({
 					onClick={onReset}
 				>
 					<RotateCcw />
-					{view.phase === "failed" ? "Try another image" : "Read another"}
+					{view.phase === "failed"
+						? m.qrresult_try_another()
+						: m.qrresult_read_another()}
 				</Button>
 			</div>
 		</section>

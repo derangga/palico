@@ -10,6 +10,8 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "#/components/ui/tabs.tsx";
+import { filesLabel } from "#/lib/i18n/counts.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface SplitControlsProps {
 	mode: SplitMode;
@@ -53,9 +55,9 @@ export function SplitControls({
 			}}
 		>
 			<TabsList>
-				<TabsTrigger value="extract">Extract pages</TabsTrigger>
-				<TabsTrigger value="every-n">Every N pages</TabsTrigger>
-				<TabsTrigger value="all">All pages</TabsTrigger>
+				<TabsTrigger value="extract">{m.pdfsplit_tab_extract()}</TabsTrigger>
+				<TabsTrigger value="every-n">{m.pdfsplit_tab_every_n()}</TabsTrigger>
+				<TabsTrigger value="all">{m.pdfsplit_tab_all()}</TabsTrigger>
 			</TabsList>
 
 			<TabsContent value="extract">
@@ -63,10 +65,13 @@ export function SplitControls({
 					<p className="text-sm text-muted-foreground">
 						{selectedCount > 0 ? (
 							<span className="font-medium text-foreground">
-								{selectedCount} of {pageCount} selected
+								{m.pdfsplit_selected({
+									selected: selectedCount,
+									total: pageCount,
+								})}
 							</span>
 						) : (
-							"Click pages to select, then extract them into a new PDF."
+							m.pdfsplit_click_hint()
 						)}
 					</p>
 					<div className="flex items-center gap-2">
@@ -76,7 +81,7 @@ export function SplitControls({
 							onClick={onClearSelected}
 							disabled={!ready || selectedCount === 0}
 						>
-							Clear
+							{m.common_clear()}
 						</Button>
 						<Button
 							variant="outline"
@@ -84,7 +89,7 @@ export function SplitControls({
 							onClick={onSelectAll}
 							disabled={!ready || selectedCount === pageCount}
 						>
-							Select all
+							{m.pdfsplit_select_all()}
 						</Button>
 						<Button
 							size="sm"
@@ -92,7 +97,7 @@ export function SplitControls({
 							disabled={!ready || selectedCount === 0 || working}
 						>
 							{working ? <Loader2 className="animate-spin" /> : <Download />}
-							Extract
+							{m.pdfsplit_extract()}
 						</Button>
 					</div>
 				</div>
@@ -102,7 +107,7 @@ export function SplitControls({
 				<div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card px-4 py-3">
 					<div className="flex flex-col gap-1.5">
 						<span className="text-xs font-medium text-muted-foreground">
-							Pages per file
+							{m.pdfsplit_pages_per_file()}
 						</span>
 						<Input
 							type="number"
@@ -118,8 +123,8 @@ export function SplitControls({
 						/>
 						<span className="text-xs text-muted-foreground">
 							{validEveryN
-								? `Creates ${everyNFileCount} ${everyNFileCount === 1 ? "file" : "files"}, zipped.`
-								: `Enter a number between 1 and ${pageCount}.`}
+								? m.pdfsplit_creates({ files: filesLabel(everyNFileCount) })
+								: m.pdfsplit_enter_number({ max: pageCount })}
 						</span>
 					</div>
 					<Button
@@ -128,7 +133,7 @@ export function SplitControls({
 						disabled={!ready || !validEveryN || working}
 					>
 						{working ? <Loader2 className="animate-spin" /> : <Download />}
-						Split & download zip
+						{m.pdfsplit_split_zip()}
 					</Button>
 				</div>
 			</TabsContent>
@@ -136,15 +141,15 @@ export function SplitControls({
 			<TabsContent value="all">
 				<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
 					<p className="text-sm text-muted-foreground">
-						Split every page into its own PDF:{" "}
+						{m.pdfsplit_all_before()}{" "}
 						<span className="font-medium text-foreground">
-							{pageCount} {pageCount === 1 ? "file" : "files"}
+							{filesLabel(pageCount)}
 						</span>
-						, bundled into one zip.
+						{m.pdfsplit_all_after()}
 					</p>
 					<Button size="sm" onClick={onSplitAll} disabled={!ready || working}>
 						{working ? <Loader2 className="animate-spin" /> : <Download />}
-						Split & download zip
+						{m.pdfsplit_split_zip()}
 					</Button>
 				</div>
 			</TabsContent>

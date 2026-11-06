@@ -28,6 +28,8 @@ export type QrWorkerResponse =
 	| {
 			readonly id: number;
 			readonly ok: false;
-			readonly reason: "not-found" | "image";
-			readonly message: string;
+			readonly reason: "not-found" | "open" | "image";
+			// The browser's own error text, when there was one. The worker has no
+			// active language, so the client words the failure (worker-client.ts).
+			readonly detail?: string;
 	  };

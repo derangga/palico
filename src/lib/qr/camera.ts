@@ -3,18 +3,23 @@
 
 import { Effect } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { CameraError } from "./errors.ts";
 
 type Reason = CameraError["reason"];
 
-const MESSAGES: Record<Reason, string> = {
-	denied:
-		"Camera access is blocked. Allow it in your browser's site settings, then try again.",
-	"no-camera": "No camera found on this device.",
-	"in-use":
-		"The camera is busy. Close any other app that is using it, then try again.",
-	unsupported:
-		"This browser can't open the camera here. Camera access needs a secure (https) page.",
+const message = (reason: Reason): string => {
+	switch (reason) {
+		case "denied":
+			return m.qr_err_camera_denied();
+		case "no-camera":
+			return m.qr_err_camera_none();
+		case "in-use":
+			return m.qr_err_camera_busy();
+		case "unsupported":
+			return m.qr_err_camera_unsupported();
+	}
 };
 
 function reasonFor(cause: DOMException | Error): Reason {
@@ -54,6 +59,6 @@ export const openCamera = (): Effect.Effect<MediaStream, CameraError> =>
 		catch: (cause) => {
 			const reason = cause instanceof Error ? reasonFor(cause) : "unsupported";
 
-			return new CameraError({ reason, message: MESSAGES[reason] });
+			return new CameraError({ reason, message: message(reason) });
 		},
 	});

@@ -17,7 +17,9 @@ import type {
 	OrganizeAction,
 	OrganizePage,
 } from "#/components/pdf-organize/state.ts";
+import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 // The page grid is one tab stop (roving tabindex). On a focused card:
 //   Arrow keys / Home / End  move focus
@@ -83,14 +85,20 @@ export function PageGrid({
 		pendingFocus.current = page.key;
 		setActiveKey(page.key);
 		setAnnouncement(
-			`Page ${page.sourceIndex + 1} moved to position ${target + 1} of ${pages.length}.`,
+			m.pdforg_moved({
+				page: page.sourceIndex + 1,
+				position: target + 1,
+				total: pages.length,
+			}),
 		);
 	};
 
 	const rotate = (page: OrganizePage, dir: 1 | -1) => {
 		dispatch({ type: "rotate", key: page.key, dir });
 		const next = (page.rotation + dir * 90 + 360) % 360;
-		setAnnouncement(`Page ${page.sourceIndex + 1} rotated to ${next} degrees.`);
+		setAnnouncement(
+			m.pdforg_rotated({ page: page.sourceIndex + 1, degrees: next }),
+		);
 	};
 
 	const remove = (index: number) => {
@@ -107,7 +115,7 @@ export function PageGrid({
 
 		const left = pages.length - 1;
 		setAnnouncement(
-			`Page ${page.sourceIndex + 1} deleted, ${left} ${left === 1 ? "page" : "pages"} left.`,
+			m.pdforg_deleted({ page: page.sourceIndex + 1, left: pagesLabel(left) }),
 		);
 	};
 
@@ -147,12 +155,11 @@ export function PageGrid({
 	return (
 		<>
 			<p className="mb-3 hidden text-xs text-muted-foreground sm:block">
-				Drag pages to reorder. With the keyboard: arrow keys move between pages,
-				Alt + arrow keys move a page, R rotates, Delete removes.
+				{m.pdforg_help()}
 			</p>
 			<ol
 				ref={gridRef}
-				aria-label="Pages. Arrow keys move between pages, Alt plus arrow keys move a page, R rotates, Delete removes."
+				aria-label={m.pdforg_grid_aria()}
 				className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
 			>
 				{pages.map((page, index) => {
@@ -168,9 +175,20 @@ export function PageGrid({
 								else cards.current.delete(page.key);
 							}}
 							tabIndex={tab}
-							aria-label={`Page ${page.sourceIndex + 1}, position ${index + 1} of ${pages.length}${
-								page.rotation ? `, rotated ${page.rotation} degrees` : ""
-							}`}
+							aria-label={
+								page.rotation
+									? m.pdforg_card_aria_rotated({
+											page: page.sourceIndex + 1,
+											position: index + 1,
+											total: pages.length,
+											degrees: page.rotation,
+										})
+									: m.pdforg_card_aria({
+											page: page.sourceIndex + 1,
+											position: index + 1,
+											total: pages.length,
+										})
+							}
 							aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight R Shift+R Delete"
 							draggable={!disabled}
 							onFocus={() => setActiveKey(page.key)}
@@ -200,7 +218,9 @@ export function PageGrid({
 								</span>
 								<div className="flex items-center">
 									<CardButton
-										label={`Move page ${page.sourceIndex + 1} earlier`}
+										label={m.pdforg_move_earlier({
+											page: page.sourceIndex + 1,
+										})}
 										tabIndex={tab}
 										disabled={disabled || index === 0}
 										onClick={() => move(index, index - 1)}
@@ -208,7 +228,7 @@ export function PageGrid({
 										<ArrowLeft />
 									</CardButton>
 									<CardButton
-										label={`Move page ${page.sourceIndex + 1} later`}
+										label={m.pdforg_move_later({ page: page.sourceIndex + 1 })}
 										tabIndex={tab}
 										disabled={disabled || index === pages.length - 1}
 										onClick={() => move(index, index + 1)}
@@ -216,7 +236,7 @@ export function PageGrid({
 										<ArrowRight />
 									</CardButton>
 									<CardButton
-										label={`Rotate page ${page.sourceIndex + 1} left`}
+										label={m.pdforg_rotate_left({ page: page.sourceIndex + 1 })}
 										tabIndex={tab}
 										disabled={disabled}
 										onClick={() => rotate(page, -1)}
@@ -224,7 +244,9 @@ export function PageGrid({
 										<RotateCcw />
 									</CardButton>
 									<CardButton
-										label={`Rotate page ${page.sourceIndex + 1} right`}
+										label={m.pdforg_rotate_right({
+											page: page.sourceIndex + 1,
+										})}
 										tabIndex={tab}
 										disabled={disabled}
 										onClick={() => rotate(page, 1)}
@@ -232,7 +254,7 @@ export function PageGrid({
 										<RotateCw />
 									</CardButton>
 									<CardButton
-										label={`Delete page ${page.sourceIndex + 1}`}
+										label={m.pdforg_delete({ page: page.sourceIndex + 1 })}
 										tabIndex={tab}
 										disabled={disabled}
 										onClick={() => remove(index)}

@@ -1,5 +1,8 @@
 import { Effect } from "effect";
 
+import { currentLocale } from "#/lib/i18n/state.ts";
+import { m } from "#/paraglide/messages.js";
+
 import { QrCapacityError } from "./errors.ts";
 import {
 	createLayout,
@@ -24,6 +27,7 @@ import {
 	rawCodewords,
 	smallestVersion,
 } from "./tables.ts";
+import { unitLabel } from "./units.ts";
 
 export interface QrCode {
 	readonly version: number;
@@ -307,7 +311,10 @@ export const encodeQr = (
 				new QrCapacityError({
 					length: payload.length,
 					limit,
-					message: `That is too long for a QR code at this error correction level. The most it holds is ${limit.toLocaleString("en-US")} ${MODE_UNIT[payload.mode]}.`,
+					message: m.qr_err_capacity({
+						limit: limit.toLocaleString(currentLocale()),
+						unit: unitLabel(MODE_UNIT[payload.mode]),
+					}),
 				}),
 			);
 		}

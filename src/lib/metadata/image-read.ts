@@ -1,5 +1,7 @@
 import { Effect, Match } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { MetadataParseError, UnsupportedFormatError } from "./errors.ts";
 import {
 	clip,
@@ -128,9 +130,9 @@ const walkJpeg = (b: Uint8Array): Layout => {
 		// Skip optional 0xFF fill bytes before a marker.
 		while (pos + 1 < b.length && b[pos] === 0xff && b[pos + 1] === 0xff) pos++;
 
-		if (pos + 2 > b.length) fail("This JPEG ends before its image data.");
+		if (pos + 2 > b.length) fail(m.error_jpeg_ends());
 
-		if (b[pos] !== 0xff) fail(`Expected a JPEG marker at byte ${pos}.`);
+		if (b[pos] !== 0xff) fail(m.error_jpeg_marker({ pos }));
 		const marker = b[pos + 1];
 
 		// Start of scan or end of image: the rest is compressed image data.
@@ -151,12 +153,12 @@ const walkJpeg = (b: Uint8Array): Layout => {
 			continue;
 		}
 
-		if (pos + 4 > b.length) fail("This JPEG ends inside a segment header.");
+		if (pos + 4 > b.length) fail(m.error_jpeg_header());
 		const length = (b[pos + 2] << 8) | b[pos + 3];
 		const end = pos + 2 + length;
 
 		if (length < 2 || end > b.length) {
-			fail("A JPEG segment runs past the end of the file.");
+			fail(m.error_jpeg_segment());
 		}
 
 		const dataStart = pos + 4;
@@ -199,14 +201,14 @@ const walkPng = (b: Uint8Array): Layout => {
 	let pos = 8;
 
 	while (pos < b.length) {
-		if (pos + 12 > b.length) fail("A PNG chunk runs past the end of the file.");
+		if (pos + 12 > b.length) fail(m.error_png_chunk());
 		const length = dv.getUint32(pos);
 		const type = ascii(b, pos + 4, 4);
 		const dataStart = pos + 8;
 		const dataEnd = dataStart + length;
 		const end = dataEnd + 4;
 
-		if (end > b.length) fail("A PNG chunk runs past the end of the file.");
+		if (end > b.length) fail(m.error_png_chunk());
 		segments.push({
 			kind: pngKind(b, type, dataStart),
 			name: type,
@@ -225,7 +227,7 @@ const walkPng = (b: Uint8Array): Layout => {
 };
 
 const walkWebp = (b: Uint8Array): Layout => {
-	if (b.length < 12) fail("This WebP file is too short.");
+	if (b.length < 12) fail(m.error_webp_short());
 	const dv = view(b);
 	const riffEnd = Math.min(b.length, 8 + dv.getUint32(4, true));
 	const segments: Segment[] = [];
@@ -237,7 +239,7 @@ const walkWebp = (b: Uint8Array): Layout => {
 		const dataStart = pos + 8;
 		const dataEnd = dataStart + length;
 
-		if (dataEnd > b.length) fail("A WebP chunk runs past the end of the file.");
+		if (dataEnd > b.length) fail(m.error_webp_chunk());
 		const end = Math.min(dataEnd + (length & 1), b.length);
 		segments.push({
 			kind: Match.value(type).pipe(
@@ -664,7 +666,7 @@ export const parseImage = (
 			new UnsupportedFormatError({
 				fileName,
 				mime: "unknown",
-				message: `"${fileName}" is not a JPEG, PNG or WebP image.`,
+				message: m.error_metadata_unsupported_image({ name: fileName }),
 			}),
 		);
 	}
@@ -677,7 +679,7 @@ export const parseImage = (
 				message:
 					err instanceof ParseFailure || err instanceof RangeError
 						? err.message
-						: `Could not read "${fileName}".`,
+						: m.error_metadata_read({ name: fileName }),
 			}),
 	});
 };
