@@ -32,15 +32,15 @@ const FLASH_MS = 1800;
 
 // What each phase says on the card. A function, because the words depend on the
 // active language and cannot be read at module load.
-const phaseText = (
-	phase: ExtractView["phase"],
-): {
+interface PhaseText {
 	readonly detail: string;
 	readonly pill: PillState;
 	readonly label: string;
 	/** The text on the button that leaves this result. */
 	readonly action: string;
-} => {
+}
+
+const phaseText = (phase: ExtractView["phase"]): PhaseText => {
 	switch (phase) {
 		case "reading":
 			return {
