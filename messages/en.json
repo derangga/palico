@@ -440,7 +440,6 @@
 	"videocut_ready": "Your trimmed clip is ready.",
 	"videocut_failed": "Could not trim the video.",
 	"videocut_unexpected": "Video trimming failed unexpectedly.",
-	"videocut_dropzone_label": "Drag & drop a video here, or",
 	"videocut_dropzone_aria": "Choose a video to trim",
 	"videocut_keyframe_note": "Cuts snap to the nearest keyframe, so the clip may start up to a second or two before your selection.",
 	"trim_current_video_format": "Current video format",
@@ -456,7 +455,6 @@
 	"videocomp_ready": "Your video is ready.",
 	"videocomp_failed": "Could not compress the video.",
 	"videocomp_unexpected": "Compressing the video failed unexpectedly.",
-	"videocomp_dropzone_label": "Drag & drop a video here, or",
 	"videocomp_hint": "One video file at a time. Saved as MP4.",
 	"videocomp_dropzone_aria": "Choose a video to compress",
 	"videocomp_already_under": "This video is already under {mb} MB.",
@@ -481,7 +479,6 @@
 	"videogif_ready": "Your GIF is ready.",
 	"videogif_failed": "Could not make the GIF.",
 	"videogif_unexpected": "Making the GIF failed unexpectedly.",
-	"videogif_dropzone_label": "Drag & drop a video here, or",
 	"videogif_hint": "One video file at a time. GIFs can be up to {seconds} seconds long.",
 	"videogif_dropzone_aria": "Choose a video to turn into a GIF",
 	"videogif_note": "Pick up to {seconds} seconds. Shorter clips make smaller GIFs.",
@@ -529,5 +526,6 @@
 	"clip_pause": "Pause",
 	"clip_trim_start": "Trim start",
 	"clip_trim_end": "Trim end",
-	"error_video_engine_load": "Could not load the video engine."
+	"error_video_engine_load": "Could not load the video engine.",
+	"common_proceed": "Proceed"
 }

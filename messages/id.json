@@ -440,7 +440,6 @@
 	"videocut_ready": "Klip hasil potongan sudah siap.",
 	"videocut_failed": "Tidak bisa memotong video.",
 	"videocut_unexpected": "Pemotongan video gagal tanpa diduga.",
-	"videocut_dropzone_label": "Seret & lepas video di sini, atau",
 	"videocut_dropzone_aria": "Pilih video untuk dipotong",
 	"videocut_keyframe_note": "Potongan menempel ke keyframe terdekat, jadi klip bisa mulai satu atau dua detik sebelum pilihanmu.",
 	"trim_current_video_format": "Format video saat ini",
@@ -456,7 +455,6 @@
 	"videocomp_ready": "Videomu sudah siap.",
 	"videocomp_failed": "Tidak bisa mengompres video.",
 	"videocomp_unexpected": "Kompresi video gagal tanpa diduga.",
-	"videocomp_dropzone_label": "Seret & lepas video di sini, atau",
 	"videocomp_hint": "Satu file video sekali proses. Disimpan sebagai MP4.",
 	"videocomp_dropzone_aria": "Pilih video untuk dikompres",
 	"videocomp_already_under": "Video ini sudah di bawah {mb} MB.",
@@ -481,7 +479,6 @@
 	"videogif_ready": "GIF-mu sudah siap.",
 	"videogif_failed": "Tidak bisa membuat GIF.",
 	"videogif_unexpected": "Pembuatan GIF gagal tanpa diduga.",
-	"videogif_dropzone_label": "Seret & lepas video di sini, atau",
 	"videogif_hint": "Satu file video sekali proses. GIF bisa sampai {seconds} detik.",
 	"videogif_dropzone_aria": "Pilih video untuk dijadikan GIF",
 	"videogif_note": "Pilih maksimal {seconds} detik. Klip yang lebih pendek menghasilkan GIF yang lebih kecil.",
@@ -529,5 +526,6 @@
 	"clip_pause": "Jeda",
 	"clip_trim_start": "Awal potongan",
 	"clip_trim_end": "Akhir potongan",
-	"error_video_engine_load": "Tidak bisa memuat mesin video."
+	"error_video_engine_load": "Tidak bisa memuat mesin video.",
+	"common_proceed": "Lanjutkan"
 }

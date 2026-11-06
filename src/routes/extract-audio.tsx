@@ -169,7 +169,7 @@ function ExtractShell() {
 
 			{!file ? (
 				<Dropzone
-					label={m.videocut_dropzone_label()}
+					label={m.common_video_dropzone_label()}
 					actionLabel={m.common_choose_a_video()}
 					hint={m.video_hint_one_file()}
 					accept="video/*"

@@ -70,7 +70,7 @@ function CutterShell() {
 		if (!f) return;
 
 		if (!f.type.startsWith("video/")) {
-			toast.error(`"${f.name}" is not a video.`);
+			toast.error(m.common_not_a_video({ name: f.name }));
 
 			return;
 		}
@@ -190,7 +190,7 @@ function CutterShell() {
 
 			{!file ? (
 				<Dropzone
-					label={m.videocut_dropzone_label()}
+					label={m.common_video_dropzone_label()}
 					actionLabel={m.common_choose_a_video()}
 					hint={m.video_hint_one_file()}
 					accept="video/*"

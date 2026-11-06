@@ -189,7 +189,7 @@ function GifShell() {
 
 			{!file ? (
 				<Dropzone
-					label={m.videogif_dropzone_label()}
+					label={m.common_video_dropzone_label()}
 					actionLabel={m.common_choose_a_video()}
 					hint={m.videogif_hint({ seconds: MAX_GIF_SECONDS })}
 					accept="video/*"

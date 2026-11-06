@@ -192,7 +192,7 @@ function CompressShell() {
 
 			{!file ? (
 				<Dropzone
-					label={m.videocomp_dropzone_label()}
+					label={m.common_video_dropzone_label()}
 					actionLabel={m.common_choose_a_video()}
 					hint={m.videocomp_hint()}
 					accept="video/*"

@@ -19,6 +19,7 @@ import {
 	resolveMode,
 } from "#/components/video-compressor/state.ts";
 import { downloadBlob, formatBytes } from "#/components/video-cutter/utils.ts";
+import { formatDecimal } from "#/lib/format-bytes.ts";
 import {
 	CompressQuality,
 	isUnderTarget,
@@ -319,7 +320,7 @@ export function CompressPanel({
 						<p className="text-xs text-muted-foreground">
 							{/* Decimal MB, like the target; formatBytes is binary. */}
 							{m.videocomp_over_target({
-								size: (output.size / 1_000_000).toFixed(1),
+								size: formatDecimal(output.size / 1_000_000, 1),
 								target: output.overTargetMB,
 							})}
 						</p>

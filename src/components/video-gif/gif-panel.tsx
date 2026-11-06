@@ -12,6 +12,7 @@ import {
 import { downloadBlob, formatBytes } from "#/components/video-cutter/utils.ts";
 import type { GifResult } from "#/components/video-gif/state.ts";
 import { useObjectUrl } from "#/hooks/use-object-url.ts";
+import { formatDecimal } from "#/lib/format-bytes.ts";
 import {
 	GIF_FPS_OPTIONS,
 	GIF_SIZE_OPTIONS,
@@ -138,7 +139,7 @@ export function GifPanel({
 						{m.videogif_clip_length()}
 					</span>
 					<span className="text-sm font-medium tabular-nums">
-						{clipSeconds.toFixed(1)} s
+						{formatDecimal(clipSeconds, 1)} s
 					</span>
 				</div>
 

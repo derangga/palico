@@ -1,19 +1,13 @@
 import { Result } from "effect";
 
-import { classifyDevice, MB } from "#/lib/video/limits.ts";
+import { classifyDevice } from "#/lib/video/limits.ts";
 import {
 	formatMeta,
 	inputExtension,
 	parseVideoOutputFormat,
 } from "#/lib/video/types.ts";
 
-export function formatBytes(n: number) {
-	if (n < 1024) return `${n} B`;
-
-	if (n < MB) return `${(n / 1024).toFixed(1)} KB`;
-
-	return `${(n / MB).toFixed(2)} MB`;
-}
+export { formatBytes } from "#/lib/format-bytes.ts";
 
 // mm:ss for the selection / output duration labels.
 export function formatTime(totalSeconds: number) {

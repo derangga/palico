@@ -80,7 +80,7 @@ export function TrimPanel({
 
 				<Button className="w-full" onClick={onProceed} disabled={!canProceed}>
 					{trimming ? <Loader2 className="animate-spin" /> : <Scissors />}
-					{trimming ? m.trim_trimming() : m.bgremoval_proceed()}
+					{trimming ? m.trim_trimming() : m.common_proceed()}
 				</Button>
 			</div>
 
