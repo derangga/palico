@@ -5,6 +5,7 @@ import { formatBytes } from "#/components/resizer/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
 import type { ResizeOutput } from "#/lib/image/resizer.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export function ResultCard({
 	result,
@@ -41,7 +42,7 @@ export function ResultCard({
 				</span>
 			</span>
 			<p className="min-w-0 flex-1 text-sm">
-				Resized to{" "}
+				{m.resizer_result_before()}{" "}
 				<span className="font-medium">
 					{result.width} × {result.height}px
 				</span>{" "}
@@ -51,7 +52,7 @@ export function ResultCard({
 			</p>
 			<Button variant="outline" size="sm" onClick={onSave}>
 				<Download />
-				Save
+				{m.common_save()}
 			</Button>
 		</div>
 	);

@@ -3,6 +3,7 @@ import { useRef } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
 import { useObjectUrl } from "#/hooks/use-object-url.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Before/after split view. The result image sits on top of the original and is
 // cut off at the split; a native range input moves the split, so it works with
@@ -26,7 +27,7 @@ export function ComparePanel({
 
 	return (
 		<section
-			aria-label={`Compare ${name}`}
+			aria-label={m.compare_aria({ name })}
 			className="mt-4 rounded-xl border bg-card p-4"
 		>
 			<div className="mb-3 flex items-center gap-2">
@@ -37,7 +38,7 @@ export function ComparePanel({
 					variant="ghost"
 					size="icon-sm"
 					onClick={onClose}
-					aria-label="Close comparison"
+					aria-label={m.compare_close()}
 				>
 					<X />
 				</Button>
@@ -49,7 +50,7 @@ export function ComparePanel({
 			>
 				<img
 					src={beforeUrl}
-					alt="Original"
+					alt={m.compare_original()}
 					decoding="async"
 					className="block max-h-[60vh] w-full object-contain"
 				/>
@@ -59,7 +60,7 @@ export function ComparePanel({
 				<div className="absolute inset-0 translate-x-(--split) overflow-hidden will-change-transform">
 					<img
 						src={afterUrl}
-						alt="Compressed"
+						alt={m.compare_compressed()}
 						decoding="async"
 						className="absolute inset-0 size-full -translate-x-(--split) object-contain will-change-transform"
 					/>
@@ -69,10 +70,10 @@ export function ComparePanel({
 					/>
 				</div>
 				<span className="absolute top-2 left-2 rounded-sm bg-background/80 px-1.5 py-0.5 text-xs font-semibold">
-					Before
+					{m.compare_before()}
 				</span>
 				<span className="absolute top-2 right-2 rounded-sm bg-background/80 px-1.5 py-0.5 text-xs font-semibold">
-					After
+					{m.compare_after()}
 				</span>
 			</div>
 			<input
@@ -86,7 +87,7 @@ export function ComparePanel({
 						`${e.currentTarget.value}%`,
 					)
 				}
-				aria-label="Move the split between before and after"
+				aria-label={m.compare_slider()}
 				className="mt-3 w-full accent-primary"
 			/>
 		</section>

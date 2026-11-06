@@ -18,6 +18,7 @@ import {
 } from "#/components/resizer/state.ts";
 import { downloadBlob, formatBytes } from "#/components/resizer/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { currentLocale } from "#/lib/i18n/state.ts";
 import { resizeImage } from "#/lib/image/resizer.ts";
 import {
 	MAX_DIMENSION,
@@ -26,6 +27,7 @@ import {
 	sourceFormatMeta,
 } from "#/lib/image/types.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/resizer")({
 	head: () => seoHead("/resizer"),
@@ -71,16 +73,18 @@ function ResizerPage() {
 		if (!file) return;
 
 		if (!file.type.startsWith("image/")) {
-			toast.error(`"${file.name}" is not an image.`);
+			toast.error(m.common_not_an_image({ name: file.name }));
 
 			return;
 		}
 
 		if (file.size > MAX_FILE_BYTES) {
 			toast.error(
-				`"${file.name}" is ${formatBytes(file.size)}, over the ${Math.round(
-					MAX_FILE_BYTES / MB,
-				)} MB limit.`,
+				m.common_file_over_limit({
+					name: file.name,
+					size: formatBytes(file.size),
+					limit: Math.round(MAX_FILE_BYTES / MB),
+				}),
 			);
 
 			return;
@@ -91,7 +95,7 @@ function ResizerPage() {
 		try {
 			bitmap = await createImageBitmap(file);
 		} catch {
-			toast.error(`Could not read "${file.name}".`);
+			toast.error(m.resizer_read_failed({ name: file.name }));
 
 			return;
 		}
@@ -102,7 +106,12 @@ function ResizerPage() {
 
 		if (srcW > MAX_DIMENSION || srcH > MAX_DIMENSION) {
 			toast.error(
-				`"${file.name}" is ${srcW}×${srcH}px, over the ${MAX_DIMENSION.toLocaleString()}px limit.`,
+				m.error_dimensions_named({
+					name: file.name,
+					width: srcW,
+					height: srcH,
+					limit: MAX_DIMENSION.toLocaleString(currentLocale()),
+				}),
 			);
 
 			return;
@@ -155,7 +164,12 @@ function ResizerPage() {
 
 		if (Exit.isSuccess(exit)) {
 			dispatch({ type: "succeed", result: exit.value });
-			toast.success(`Resized to ${exit.value.width}×${exit.value.height}px.`);
+			toast.success(
+				m.resizer_done_toast({
+					width: exit.value.width,
+					height: exit.value.height,
+				}),
+			);
 
 			return;
 		}
@@ -171,9 +185,7 @@ function ResizerPage() {
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 
 		const message =
-			failure && "message" in failure
-				? failure.message
-				: "Could not resize this image.";
+			failure && "message" in failure ? failure.message : m.resizer_failed();
 
 		dispatch({ type: "fail", message });
 		toast.error(message);
@@ -200,19 +212,23 @@ function ResizerPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Image Resizer">
-				Resize an image by pixels or percentage, entirely in your browser. Keeps
-				the source format. Up to {Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
-				{MAX_DIMENSION.toLocaleString()}px max.
+			<PageHeader title={m.tool_resizer_label()}>
+				{m.resizer_description({
+					mb: Math.round(MAX_FILE_BYTES / MB),
+					pixels: MAX_DIMENSION.toLocaleString(currentLocale()),
+				})}
 			</PageHeader>
 
 			{!source ? (
 				<Dropzone
-					label="Drag & drop an image here, or"
-					actionLabel="Choose a file"
-					hint={`Images up to ${Math.round(MAX_FILE_BYTES / MB)} MB, ${MAX_DIMENSION.toLocaleString()}px max`}
+					label={m.resizer_dropzone_label()}
+					actionLabel={m.common_choose_file()}
+					hint={m.resizer_hint({
+						mb: Math.round(MAX_FILE_BYTES / MB),
+						pixels: MAX_DIMENSION.toLocaleString(currentLocale()),
+					})}
 					accept="image/*"
-					ariaLabel="Choose an image to resize"
+					ariaLabel={m.resizer_dropzone_aria()}
 					onFiles={selectFile}
 				/>
 			) : (
@@ -257,8 +273,7 @@ function ResizerPage() {
 						{blockedByEnlarge && (
 							<p className="mt-4 flex items-center gap-1.5 text-sm text-destructive">
 								<CircleAlert className="size-4 shrink-0" />
-								Target {outW}×{outH}px is larger than the source. Uncheck “Do
-								not enlarge” or choose a smaller size.
+								{m.resizer_blocked({ width: outW, height: outH })}
 							</p>
 						)}
 
@@ -266,22 +281,22 @@ function ResizerPage() {
 							{status === "processing" ? (
 								<>
 									<p className="mr-auto text-xs text-muted-foreground">
-										Large images can take a few seconds…
+										{m.resizer_large_note()}
 									</p>
 									<Button variant="ghost" onClick={handleCancel}>
-										Cancel
+										{m.common_cancel()}
 									</Button>
 								</>
 							) : (
 								<Button variant="ghost" onClick={reset}>
-									Clear
+									{m.common_clear()}
 								</Button>
 							)}
 							<Button onClick={handleResize} disabled={!canResize}>
 								{status === "processing" ? (
 									<Loader2 className="animate-spin" />
 								) : null}
-								Resize
+								{m.resizer_action()}
 							</Button>
 						</div>
 					</div>

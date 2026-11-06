@@ -1,5 +1,6 @@
 import type { Mode } from "#/components/resizer/state.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { m } from "#/paraglide/messages.js";
 
 export function ModeToggle({
 	mode,
@@ -15,14 +16,14 @@ export function ModeToggle({
 				size="sm"
 				onClick={() => onSetMode("pixels")}
 			>
-				By pixels
+				{m.resizer_mode_pixels()}
 			</Button>
 			<Button
 				variant={mode === "percent" ? "secondary" : "ghost"}
 				size="sm"
 				onClick={() => onSetMode("percent")}
 			>
-				By percentage
+				{m.resizer_mode_percent()}
 			</Button>
 		</div>
 	);

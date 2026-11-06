@@ -36,6 +36,7 @@ import type { StorageQuotaError } from "#/lib/offline/errors.ts";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 // One-time download the consent gate negotiates before the model is fetched.
 // ~180 MB weights + ~21 MB ONNX Runtime.
@@ -50,14 +51,14 @@ function userMessageFor(
 		case "StorageQuotaError":
 			return failure.message;
 		case "ModelLoadError":
-			return "Couldn't prepare the background tool. Check your connection and try again.";
+			return m.bgremoval_err_model();
 		case "InferenceError":
-			return "Couldn't remove the background from this image. Try a different one.";
+			return m.bgremoval_err_inference();
 		case "DecodeError":
 		case "EncodeError":
-			return "Couldn't read this image.";
+			return m.bgremoval_err_read();
 		default:
-			return "Failed to remove background.";
+			return m.bgremoval_err_generic();
 	}
 }
 
@@ -178,7 +179,7 @@ function BackgroundRemovalPage() {
 		if (!file) return;
 
 		if (!file.type.startsWith("image/")) {
-			toast.error(`"${file.name}" is not an image.`);
+			toast.error(m.common_not_an_image({ name: file.name }));
 
 			return;
 		}
@@ -224,9 +225,8 @@ function BackgroundRemovalPage() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Remove Background">
-				Cut out the subject of any image, entirely in your browser. On first
-				use, a {MODEL_SIZE_LABEL} model downloads and is cached.
+			<PageHeader title={m.tool_background_removal_label()}>
+				{m.bgremoval_description({ size: MODEL_SIZE_LABEL })}
 			</PageHeader>
 
 			{gate.kind !== "ready" ? (
@@ -250,14 +250,13 @@ function BackgroundRemovalPage() {
 								<EmptyMedia variant="icon">
 									<ImageIcon />
 								</EmptyMedia>
-								<EmptyTitle>Pick an image to start</EmptyTitle>
+								<EmptyTitle>{m.common_pick_image_title()}</EmptyTitle>
 								<EmptyDescription>
-									Choose any image and we'll erase its background. Everything
-									runs on your device. Nothing is uploaded.
+									{m.bgremoval_pick_description()}
 								</EmptyDescription>
 							</EmptyHeader>
 							<EmptyContent>
-								<Button onClick={pick}>Choose image</Button>
+								<Button onClick={pick}>{m.common_choose_image()}</Button>
 							</EmptyContent>
 						</Empty>
 					) : status !== "done" ? (
@@ -278,19 +277,20 @@ function BackgroundRemovalPage() {
 								<div className="mt-4 flex items-center gap-3 rounded-lg border bg-muted/40 p-4">
 									<Loader2 className="size-5 shrink-0 animate-spin text-primary" />
 									<div>
-										<p className="text-sm font-medium">Removing background…</p>
+										<p className="text-sm font-medium">
+											{m.bgremoval_removing()}
+										</p>
 										<p className="text-xs text-muted-foreground">
-											Running the model on your device. This can take a few
-											seconds.
+											{m.bgremoval_removing_hint()}
 										</p>
 									</div>
 								</div>
 							) : (
 								<div className="mt-4 flex items-center justify-end gap-2">
 									<Button variant="ghost" onClick={reset}>
-										Clear
+										{m.common_clear()}
 									</Button>
-									<Button onClick={proceed}>Proceed</Button>
+									<Button onClick={proceed}>{m.bgremoval_proceed()}</Button>
 								</div>
 							)}
 						</div>
@@ -299,13 +299,13 @@ function BackgroundRemovalPage() {
 							<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 								<figure>
 									<figcaption className="mb-2 text-xs font-medium text-muted-foreground">
-										Original
+										{m.compare_original()}
 									</figcaption>
 									<div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border bg-muted">
 										{sourceUrl && (
 											<img
 												src={sourceUrl}
-												alt="Original"
+												alt={m.compare_original()}
 												className="max-h-full max-w-full object-contain"
 											/>
 										)}
@@ -313,7 +313,7 @@ function BackgroundRemovalPage() {
 								</figure>
 								<figure>
 									<figcaption className="mb-2 text-xs font-medium text-muted-foreground">
-										Background removed
+										{m.bgremoval_result()}
 									</figcaption>
 									<div
 										className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border"
@@ -327,7 +327,7 @@ function BackgroundRemovalPage() {
 										{resultUrl && (
 											<img
 												src={resultUrl}
-												alt="Background removed"
+												alt={m.bgremoval_result()}
 												className="max-h-full max-w-full object-contain"
 											/>
 										)}
@@ -337,7 +337,7 @@ function BackgroundRemovalPage() {
 							<div className="mt-4 flex items-center justify-end gap-2">
 								<Button variant="ghost" onClick={reset}>
 									<RotateCcw />
-									Start over
+									{m.common_start_over()}
 								</Button>
 								<Button
 									onClick={() => {
@@ -347,7 +347,7 @@ function BackgroundRemovalPage() {
 									}}
 								>
 									<Download />
-									Download PNG
+									{m.bgremoval_download()}
 								</Button>
 							</div>
 						</div>
@@ -373,11 +373,11 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 					<CircleAlert className="size-5 shrink-0 text-destructive" />
 					<div className="flex-1">
 						<p className="text-sm font-medium">
-							Could not prepare the background tool
+							{m.bgremoval_gate_error_title()}
 						</p>
 						<p className="mt-1 text-sm text-muted-foreground">{gate.message}</p>
 						<Button className="mt-4" onClick={onStart}>
-							Try again
+							{m.common_try_again()}
 						</Button>
 					</div>
 				</div>
@@ -391,18 +391,13 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 		return (
 			<EngineConsentCard
 				icon={ImageIcon}
-				title="Background removal is disabled"
-				body={`The ${MODEL_SIZE_LABEL} model download is required to use this tool.`}
-				enableLabel="Enable background removal"
-				dialogTitle={`Download the background tool (${MODEL_SIZE_LABEL})`}
-				dialogDescription={
-					<>
-						Background removal runs entirely on your device, but it needs a
-						one-time {MODEL_SIZE_LABEL} AI model. Your browser keeps it after
-						the first download, so later visits work without a connection.
-						Nothing leaves your browser.
-					</>
-				}
+				title={m.bgremoval_consent_title()}
+				body={m.bgremoval_consent_body({ size: MODEL_SIZE_LABEL })}
+				enableLabel={m.bgremoval_enable()}
+				dialogTitle={m.bgremoval_dialog_title({ size: MODEL_SIZE_LABEL })}
+				dialogDescription={m.bgremoval_dialog_description({
+					size: MODEL_SIZE_LABEL,
+				})}
 				onConfirm={onStart}
 			/>
 		);
@@ -414,7 +409,9 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 		<div className="rounded-xl border bg-card p-6">
 			<div className="flex items-center gap-3">
 				<Loader2 className="size-5 shrink-0 animate-spin text-primary" />
-				<p className="text-sm font-medium">Downloading model {percent}%</p>
+				<p className="text-sm font-medium">
+					{m.bgremoval_downloading({ percent })}
+				</p>
 			</div>
 			<div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
 				<div
@@ -423,7 +420,7 @@ function ModelGate({ gate, onStart }: ModelGateProps) {
 				/>
 			</div>
 			<p className="mt-3 text-xs text-muted-foreground">
-				Fetching the model. Your browser caches it for next time.
+				{m.bgremoval_downloading_hint()}
 			</p>
 		</div>
 	);

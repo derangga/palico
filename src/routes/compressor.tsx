@@ -24,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { currentLocale } from "#/lib/i18n/state.ts";
 import {
 	CompressFormat,
 	type CompressProgress,
@@ -32,6 +33,7 @@ import {
 import { MAX_DIMENSION, MAX_FILE_BYTES, MAX_FILES } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/compressor")({
 	head: () => seoHead("/compressor"),
@@ -40,14 +42,17 @@ export const Route = createFileRoute("/compressor")({
 
 const MB = 1024 * 1024;
 
-const PRESETS = [
-	{ label: "Small", value: 50 },
-	{ label: "Balanced", value: 75 },
-	{ label: "Best", value: 90 },
-] as const;
+// Functions, not constants: a label read at module load would stay in the
+// language active then.
+const presets = () =>
+	[
+		{ label: m.compressor_preset_small(), value: 50 },
+		{ label: m.compressor_preset_balanced(), value: 75 },
+		{ label: m.compressor_preset_best(), value: 90 },
+	] as const;
 
-const FORMATS: ReadonlyArray<{ value: CompressFormat; label: string }> = [
-	{ value: "same", label: "Same as original" },
+const formats = (): ReadonlyArray<{ value: CompressFormat; label: string }> => [
+	{ value: "same", label: m.compressor_format_same() },
 	{ value: "jpeg", label: "JPG" },
 	{ value: "webp", label: "WebP" },
 ];
@@ -78,7 +83,7 @@ function CompressorPage() {
 		0,
 	);
 
-	const missedTarget = doneItems.some((i) => i.note?.startsWith("Couldn't"));
+	const missedTarget = doneItems.some((i) => i.targetMissed);
 
 	const compareItem = items.find(
 		(i) => i.id === compareId && i.status === "done" && i.outBlob,
@@ -90,15 +95,17 @@ function CompressorPage() {
 
 		for (const file of Array.from(fileList)) {
 			if (!file.type.startsWith("image/")) {
-				toast.error(`"${file.name}" is not an image.`);
+				toast.error(m.common_not_an_image({ name: file.name }));
 				continue;
 			}
 
 			if (file.size > MAX_FILE_BYTES) {
 				toast.error(
-					`"${file.name}" is ${formatBytes(file.size)}, over the ${Math.round(
-						MAX_FILE_BYTES / MB,
-					)} MB limit.`,
+					m.common_file_over_limit({
+						name: file.name,
+						size: formatBytes(file.size),
+						limit: Math.round(MAX_FILE_BYTES / MB),
+					}),
 				);
 				continue;
 			}
@@ -109,7 +116,7 @@ function CompressorPage() {
 		const room = Math.max(MAX_FILES - items.length, 0);
 
 		if (accepted.length > room) {
-			toast.error(`You can compress up to ${MAX_FILES} images at a time.`);
+			toast.error(m.compressor_too_many({ max: MAX_FILES }));
 		}
 
 		setItems((prev) => [
@@ -167,10 +174,12 @@ function CompressorPage() {
 							outLabel: out.formatLabel,
 							savedPct: Math.round((1 - out.size / out.originalSize) * 100),
 							note: out.keptOriginal
-								? "Already small, kept the original."
+								? m.compressor_note_kept()
 								: !out.targetMet && targetBytes != null
-									? `Couldn't get under ${formatBytes(targetBytes)}. This is the smallest at this size.`
+									? m.compressor_note_missed({ size: formatBytes(targetBytes) })
 									: undefined,
+							targetMissed:
+								!out.keptOriginal && !out.targetMet && targetBytes != null,
 							message: undefined,
 						};
 					}
@@ -198,14 +207,20 @@ function CompressorPage() {
 		const ok = outputs.length;
 
 		if (ok > 0) {
-			toast.success(`Compressed ${ok} image${ok === 1 ? "" : "s"}.`);
+			toast.success(
+				ok === 1
+					? m.compressor_success_one({ count: ok })
+					: m.compressor_success_other({ count: ok }),
+			);
 		}
 
 		const failed = inputs.length - ok;
 
 		if (failed > 0) {
 			toast.error(
-				`${failed} image${failed === 1 ? "" : "s"} could not be compressed.`,
+				failed === 1
+					? m.compressor_failed_one({ count: failed })
+					: m.compressor_failed_other({ count: failed }),
 			);
 		}
 	}
@@ -231,31 +246,35 @@ function CompressorPage() {
 		const exit = await Effect.runPromiseExit(program);
 
 		if (Exit.isFailure(exit)) {
-			toast.error("Could not build the zip file.");
+			toast.error(m.common_zip_failed());
 
 			return;
 		}
 
 		downloadBlob(exit.value, "palico-compressed.zip");
-		toast.success("Downloaded all images as a zip.");
+		toast.success(m.common_images_zip_done());
 	}
 
 	return (
 		<PageShell>
-			<PageHeader title="Compress Image">
-				Make JPG, PNG and WebP files smaller without changing their size in
-				pixels, entirely in your browser. Up to {MAX_FILES} files,{" "}
-				{Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
-				{MAX_DIMENSION.toLocaleString()}px max each.
+			<PageHeader title={m.tool_compressor_label()}>
+				{m.compressor_description({
+					files: MAX_FILES,
+					mb: Math.round(MAX_FILE_BYTES / MB),
+					pixels: MAX_DIMENSION.toLocaleString(currentLocale()),
+				})}
 			</PageHeader>
 
 			<Dropzone
-				label="Drag & drop images here, or"
-				actionLabel="Choose files"
-				hint={`Images up to ${Math.round(MAX_FILE_BYTES / MB)} MB each, ${MAX_FILES} files at a time`}
+				label={m.converter_dropzone_label()}
+				actionLabel={m.common_choose_files()}
+				hint={m.converter_hint({
+					mb: Math.round(MAX_FILE_BYTES / MB),
+					max: MAX_FILES,
+				})}
 				accept="image/*"
 				multiple
-				ariaLabel="Choose images to compress"
+				ariaLabel={m.compressor_dropzone_aria()}
 				onFiles={addFiles}
 			/>
 
@@ -269,7 +288,7 @@ function CompressorPage() {
 									htmlFor="compress-quality"
 									className="text-xs font-medium text-muted-foreground"
 								>
-									Quality
+									{m.compressor_quality()}
 								</label>
 								<span className="font-mono text-sm">{quality}%</span>
 							</div>
@@ -285,7 +304,7 @@ function CompressorPage() {
 								className="w-full accent-primary"
 							/>
 							<div className="flex flex-wrap gap-2">
-								{PRESETS.map((p) => (
+								{presets().map((p) => (
 									<Button
 										key={p.value}
 										variant={quality === p.value ? "secondary" : "outline"}
@@ -302,7 +321,7 @@ function CompressorPage() {
 						<div className="flex flex-wrap items-end gap-4">
 							<div className="flex flex-col gap-1.5">
 								<span className="text-xs font-medium text-muted-foreground">
-									Save as
+									{m.compressor_save_as()}
 								</span>
 								<Select
 									value={format}
@@ -315,11 +334,11 @@ function CompressorPage() {
 								>
 									<SelectTrigger className="w-44">
 										<SelectValue>
-											{() => FORMATS.find((f) => f.value === format)?.label}
+											{() => formats().find((f) => f.value === format)?.label}
 										</SelectValue>
 									</SelectTrigger>
 									<SelectContent>
-										{FORMATS.map((f) => (
+										{formats().map((f) => (
 											<SelectItem key={f.value} value={f.value}>
 												{f.label}
 											</SelectItem>
@@ -339,7 +358,7 @@ function CompressorPage() {
 									}}
 								/>
 								<label htmlFor="compress-limit" className="text-sm">
-									Keep each file under
+									{m.compressor_limit_label()}
 								</label>
 								<Input
 									type="number"
@@ -347,7 +366,7 @@ function CompressorPage() {
 									className="w-24"
 									value={limitKb}
 									disabled={!limitOn || isRunning}
-									aria-label="Maximum file size in KB"
+									aria-label={m.compressor_limit_aria()}
 									aria-invalid={!limitValid}
 									onChange={(e) => {
 										setLimitKb(e.target.value);
@@ -359,7 +378,7 @@ function CompressorPage() {
 						</div>
 
 						<p className="text-xs text-muted-foreground">
-							PNGs are saved as WebP, which is much smaller.
+							{m.compressor_png_note()}
 						</p>
 
 						<div className="flex flex-wrap justify-end gap-2">
@@ -371,7 +390,7 @@ function CompressorPage() {
 								}}
 								disabled={isRunning}
 							>
-								Clear
+								{m.common_clear()}
 							</Button>
 							{doneItems.length > 1 && (
 								<Button
@@ -380,7 +399,7 @@ function CompressorPage() {
 									disabled={isRunning}
 								>
 									<FileArchive />
-									Download all (.zip)
+									{m.common_download_all_zip()}
 								</Button>
 							)}
 							{compressable.length > 0 && (
@@ -390,8 +409,13 @@ function CompressorPage() {
 								>
 									{isRunning ? <Loader2 className="animate-spin" /> : null}
 									{isRunning
-										? `Compressing ${batchDone} / ${batchTotal}`
-										: `Compress ${compressable.length}`}
+										? m.compressor_compressing({
+												done: batchDone,
+												total: batchTotal,
+											})
+										: m.compressor_compress_count({
+												count: compressable.length,
+											})}
 								</Button>
 							)}
 						</div>
@@ -400,18 +424,25 @@ function CompressorPage() {
 					{!isRunning && doneItems.length > 0 && (
 						<p className="mt-4 text-sm">
 							{savedBytes > 0
-								? `Saved ${formatBytes(savedBytes)} across ${doneItems.length} image${doneItems.length === 1 ? "" : "s"}.`
-								: "These images were already small."}
+								? doneItems.length === 1
+									? m.compressor_saved_one({
+											size: formatBytes(savedBytes),
+											count: doneItems.length,
+										})
+									: m.compressor_saved_other({
+											size: formatBytes(savedBytes),
+											count: doneItems.length,
+										})
+								: m.compressor_already_small()}
 							{missedTarget && (
 								<>
 									{" "}
-									Some files are still over the limit. Making them smaller in
-									pixels helps:{" "}
+									{m.compressor_over_limit()}{" "}
 									<Link
 										to="/resizer"
 										className="font-semibold text-primary underline"
 									>
-										Image Resizer
+										{m.tool_resizer_label()}
 									</Link>
 									.
 								</>

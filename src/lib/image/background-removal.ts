@@ -5,6 +5,8 @@ import type {
 } from "@huggingface/transformers";
 import { Effect, Option, Ref, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	type BackgroundRemovalError,
 	DecodeError,
@@ -61,10 +63,7 @@ const MODEL_ID = "briaai/RMBG-1.4";
 
 const toModelLoadError = (cause: unknown): ModelLoadError =>
 	new ModelLoadError({
-		message:
-			cause instanceof Error
-				? cause.message
-				: "Could not load the background removal model.",
+		message: cause instanceof Error ? cause.message : m.error_bg_model_load(),
 	});
 
 const buildPipeline = (
@@ -129,9 +128,10 @@ const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(
-						MAX_FILE_BYTES / MB,
-					)} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / MB),
+					}),
 				}),
 			)
 		: Effect.void;
@@ -147,12 +147,16 @@ const useSourceUrl = <A, E>(
 		(url) => Effect.sync(() => URL.revokeObjectURL(url)),
 	);
 
+// Marks a failure to decode the image, so the error handler does not have to
+// read the (translated) message to tell decoding from encoding.
+class MaskDecodeFailure extends Error {}
+
 const loadHtmlImage = (src: string): Promise<HTMLImageElement> =>
 	new Promise((resolve, reject) => {
 		const img = new Image();
 		img.crossOrigin = "anonymous";
 		img.onload = () => resolve(img);
-		img.onerror = () => reject(new Error("Could not decode image."));
+		img.onerror = () => reject(new MaskDecodeFailure(m.error_decode_image()));
 		img.src = src;
 	});
 
@@ -229,7 +233,7 @@ const composeCutout = async (
 
 	return new Promise<Blob>((resolve, reject) => {
 		sourceCanvas.toBlob(
-			(b) => (b ? resolve(b) : reject(new Error("Failed to encode PNG."))),
+			(b) => (b ? resolve(b) : reject(new Error(m.error_encode_png()))),
 			"image/png",
 		);
 	});
@@ -319,7 +323,7 @@ export const removeBackground = (
 						new DecodeError({
 							fileName: input.file.name,
 							message:
-								err instanceof Error ? err.message : "Could not decode image.",
+								err instanceof Error ? err.message : m.error_decode_image(),
 						}),
 				});
 
@@ -332,7 +336,12 @@ export const removeBackground = (
 						width: canvas.width,
 						height: canvas.height,
 						limit: MAX_DIMENSION,
-						message: `"${input.file.name}" is ${canvas.width}×${canvas.height}px, over the ${MAX_DIMENSION}px limit.`,
+						message: m.error_dimensions_named({
+							name: input.file.name,
+							width: canvas.width,
+							height: canvas.height,
+							limit: MAX_DIMENSION,
+						}),
 					});
 				}
 
@@ -341,7 +350,7 @@ export const removeBackground = (
 					catch: (err) =>
 						new InferenceError({
 							fileName: input.file.name,
-							message: err instanceof Error ? err.message : "Inference failed.",
+							message: err instanceof Error ? err.message : m.error_inference(),
 						}),
 				});
 
@@ -350,7 +359,7 @@ export const removeBackground = (
 				if (!first?.mask) {
 					return yield* new InferenceError({
 						fileName: input.file.name,
-						message: "Model returned no mask.",
+						message: m.error_no_mask(),
 					});
 				}
 
@@ -358,9 +367,9 @@ export const removeBackground = (
 					try: () => composeCutout(canvas, first.mask),
 					catch: (err) => {
 						const message =
-							err instanceof Error ? err.message : "Could not compose image.";
+							err instanceof Error ? err.message : m.error_compose();
 
-						return message.toLowerCase().includes("decode")
+						return err instanceof MaskDecodeFailure
 							? new DecodeError({ fileName: input.file.name, message })
 							: new EncodeError({
 									fileName: input.file.name,

@@ -1,5 +1,7 @@
 import { Effect, Result, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { validateSize } from "./converter.ts";
 import { type ConvertError, DecodeError } from "./errors.ts";
 import { formatMeta, type OutputFormat, outputFileName } from "./types.ts";
@@ -61,7 +63,7 @@ const compressOne = Effect.fn("ImageCompressor.compressOne")(function* (
 		catch: (err) =>
 			new DecodeError({
 				fileName: file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 

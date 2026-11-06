@@ -92,7 +92,9 @@ export const WorkerResponse = Schema.Union([
 		id: Schema.String,
 		ok: Schema.Literal(false),
 		reason: Schema.Literals(["decode", "dimensions", "encode"]),
-		message: Schema.String,
+		// The browser's own error text, when it gave one. The worker has no active
+		// language, so the client words the failure (see worker-client.ts).
+		detail: Schema.optional(Schema.String),
 		width: Schema.optional(Schema.Number),
 		height: Schema.optional(Schema.Number),
 	}),

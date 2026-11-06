@@ -21,6 +21,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { currentLocale } from "#/lib/i18n/state.ts";
 import { convertImages, type ProgressUpdate } from "#/lib/image/converter.ts";
 import {
 	formatMeta,
@@ -33,6 +34,7 @@ import {
 } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/converter")({
 	head: () => seoHead("/converter"),
@@ -62,15 +64,17 @@ function ConverterPage() {
 
 		for (const file of Array.from(fileList)) {
 			if (!file.type.startsWith("image/")) {
-				toast.error(`"${file.name}" is not an image.`);
+				toast.error(m.common_not_an_image({ name: file.name }));
 				continue;
 			}
 
 			if (file.size > MAX_FILE_BYTES) {
 				toast.error(
-					`"${file.name}" is ${formatBytes(file.size)}, over the ${Math.round(
-						MAX_FILE_BYTES / MB,
-					)} MB limit.`,
+					m.common_file_over_limit({
+						name: file.name,
+						size: formatBytes(file.size),
+						limit: Math.round(MAX_FILE_BYTES / MB),
+					}),
 				);
 				continue;
 			}
@@ -81,7 +85,7 @@ function ConverterPage() {
 		const room = Math.max(MAX_FILES - items.length, 0);
 
 		if (accepted.length > room) {
-			toast.error(`You can convert up to ${MAX_FILES} images at a time.`);
+			toast.error(m.converter_too_many({ max: MAX_FILES }));
 		}
 
 		setItems((prev) => [
@@ -178,7 +182,9 @@ function ConverterPage() {
 
 		if (ok > 0) {
 			toast.success(
-				`Convert ${ok} image${ok === 1 ? "" : "s"} to ${label} success`,
+				ok === 1
+					? m.converter_success_one({ count: ok, label })
+					: m.converter_success_other({ count: ok, label }),
 			);
 		}
 
@@ -186,7 +192,9 @@ function ConverterPage() {
 
 		if (failed > 0) {
 			toast.error(
-				`${failed} image${failed === 1 ? "" : "s"} could not be converted.`,
+				failed === 1
+					? m.converter_failed_one({ count: failed })
+					: m.converter_failed_other({ count: failed }),
 			);
 		}
 	}
@@ -212,30 +220,35 @@ function ConverterPage() {
 		const exit = await Effect.runPromiseExit(program);
 
 		if (Exit.isFailure(exit)) {
-			toast.error("Could not build the zip file.");
+			toast.error(m.common_zip_failed());
 
 			return;
 		}
 
 		downloadBlob(exit.value, "palico-converted.zip");
-		toast.success("Downloaded all images as a zip.");
+		toast.success(m.common_images_zip_done());
 	}
 
 	return (
 		<PageShell>
-			<PageHeader title="Image Converter">
-				Convert images to JPG, PNG, or WebP, entirely in your browser. Up to{" "}
-				{MAX_FILES} files, {Math.round(MAX_FILE_BYTES / MB)} MB and{" "}
-				{MAX_DIMENSION.toLocaleString()}px max each.
+			<PageHeader title={m.tool_converter_label()}>
+				{m.converter_description({
+					files: MAX_FILES,
+					mb: Math.round(MAX_FILE_BYTES / MB),
+					pixels: MAX_DIMENSION.toLocaleString(currentLocale()),
+				})}
 			</PageHeader>
 
 			<Dropzone
-				label="Drag & drop images here, or"
-				actionLabel="Choose files"
-				hint={`Images up to ${Math.round(MAX_FILE_BYTES / MB)} MB each, ${MAX_FILES} files at a time`}
+				label={m.converter_dropzone_label()}
+				actionLabel={m.common_choose_files()}
+				hint={m.converter_hint({
+					mb: Math.round(MAX_FILE_BYTES / MB),
+					max: MAX_FILES,
+				})}
 				accept="image/*"
 				multiple
-				ariaLabel="Choose images to convert"
+				ariaLabel={m.converter_dropzone_aria()}
 				onFiles={addFiles}
 			/>
 
@@ -245,7 +258,7 @@ function ConverterPage() {
 					<div className="mt-6 flex flex-wrap items-end gap-4 rounded-xl border bg-card p-4">
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
-								Convert to
+								{m.converter_convert_to()}
 							</span>
 							<Select
 								value={format}
@@ -269,7 +282,7 @@ function ConverterPage() {
 
 						<div className="ml-auto flex gap-2">
 							<Button variant="ghost" onClick={reset} disabled={isRunning}>
-								Clear
+								{m.common_clear()}
 							</Button>
 							{doneItems.length > 1 && (
 								<Button
@@ -278,15 +291,18 @@ function ConverterPage() {
 									disabled={isRunning}
 								>
 									<FileArchive />
-									Download all (.zip)
+									{m.common_download_all_zip()}
 								</Button>
 							)}
 							{convertable.length > 0 && (
 								<Button onClick={handleConvert} disabled={isRunning}>
 									{isRunning ? <Loader2 className="animate-spin" /> : null}
 									{isRunning
-										? `Converting ${batchDone} / ${batchTotal}`
-										: `Convert ${convertable.length}`}
+										? m.converter_converting({
+												done: batchDone,
+												total: batchTotal,
+											})
+										: m.converter_convert_count({ count: convertable.length })}
 								</Button>
 							)}
 						</div>

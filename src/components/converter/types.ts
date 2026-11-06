@@ -12,4 +12,6 @@ export interface Item {
 	// Compressor only: percent smaller than the input, and an extra line of copy.
 	savedPct?: number;
 	note?: string;
+	// Compressor only: a size limit was set and the output still missed it.
+	targetMissed?: boolean;
 }
