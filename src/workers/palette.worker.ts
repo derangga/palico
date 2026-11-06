@@ -27,8 +27,7 @@ async function readPalette(
 		return {
 			id,
 			ok: false,
-			reason: "image",
-			message: "Couldn't open this file as an image.",
+			reason: "open",
 		};
 	}
 
@@ -53,20 +52,13 @@ async function readPalette(
 
 		return colors.length > 0
 			? { id, ok: true, colors }
-			: {
-					id,
-					ok: false,
-					reason: "empty",
-					message:
-						"This image is fully transparent, so it has no colors to read.",
-				};
+			: { id, ok: false, reason: "empty" };
 	} catch (cause) {
 		return {
 			id,
 			ok: false,
 			reason: "image",
-			message:
-				cause instanceof Error ? cause.message : "Couldn't read this image.",
+			detail: cause instanceof Error ? cause.message : undefined,
 		};
 	} finally {
 		bitmap.close();

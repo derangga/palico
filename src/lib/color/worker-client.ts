@@ -4,6 +4,7 @@ import { Effect } from "effect";
 
 import { FileTooLargeError } from "#/lib/image/errors.ts";
 import { MAX_FILE_BYTES } from "#/lib/image/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 import {
 	PaletteEmptyError,
@@ -41,7 +42,10 @@ export const readPaletteFromFile = (
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+					}),
 				}),
 			);
 		}
@@ -51,7 +55,7 @@ export const readPaletteFromFile = (
 			catch: () =>
 				new PaletteImageError({
 					fileName: file.name,
-					message: "Couldn't read this file.",
+					message: m.error_color_read_file(),
 				}),
 		});
 
@@ -68,7 +72,7 @@ export const readPaletteFromFile = (
 							} else if (response.reason === "empty") {
 								resume(
 									Effect.fail(
-										new PaletteEmptyError({ message: response.message }),
+										new PaletteEmptyError({ message: m.error_palette_empty() }),
 									),
 								);
 							} else {
@@ -76,7 +80,10 @@ export const readPaletteFromFile = (
 									Effect.fail(
 										new PaletteImageError({
 											fileName: file.name,
-											message: response.message,
+											message:
+												response.reason === "open"
+													? m.error_color_open_image()
+													: (response.detail ?? m.error_palette_read_failed()),
 										}),
 									),
 								);
@@ -87,9 +94,7 @@ export const readPaletteFromFile = (
 							resume(
 								Effect.fail(
 									new PaletteWorkerError({
-										message:
-											event.message ||
-											"The palette reader stopped unexpectedly.",
+										message: event.message || m.error_palette_worker_stopped(),
 									}),
 								),
 							);
@@ -99,7 +104,7 @@ export const readPaletteFromFile = (
 							resume(
 								Effect.fail(
 									new PaletteWorkerError({
-										message: "The palette reader sent back a bad message.",
+										message: m.error_palette_worker_bad_message(),
 									}),
 								),
 							);

@@ -17,6 +17,8 @@ export type PaletteWorkerResponse =
 	| {
 			readonly id: number;
 			readonly ok: false;
-			readonly reason: "empty" | "image";
-			readonly message: string;
+			readonly reason: "empty" | "open" | "image";
+			// The browser's own error text, when it gave one. The page words the
+			// message, because a worker has no active locale.
+			readonly detail?: string;
 	  };

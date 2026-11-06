@@ -21,6 +21,7 @@ import {
 import type { PaletteColor } from "#/lib/color/palette.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export type ExtractView =
 	| { readonly phase: "reading" }
@@ -29,35 +30,40 @@ export type ExtractView =
 
 const FLASH_MS = 1800;
 
-// What each phase says on the card. A lookup keeps the three phases in one place.
-const PHASES: Record<
-	ExtractView["phase"],
-	{
-		readonly detail: string;
-		readonly pill: PillState;
-		readonly label: string;
-		/** The text on the button that leaves this result. */
-		readonly action: string;
+// What each phase says on the card. A function, because the words depend on the
+// active language and cannot be read at module load.
+interface PhaseText {
+	readonly detail: string;
+	readonly pill: PillState;
+	readonly label: string;
+	/** The text on the button that leaves this result. */
+	readonly action: string;
+}
+
+const phaseText = (phase: ExtractView["phase"]): PhaseText => {
+	switch (phase) {
+		case "reading":
+			return {
+				detail: m.palette_phase_reading_detail(),
+				pill: "working",
+				label: m.palette_phase_reading_pill(),
+				action: m.palette_phase_reading_action(),
+			};
+		case "found":
+			return {
+				detail: m.palette_phase_found_detail(),
+				pill: "done",
+				label: m.palette_phase_found_pill(),
+				action: m.palette_phase_found_action(),
+			};
+		case "failed":
+			return {
+				detail: m.palette_phase_failed_detail(),
+				pill: "failed",
+				label: m.palette_phase_failed_pill(),
+				action: m.palette_phase_failed_action(),
+			};
 	}
-> = {
-	reading: {
-		detail: "Looking for colors…",
-		pill: "working",
-		label: "Reading",
-		action: "Cancel",
-	},
-	found: {
-		detail: "Read on your device",
-		pill: "done",
-		label: "Done",
-		action: "Use another image",
-	},
-	failed: {
-		detail: "Nothing was read",
-		pill: "failed",
-		label: "Not read",
-		action: "Try another image",
-	},
 };
 
 export const COUNT_CHOICES = [
@@ -108,7 +114,8 @@ function Swatch({
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(value));
 
-		if (Option.isSome(toastOnExit(exit, "Couldn't copy the color."))) flash();
+		if (Option.isSome(toastOnExit(exit, m.palette_copy_color_failed())))
+			flash();
 	}
 
 	return (
@@ -116,7 +123,7 @@ function Swatch({
 			<button
 				type="button"
 				onClick={copy}
-				aria-label={`Copy ${value}, ${share} of the image`}
+				aria-label={m.palette_swatch_aria({ value, share })}
 				className="flex w-full flex-col gap-2 rounded-lg p-2 text-left transition-[background-color,box-shadow,scale] duration-150 ease-out outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-[0.97] motion-reduce:active:scale-100"
 			>
 				<span
@@ -131,7 +138,7 @@ function Swatch({
 						{copied && (
 							<span className="absolute inset-0 flex items-start gap-1 font-sans font-semibold">
 								<Check aria-hidden className="size-3.5 shrink-0" />
-								Copied
+								{m.copy_copied()}
 							</span>
 						)}
 					</span>
@@ -140,7 +147,9 @@ function Swatch({
 					</span>
 				</span>
 			</button>
-			<output className="sr-only">{copied ? `Copied ${value}` : ""}</output>
+			<output className="sr-only">
+				{copied ? m.palette_copied_sr({ value }) : ""}
+			</output>
 		</li>
 	);
 }
@@ -154,15 +163,15 @@ function CopyCssButton({
 }) {
 	return (
 		<CopyTextButton
-			label="Copy as CSS variables"
+			label={m.palette_copy_css()}
 			getText={() =>
 				toCssVariables(
 					colors.map((color) => color.rgb),
 					format,
 				)
 			}
-			copiedMessage="Copied the CSS variables."
-			failureMessage="Couldn't copy the CSS."
+			copiedMessage={m.palette_copy_css_done()}
+			failureMessage={m.palette_copy_css_failed()}
 		/>
 	);
 }
@@ -189,7 +198,7 @@ export function PaletteResult({
 	readonly onReset: () => void;
 }) {
 	const justFound = useJustDone(view.phase === "found");
-	const phase = PHASES[view.phase];
+	const phase = phaseText(view.phase);
 	const headingRef = useRef<HTMLHeadingElement>(null);
 
 	const shown = view.phase === "found" ? view.colors.slice(0, count) : [];
@@ -207,7 +216,7 @@ export function PaletteResult({
 
 	return (
 		<section
-			aria-label="Result"
+			aria-label={m.palette_result_aria()}
 			aria-busy={view.phase === "reading"}
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
 		>
@@ -233,9 +242,11 @@ export function PaletteResult({
 			{/* Always mounted, so a screen reader hears each change. Failures are
 			    announced by their own alert below. */}
 			<output className="sr-only">
-				{view.phase === "reading" && "Reading the image."}
+				{view.phase === "reading" && m.palette_reading_sr()}
 				{view.phase === "found" &&
-					`Found ${shown.length} ${shown.length === 1 ? "color" : "colors"}.`}
+					(shown.length === 1
+						? m.palette_found_sr_one({ count: shown.length })
+						: m.palette_found_sr_other({ count: shown.length }))}
 			</output>
 
 			{view.phase === "reading" && (
@@ -275,7 +286,7 @@ export function PaletteResult({
 
 					<div className="flex flex-col gap-4">
 						<ChoiceGroup
-							legend="Format"
+							legend={m.palette_format_legend()}
 							name="palette-format"
 							choices={FORMAT_CHOICES}
 							value={format}
@@ -284,7 +295,7 @@ export function PaletteResult({
 						{/* Nothing to choose when the image has no more colors than the smallest count. */}
 						{view.colors.length > Number(COUNT_CHOICES[0].value) && (
 							<ChoiceGroup
-								legend="Number of colors"
+								legend={m.palette_count_legend()}
 								name="palette-count"
 								choices={COUNT_CHOICES}
 								value={String(count)}

@@ -7,6 +7,7 @@ import { Effect } from "effect";
 
 import { FileTooLargeError } from "#/lib/image/errors.ts";
 import { MAX_FILE_BYTES } from "#/lib/image/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 import { ColorImageError } from "./errors.ts";
 import type { PixelSize } from "./sample.ts";
@@ -73,7 +74,10 @@ export const paintImage = (
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+					}),
 				}),
 			);
 		}
@@ -86,7 +90,7 @@ export const paintImage = (
 
 					return new ColorImageError({
 						fileName: file.name,
-						message: "Couldn't open this file as an image.",
+						message: m.error_color_open_image(),
 					});
 				},
 			}),
@@ -120,7 +124,7 @@ export const paintImage = (
 
 						return new ColorImageError({
 							fileName: file.name,
-							message: "Couldn't draw this image.",
+							message: m.error_color_draw_image(),
 						});
 					},
 				}),

@@ -16,6 +16,7 @@ import {
 	WINDOW_SIDE,
 	windowOrigin,
 } from "#/lib/color/sample.ts";
+import { m } from "#/paraglide/messages.js";
 
 type SurfaceView =
 	| { readonly phase: "reading" }
@@ -31,10 +32,16 @@ interface Probe {
 const BIG_STEP = 10;
 
 // The text of the button that leaves this image. While reading it stops the work.
-const RESET_LABELS: Record<SurfaceView["phase"], string> = {
-	reading: "Cancel",
-	ready: "Use another image",
-	failed: "Try another image",
+// A function, because the words depend on the active language.
+const resetLabel = (phase: SurfaceView["phase"]): string => {
+	switch (phase) {
+		case "reading":
+			return m.color_reset_reading();
+		case "ready":
+			return m.color_reset_ready();
+		case "failed":
+			return m.color_reset_failed();
+	}
 };
 
 const CANVAS_HELP_ID = "pick-surface-help";
@@ -64,7 +71,7 @@ export function PickSurface({
 		isKnownNonImage(file)
 			? {
 					phase: "failed",
-					message: `"${file.name}" isn't an image. Choose a PNG, JPG, WebP or GIF file.`,
+					message: m.common_image_not_image_detail({ name: file.name }),
 				}
 			: { phase: "reading" },
 	);
@@ -106,8 +113,7 @@ export function PickSurface({
 
 			setView({
 				phase: "failed",
-				message:
-					failure?.message ?? "Something went wrong while opening this image.",
+				message: failure?.message ?? m.color_open_fallback(),
 			});
 		});
 
@@ -155,7 +161,11 @@ export function PickSurface({
 
 		if (announce) {
 			setAnnouncement(
-				`x ${point.x}, y ${point.y}, ${next.rgb ? toHex(next.rgb) : "transparent"}`,
+				m.color_announce_point({
+					x: point.x,
+					y: point.y,
+					color: next.rgb ? toHex(next.rgb) : m.color_transparent(),
+				}),
 			);
 		}
 
@@ -191,7 +201,7 @@ export function PickSurface({
 
 	return (
 		<section
-			aria-label="Image to pick from"
+			aria-label={m.color_surface_aria()}
 			aria-busy={view.phase === "reading"}
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:p-6"
 		>
@@ -204,10 +214,18 @@ export function PickSurface({
 					{file.name}
 				</h2>
 				<p className="text-xs text-muted-foreground">
-					{view.phase === "reading" && "Opening the image…"}
+					{view.phase === "reading" && m.color_opening()}
 					{view.phase === "ready" &&
-						`${view.image.width} × ${view.image.height} px${view.image.shrunk ? ", shrunk to fit" : ""}`}
-					{view.phase === "failed" && "Nothing was opened"}
+						(view.image.shrunk
+							? m.color_size_shrunk({
+									width: view.image.width,
+									height: view.image.height,
+								})
+							: m.color_size({
+									width: view.image.width,
+									height: view.image.height,
+								}))}
+					{view.phase === "failed" && m.color_nothing_opened()}
 				</p>
 			</div>
 
@@ -237,7 +255,7 @@ export function PickSurface({
 					<canvas
 						ref={canvasRef}
 						tabIndex={0}
-						aria-label="Image. Click or press the arrow keys to pick a color."
+						aria-label={m.color_canvas_aria()}
 						aria-describedby={CANVAS_HELP_ID}
 						className="block h-auto w-full cursor-crosshair outline-none select-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring"
 						onFocus={() => {
@@ -302,7 +320,9 @@ export function PickSurface({
 
 								if (probe.rgb) {
 									onCommit(probe.rgb);
-									setAnnouncement(`Kept ${toHex(probe.rgb)}`);
+									setAnnouncement(
+										m.color_announce_kept({ color: toHex(probe.rgb) }),
+									);
 								}
 
 								return;
@@ -339,21 +359,17 @@ export function PickSurface({
 					<div className="flex min-w-0 flex-col gap-2 text-xs text-muted-foreground">
 						<p>
 							{probe
-								? `x ${probe.point.x}, y ${probe.point.y}`
-								: "Hover the image"}
+								? m.color_coords({ x: probe.point.x, y: probe.point.y })
+								: m.color_hover()}
 							<br />
 							{probe &&
 								(probe.rgb ? (
 									<span className="font-mono">{toHex(probe.rgb)}</span>
 								) : (
-									"Transparent here"
+									m.color_transparent_here()
 								))}
 						</p>
-						<p id={CANVAS_HELP_ID}>
-							Click or drag to pick. With the keyboard, Tab to the image, use
-							the arrow keys (Shift for 10 pixels) and press Enter to keep the
-							color.
-						</p>
+						<p id={CANVAS_HELP_ID}>{m.color_pick_help()}</p>
 					</div>
 				</div>
 			</div>
@@ -368,7 +384,7 @@ export function PickSurface({
 					onClick={onReset}
 				>
 					{view.phase === "reading" ? <X /> : <RotateCcw />}
-					{RESET_LABELS[view.phase]}
+					{resetLabel(view.phase)}
 				</Button>
 			</div>
 		</section>

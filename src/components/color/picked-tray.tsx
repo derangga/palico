@@ -8,6 +8,7 @@ import {
 } from "#/lib/color/format.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const FORMAT_CHOICES = COLOR_FORMATS.map(({ value, label }) => ({
 	value,
@@ -30,15 +31,14 @@ export function PickedTray({
 }) {
 	return (
 		<section
-			aria-label="Picked colors"
+			aria-label={m.color_picked_aria()}
 			className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm"
 		>
-			<h2 className="text-sm font-medium">Picked colors</h2>
+			<h2 className="text-sm font-medium">{m.color_picked_title()}</h2>
 
 			{picked.length === 0 ? (
 				<p className="text-sm text-muted-foreground">
-					Colors you pick appear here, newest first, so you can come back to
-					them or copy them together.
+					{m.color_picked_empty()}
 				</p>
 			) : (
 				<>
@@ -48,7 +48,7 @@ export function PickedTray({
 								<button
 									type="button"
 									onClick={() => onUse(color)}
-									aria-label={`Use ${toHex(color)}`}
+									aria-label={m.color_picked_use({ color: toHex(color) })}
 									aria-pressed={toHex(color) === toHex(current)}
 									className={cn(
 										"size-10 rounded-md border border-input transition-[box-shadow,scale] duration-150 ease-out active:scale-[0.95] motion-reduce:active:scale-100",
@@ -64,7 +64,7 @@ export function PickedTray({
 					</ul>
 
 					<ChoiceGroup
-						legend="CSS format"
+						legend={m.color_css_format()}
 						columns="grid-cols-2"
 						name="picked-format"
 						choices={FORMAT_CHOICES}
@@ -74,10 +74,10 @@ export function PickedTray({
 
 					<div>
 						<CopyTextButton
-							label="Copy as CSS variables"
+							label={m.palette_copy_css()}
 							getText={() => toCssVariables(picked, format)}
-							copiedMessage="Copied the CSS variables."
-							failureMessage="Couldn't copy the CSS."
+							copiedMessage={m.palette_copy_css_done()}
+							failureMessage={m.palette_copy_css_failed()}
 						/>
 					</div>
 				</>
