@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 export type KeyboardInset = {
 	/** Pixels of the layout viewport the on-screen keyboard covers at the bottom. */
@@ -7,6 +7,23 @@ export type KeyboardInset = {
 	height: number;
 };
 
+// The snapshot is a string so React can compare it by value. An object would
+// be a new reference on every read and re-render in a loop.
+function readSnapshot(): string {
+	const viewport = window.visualViewport;
+
+	if (!viewport) return "";
+
+	const bottom = Math.max(
+		0,
+		Math.round(window.innerHeight - viewport.height - viewport.offsetTop),
+	);
+
+	return `${bottom}:${Math.round(viewport.height)}`;
+}
+
+const readServerSnapshot = () => "";
+
 /**
  * Tracks the on-screen keyboard through `visualViewport`. On iOS Safari the
  * layout viewport does not shrink when the keyboard opens, so a `fixed` element
@@ -14,39 +31,39 @@ export type KeyboardInset = {
  * false or when the browser has no `visualViewport`.
  */
 export function useKeyboardInset(active: boolean): KeyboardInset | null {
-	const [inset, setInset] = useState<KeyboardInset | null>(null);
+	const subscribe = useCallback(
+		(onChange: () => void) => {
+			const viewport = window.visualViewport;
 
-	useEffect(() => {
-		const viewport = window.visualViewport;
+			if (!active || !viewport) return () => {};
 
-		if (!active || !viewport) {
-			setInset(null);
-			return;
-		}
+			viewport.addEventListener("resize", onChange);
+			viewport.addEventListener("scroll", onChange);
 
-		const update = () => {
-			const bottom = Math.max(
-				0,
-				Math.round(window.innerHeight - viewport.height - viewport.offsetTop),
-			);
+			return () => {
+				viewport.removeEventListener("resize", onChange);
+				viewport.removeEventListener("scroll", onChange);
+			};
+		},
+		[active],
+	);
 
-			setInset((previous) =>
-				previous?.bottom === bottom &&
-				previous.height === Math.round(viewport.height)
-					? previous
-					: { bottom, height: Math.round(viewport.height) },
-			);
-		};
+	const getSnapshot = useCallback(
+		() => (active ? readSnapshot() : ""),
+		[active],
+	);
 
-		update();
-		viewport.addEventListener("resize", update);
-		viewport.addEventListener("scroll", update);
+	const snapshot = useSyncExternalStore(
+		subscribe,
+		getSnapshot,
+		readServerSnapshot,
+	);
 
-		return () => {
-			viewport.removeEventListener("resize", update);
-			viewport.removeEventListener("scroll", update);
-		};
-	}, [active]);
+	return useMemo(() => {
+		if (!snapshot) return null;
 
-	return inset;
+		const [bottom, height] = snapshot.split(":").map(Number);
+
+		return { bottom, height };
+	}, [snapshot]);
 }

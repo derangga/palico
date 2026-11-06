@@ -146,6 +146,15 @@ export function SearchPalette({
 				: m.search_found_other({ count: results.length })
 			: m.search_none({ query: query.trim() });
 
+	// SAFETY: React types style by known property names only. --kb-bottom,
+	// --kb-height and --kb-pad are custom properties that the max-md: classes on
+	// the popup read through var(). They have no effect from md up.
+	const sheetStyle = {
+		"--kb-bottom": `${keyboard?.bottom ?? 0}px`,
+		"--kb-height": keyboard ? `${keyboard.height}px` : "100dvh",
+		"--kb-pad": keyboard?.bottom ? "0px" : "env(safe-area-inset-bottom)",
+	} as CSSProperties;
+
 	return (
 		<Dialog.Root
 			open={open}
@@ -158,16 +167,7 @@ export function SearchPalette({
 			<Dialog.Portal>
 				<Dialog.Backdrop className="fixed inset-0 z-50 bg-foreground/25 supports-backdrop-filter:backdrop-blur-xs max-md:transition-opacity max-md:duration-150 max-md:ease-out max-md:data-ending-style:opacity-0 max-md:data-starting-style:opacity-0 dark:bg-ctp-crust/60" />
 				<Dialog.Popup
-					// The keyboard values only apply below md, where the popup is a sheet.
-					style={
-						{
-							"--kb-bottom": `${keyboard?.bottom ?? 0}px`,
-							"--kb-height": keyboard ? `${keyboard.height}px` : "100dvh",
-							"--kb-pad": keyboard?.bottom
-								? "0px"
-								: "env(safe-area-inset-bottom)",
-						} as CSSProperties
-					}
+					style={sheetStyle}
 					className={cn(
 						"fixed z-50 flex flex-col overflow-hidden bg-popover text-popover-foreground shadow-xl outline-none",
 						// Desktop: centered card, no animation (Cmd/Ctrl+K is a keyboard action).
