@@ -272,7 +272,7 @@
 	"compressor_format_same": "Sama seperti aslinya",
 	"compressor_too_many": "Kamu bisa mengompres maksimal {max} gambar sekaligus.",
 	"compressor_note_kept": "Sudah kecil, file asli dipertahankan.",
-	"compressor_note_missed": "Tidak bisa di bawah {size}. Ini sudah yang terkecil untuk ukuran ini.",
+	"compressor_note_missed": "Ukuran tidak bisa ditekan di bawah {size}. Ini sudah yang terkecil untuk dimensi ini.",
 	"compressor_success_one": "Berhasil mengompres {count} gambar.",
 	"compressor_success_other": "Berhasil mengompres {count} gambar.",
 	"compressor_failed_one": "{count} gambar tidak bisa dikompres.",

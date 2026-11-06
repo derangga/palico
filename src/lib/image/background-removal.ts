@@ -147,12 +147,16 @@ const useSourceUrl = <A, E>(
 		(url) => Effect.sync(() => URL.revokeObjectURL(url)),
 	);
 
+// Marks a failure to decode the image, so the error handler does not have to
+// read the (translated) message to tell decoding from encoding.
+class MaskDecodeFailure extends Error {}
+
 const loadHtmlImage = (src: string): Promise<HTMLImageElement> =>
 	new Promise((resolve, reject) => {
 		const img = new Image();
 		img.crossOrigin = "anonymous";
 		img.onload = () => resolve(img);
-		img.onerror = () => reject(new Error(m.error_decode_image()));
+		img.onerror = () => reject(new MaskDecodeFailure(m.error_decode_image()));
 		img.src = src;
 	});
 
@@ -365,7 +369,7 @@ export const removeBackground = (
 						const message =
 							err instanceof Error ? err.message : m.error_compose();
 
-						return message.toLowerCase().includes("decode")
+						return err instanceof MaskDecodeFailure
 							? new DecodeError({ fileName: input.file.name, message })
 							: new EncodeError({
 									fileName: input.file.name,
