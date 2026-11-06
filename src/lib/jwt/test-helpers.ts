@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import { Cause, Effect, Exit, Option } from "effect";
 
 import type { TokenError } from "./errors.ts";
@@ -48,3 +50,18 @@ export const tamper = (signature: string): string => {
 
 	return bytes.toString("base64url");
 };
+
+/** An HS256 token from header and payload JSON text, signed with Node's own HMAC. */
+export const hs256 = (header: string, payload: string, key: string): string => {
+	const input = `${base64url(header)}.${base64url(payload)}`;
+
+	return `${input}.${createHmac("sha256", key).update(input).digest("base64url")}`;
+};
+
+/** The jwt.io sample token, rebuilt from its JSON so the source holds no token literal. */
+export const jwtIoSample = (): string =>
+	hs256(
+		'{"alg":"HS256","typ":"JWT"}',
+		'{"sub":"1234567890","name":"John Doe","iat":1516239022}',
+		"your-256-bit-secret",
+	);

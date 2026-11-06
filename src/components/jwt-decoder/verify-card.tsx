@@ -19,7 +19,7 @@ import {
 } from "#/hooks/use-jwt-verification.ts";
 import type { AlgorithmReading } from "#/lib/jwt/algorithms.ts";
 import { keyKindOf } from "#/lib/jwt/algorithms.ts";
-import { EXAMPLE_TOKEN } from "#/lib/jwt/example.ts";
+import { EXAMPLE_SIGNING_INPUT } from "#/lib/jwt/example.ts";
 import type { DecodedToken } from "#/lib/jwt/token.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
@@ -155,7 +155,7 @@ export function VerifyCard({
 	);
 
 	const chip = chipFor(algorithm, verification);
-	const isExample = token.parts.join(".") === EXAMPLE_TOKEN;
+	const isExample = token.signingInput === EXAMPLE_SIGNING_INPUT;
 
 	return (
 		<section

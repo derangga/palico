@@ -10,6 +10,18 @@ export type Base64UrlResult =
 const OUTSIDE_ALPHABET = /[^A-Za-z0-9_-]/u;
 const PADDING = /={0,2}$/;
 
+/** Writes bytes as Base64url without padding. */
+export function encodeBase64Url(bytes: Uint8Array): string {
+	let binary = "";
+
+	for (const byte of bytes) binary += String.fromCharCode(byte);
+
+	return btoa(binary)
+		.replaceAll("+", "-")
+		.replaceAll("/", "_")
+		.replace(PADDING, "");
+}
+
 /** Decodes Base64url text. Reports the first character it cannot read. */
 export function decodeBase64Url(text: string): Base64UrlResult {
 	const unpadded = text.replace(PADDING, "");

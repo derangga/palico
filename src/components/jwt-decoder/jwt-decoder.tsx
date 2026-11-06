@@ -1,3 +1,4 @@
+import { Effect } from "effect";
 import { KeyRound } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 
@@ -5,7 +6,7 @@ import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { useTokenClock } from "#/hooks/use-token-clock.ts";
 import { readAlgorithm } from "#/lib/jwt/algorithms.ts";
 import { boundariesOf, readClaims, windowAt } from "#/lib/jwt/claims.ts";
-import { EXAMPLE_TOKEN } from "#/lib/jwt/example.ts";
+import { buildExampleToken } from "#/lib/jwt/example.ts";
 import { faultOf, partsOf, readToken } from "#/lib/jwt/token.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -77,7 +78,9 @@ export function JwtDecoder() {
 					text={text}
 					onTextChange={edit}
 					onClear={clear}
-					onExample={() => edit(EXAMPLE_TOKEN)}
+					onExample={() => {
+						Effect.runFork(buildExampleToken().pipe(Effect.map(edit)));
+					}}
 					textareaRef={textareaRef}
 					parts={partsOf(reading)}
 					fault={faultOf(reading)}

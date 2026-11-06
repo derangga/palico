@@ -1,12 +1,19 @@
+import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { EXAMPLE_TOKEN } from "./example.ts";
-import { assemble, base64url, decode, decodeFailure } from "./test-helpers.ts";
+import { InvalidJsonError, MalformedTokenError } from "./errors.ts";
+import { buildExampleToken } from "./example.ts";
+import {
+	assemble,
+	base64url,
+	decode,
+	decodeFailure,
+	jwtIoSample,
+} from "./test-helpers.ts";
 import { MAX_TOKEN_CHARS, readToken, splitParts, tidyToken } from "./token.ts";
 
-// The jwt.io sample, written by a different implementation than ours.
-const SAMPLE =
-	"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+// The jwt.io sample, signed by Node's HMAC and not by our code.
+const SAMPLE = jwtIoSample();
 
 describe("a good token", () => {
 	it("reads the header, payload and signature", () => {
@@ -34,8 +41,14 @@ describe("a good token", () => {
 		);
 	});
 
-	it("reads the example token", () => {
-		expect(decode(EXAMPLE_TOKEN).alg).toBe("HS256");
+	it("reads the example token", async () => {
+		const token = decode(await Effect.runPromise(buildExampleToken()));
+
+		expect(token.alg).toBe("HS256");
+		expect(token.payload).toMatchObject({
+			exp: 4102444800,
+			aud: "palico-demo",
+		});
 	});
 
 	it("reads the kid when the header has one", () => {
@@ -184,10 +197,8 @@ describe("malformed tokens", () => {
 	it("names the part and the position of a character outside Base64url", () => {
 		const error = decodeFailure(`${base64url('{"alg":"x"}')}.ab+d.sig`);
 
-		expect(error).toMatchObject({
-			_tag: "MalformedTokenError",
-			part: "payload",
-		});
+		expect(error).toBeInstanceOf(MalformedTokenError);
+		expect(error).toMatchObject({ part: "payload" });
 		expect(error.message).toContain("position 3");
 		expect(error.message).toContain('"+"');
 	});
@@ -209,20 +220,22 @@ describe("invalid JSON", () => {
 	it("names the header when it is not JSON", () => {
 		const error = decodeFailure(assemble("not json", "{}", "AA"));
 
-		expect(error).toMatchObject({ _tag: "InvalidJsonError", part: "header" });
+		expect(error).toBeInstanceOf(InvalidJsonError);
+		expect(error).toMatchObject({ part: "header" });
 	});
 
 	it("names the payload when it is not JSON", () => {
 		const error = decodeFailure(assemble('{"alg":"HS256"}', "{oops}", "AA"));
 
-		expect(error).toMatchObject({ _tag: "InvalidJsonError", part: "payload" });
+		expect(error).toBeInstanceOf(InvalidJsonError);
+		expect(error).toMatchObject({ part: "payload" });
 	});
 
 	it("refuses a header that is an array or a string", () => {
-		expect(decodeFailure(assemble("[1]", "{}", "AA"))).toMatchObject({
-			_tag: "InvalidJsonError",
-			part: "header",
-		});
+		const array = decodeFailure(assemble("[1]", "{}", "AA"));
+
+		expect(array).toBeInstanceOf(InvalidJsonError);
+		expect(array).toMatchObject({ part: "header" });
 
 		expect(decodeFailure(assemble('"HS256"', "{}", "AA"))).toMatchObject({
 			part: "header",

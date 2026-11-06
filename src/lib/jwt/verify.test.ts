@@ -3,9 +3,15 @@ import { createHmac } from "node:crypto";
 import { Cause, Effect, Exit, Option } from "effect";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { EXAMPLE_SECRET, EXAMPLE_TOKEN } from "./example.ts";
+import { buildExampleToken, EXAMPLE_SECRET } from "./example.ts";
 import type { KeyInput } from "./keys.ts";
-import { base64url, decode, pemOf, tamper } from "./test-helpers.ts";
+import {
+	base64url,
+	decode,
+	jwtIoSample,
+	pemOf,
+	tamper,
+} from "./test-helpers.ts";
 import { verifyToken } from "./verify.ts";
 
 // Written out here and not read from algorithms.ts, so a wrong entry there fails
@@ -48,8 +54,13 @@ const parts = (token: string) => {
 
 describe("known vectors", () => {
 	it("verifies the jwt.io HS256 sample", async () => {
-		const sample =
-			"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+		const sample = jwtIoSample();
+
+		// The signature jwt.io publishes for this header and payload, so the fixture
+		// itself is checked against an outside source.
+		expect(
+			sample.endsWith(".SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"),
+		).toBe(true);
 
 		expect(await outcome(sample, secret("your-256-bit-secret"))).toBe(
 			"verified",
@@ -60,9 +71,10 @@ describe("known vectors", () => {
 	});
 
 	it("verifies the example token with its secret", async () => {
-		expect(await outcome(EXAMPLE_TOKEN, secret(EXAMPLE_SECRET))).toBe(
-			"verified",
-		);
+		const token = await Effect.runPromise(buildExampleToken());
+
+		expect(await outcome(token, secret(EXAMPLE_SECRET))).toBe("verified");
+		expect(await outcome(token, secret("palico-demo "))).toBe("not-verified");
 	});
 });
 
@@ -142,6 +154,20 @@ type Family = "RS" | "PS" | "ES";
 
 type Size = (typeof SIZES)[number];
 
+const signParamsOf = (
+	family: Family,
+	size: Size,
+): AlgorithmIdentifier | RsaPssParams | EcdsaParams => {
+	switch (family) {
+		case "ES":
+			return { name: "ECDSA", hash: HASH[size] };
+		case "PS":
+			return { name: "RSA-PSS", saltLength: BYTES[size] };
+		case "RS":
+			return { name: "RSASSA-PKCS1-v1_5" };
+	}
+};
+
 async function makePair(family: Family, size: Size): Promise<Pair> {
 	const alg = `${family}${size}`;
 
@@ -160,12 +186,7 @@ async function makePair(family: Family, size: Size): Promise<Pair> {
 		"verify",
 	]);
 
-	const signParams =
-		family === "ES"
-			? { name: "ECDSA", hash: HASH[size] }
-			: family === "PS"
-				? { name: "RSA-PSS", saltLength: BYTES[size] }
-				: { name: "RSASSA-PKCS1-v1_5" };
+	const signParams = signParamsOf(family, size);
 
 	return {
 		pem: pemOf(await crypto.subtle.exportKey("spki", pair.publicKey)),

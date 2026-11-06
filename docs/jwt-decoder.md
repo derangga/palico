@@ -36,8 +36,10 @@ the browser, and the page says so under the input.
    The checkbox accepts either Base64 alphabet, with or without padding.
    For RS, PS and ES at 256, 384 and 512 they paste a PEM public key, a JWK or a
    JWKS. The result is Signature verified or Signature not verified.
-6. **Try an example** fills a token signed with the secret `palico-demo`. Its
-   `exp` is in 2100, so the example never opens expired. **Clear** forgets the
+6. **Try an example** fills a token signed with the secret `palico-demo`. It is
+   built and signed with Web Crypto when the button is pressed (`example.ts`), from
+   readable JSON, so no token literal sits in the source and secret scanners have
+   nothing to flag. Its `exp` is in 2100, so the example never opens expired. **Clear** forgets the
    token, the secret and the key.
 
 ## Decisions
@@ -140,7 +142,8 @@ All in `src/lib/jwt/*.test.ts`:
 - Every algorithm (HS, RS, PS and ES at 256, 384 and 512) signs with a generated or
   independently computed key and verifies, and a changed signature byte and a
   changed payload both give `not-verified`. A wrong-length signature does not
-  throw. The jwt.io HS256 sample is checked against Node's own HMAC.
+  throw. The jwt.io HS256 sample is rebuilt from its JSON, signed with Node's own HMAC,
+  and its signature is compared with the one jwt.io publishes.
 - `exp` and `nbf` boundaries, one millisecond either side, with a fixed `now`.
 - Padding variants, a two-part token, `alg: none` in several capitalisations, a
   payload that is a JSON array, a bad byte in a claim, a big integer.
