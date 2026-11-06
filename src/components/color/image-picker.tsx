@@ -3,6 +3,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { PickSurface } from "#/components/color/pick-surface.tsx";
 import { Dropzone } from "#/components/dropzone.tsx";
 import type { Rgb } from "#/lib/color/oklab.ts";
+import { m } from "#/paraglide/messages.js";
 
 /**
  * Pick a color from an image: drop one, choose one, or paste one anywhere on the
@@ -68,15 +69,15 @@ export function ImagePicker({
 		<section
 			ref={idleRef}
 			tabIndex={-1}
-			aria-label="Choose an image to pick from"
+			aria-label={m.color_image_aria()}
 			className="flex flex-col gap-4 outline-none"
 		>
 			<Dropzone
-				label="Drag & drop an image here, or"
-				actionLabel="Choose image"
-				hint="PNG, JPG, WebP or GIF, up to 25 MB"
+				label={m.resizer_dropzone_label()}
+				actionLabel={m.common_choose_image()}
+				hint={m.common_image_dropzone_hint()}
 				accept="image/*"
-				ariaLabel="Choose an image to pick a color from"
+				ariaLabel={m.color_dropzone_aria()}
 				onFiles={(files) => {
 					const chosen = files?.[0];
 
@@ -84,7 +85,7 @@ export function ImagePicker({
 				}}
 			/>
 			<p className="text-xs text-muted-foreground">
-				You can also paste an image with Ctrl+V or ⌘+V.
+				{m.common_paste_image_hint()}
 			</p>
 		</section>
 	);

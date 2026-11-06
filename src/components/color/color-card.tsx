@@ -8,6 +8,7 @@ import { COLOR_FORMATS, formatColor, toHex } from "#/lib/color/format.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const FLASH_MS = 1800;
 
@@ -24,7 +25,7 @@ function useCopy(value: string): readonly [boolean, () => Promise<void>] {
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(value));
 
-		if (Option.isSome(toastOnExit(exit, "Couldn't copy the color."))) flash();
+		if (Option.isSome(toastOnExit(exit, m.color_copy_failed()))) flash();
 	}
 
 	return [copied, copy];
@@ -41,7 +42,7 @@ function HexHeadline({ value }: { readonly value: string }) {
 			<button
 				type="button"
 				onClick={copy}
-				aria-label={`Copy HEX ${value}`}
+				aria-label={m.color_copy_hex_aria({ value })}
 				className={cn(
 					"-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-md px-2 py-1.5 text-left",
 					PRESSABLE,
@@ -55,14 +56,16 @@ function HexHeadline({ value }: { readonly value: string }) {
 					{copied ? (
 						<>
 							<Check aria-hidden className="size-3.5" />
-							<span className="font-semibold">Copied</span>
+							<span className="font-semibold">{m.copy_copied()}</span>
 						</>
 					) : (
 						<Copy aria-hidden className="size-3.5 text-muted-foreground" />
 					)}
 				</span>
 			</button>
-			<output className="sr-only">{copied ? `Copied ${value}` : ""}</output>
+			<output className="sr-only">
+				{copied ? m.palette_copied_sr({ value }) : ""}
+			</output>
 		</div>
 	);
 }
@@ -81,7 +84,7 @@ function FormatRow({
 			<button
 				type="button"
 				onClick={copy}
-				aria-label={`Copy ${label} ${value}`}
+				aria-label={m.color_copy_format_aria({ label, value })}
 				className={cn(
 					"flex w-full items-center gap-3 rounded-md px-2 py-2 text-left",
 					PRESSABLE,
@@ -97,14 +100,16 @@ function FormatRow({
 					{copied ? (
 						<>
 							<Check aria-hidden className="size-3.5" />
-							<span className="font-semibold">Copied</span>
+							<span className="font-semibold">{m.copy_copied()}</span>
 						</>
 					) : (
 						<Copy aria-hidden className="size-3.5 text-muted-foreground" />
 					)}
 				</span>
 			</button>
-			<output className="sr-only">{copied ? `Copied ${value}` : ""}</output>
+			<output className="sr-only">
+				{copied ? m.palette_copied_sr({ value }) : ""}
+			</output>
 		</li>
 	);
 }
@@ -130,7 +135,7 @@ export function ColorCard({
 }) {
 	return (
 		<section
-			aria-label="Current color"
+			aria-label={m.color_card_aria()}
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm"
 		>
 			{/* No color transition: the swatch follows the pointer, and a fade would lag it. */}
@@ -156,7 +161,7 @@ export function ColorCard({
 
 			<div className="flex flex-col gap-2">
 				<label htmlFor={INPUT_ID} className="text-sm font-medium">
-					Or type a color
+					{m.color_type_label()}
 				</label>
 				<Input
 					id={INPUT_ID}
@@ -187,9 +192,7 @@ export function ColorCard({
 							className="mt-px size-3.5 shrink-0 text-destructive"
 						/>
 					)}
-					{invalid
-						? "That isn't a color this reads. Try #8839ef, rgb(136 57 239), hsl(266 85% 58%) or oklch(0.54 0.24 293)."
-						: "Type a HEX, RGB, HSL or OKLCH value. Click a row to copy it."}
+					{invalid ? m.color_invalid() : m.color_type_hint()}
 				</p>
 			</div>
 		</section>

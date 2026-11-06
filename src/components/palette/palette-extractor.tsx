@@ -9,6 +9,7 @@ import {
 } from "#/components/palette/palette-result.tsx";
 import type { ColorFormat } from "#/lib/color/format.ts";
 import { readPaletteFromFile } from "#/lib/color/worker-client.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface ExtractState {
 	readonly view: ExtractView;
@@ -52,7 +53,7 @@ export function PaletteExtractor() {
 			setState({
 				view: {
 					phase: "failed",
-					message: `"${file.name}" isn't an image. Choose a PNG, JPG, WebP or GIF file.`,
+					message: m.common_image_not_image_detail({ name: file.name }),
 				},
 				file,
 			});
@@ -86,8 +87,7 @@ export function PaletteExtractor() {
 		setState({
 			view: {
 				phase: "failed",
-				message:
-					failure?.message ?? "Something went wrong while reading this image.",
+				message: failure?.message ?? m.palette_read_fallback(),
 			},
 			file,
 		});
@@ -140,9 +140,8 @@ export function PaletteExtractor() {
 
 	return (
 		<PageShell>
-			<PageHeader title="Palette Extractor">
-				Drop in an image to get its main colors. Click a color to copy it.
-				Everything is read on your device.
+			<PageHeader title={m.tool_palette_extractor_label()}>
+				{m.palette_header_desc()}
 			</PageHeader>
 
 			{state ? (
@@ -161,19 +160,19 @@ export function PaletteExtractor() {
 				<section
 					ref={idleRef}
 					tabIndex={-1}
-					aria-label="Choose an image"
+					aria-label={m.palette_idle_aria()}
 					className="flex flex-col gap-4 outline-none"
 				>
 					<Dropzone
-						label="Drag & drop an image here, or"
-						actionLabel="Choose image"
-						hint="PNG, JPG, WebP or GIF, up to 25 MB"
+						label={m.resizer_dropzone_label()}
+						actionLabel={m.common_choose_image()}
+						hint={m.common_image_dropzone_hint()}
 						accept="image/*"
-						ariaLabel="Choose an image to read its colors"
+						ariaLabel={m.palette_dropzone_aria()}
 						onFiles={(files) => void readFile(files?.[0])}
 					/>
 					<p className="text-xs text-muted-foreground">
-						You can also paste an image with Ctrl+V or ⌘+V.
+						{m.common_paste_image_hint()}
 					</p>
 				</section>
 			)}

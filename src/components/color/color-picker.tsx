@@ -8,6 +8,7 @@ import { type ColorFormat, toHex } from "#/lib/color/format.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
 import { isShortHex, parseColor } from "#/lib/color/parse.ts";
 import { rememberColor } from "#/lib/color/picked.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Latte Mauve, so the page shows a real color and all four formats on arrival.
 const STARTING_COLOR: Rgb = { r: 136, g: 57, b: 239 };
@@ -66,9 +67,8 @@ export function ColorPicker() {
 
 	return (
 		<PageShell width="wide">
-			<PageHeader title="Color Picker">
-				Pick a color from an image, or type one in. Get it as HEX, RGB, HSL or
-				OKLCH. Everything happens on your device.
+			<PageHeader title={m.tool_color_picker_label()}>
+				{m.color_header_desc()}
 			</PageHeader>
 
 			<div className="flex flex-col gap-6">
