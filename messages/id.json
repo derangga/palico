@@ -1,0 +1,8 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"language_switcher_current": "Bahasa: {language}",
+	"theme_toggle_default": "Ganti tema",
+	"theme_toggle_to_light": "Ganti ke tema terang",
+	"theme_toggle_to_dark": "Ganti ke tema gelap",
+	"search_button_label": "Cari alat"
+}

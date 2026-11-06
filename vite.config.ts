@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -87,6 +88,16 @@ const config = defineConfig({
 	plugins: [
 		serveVendorStatic(),
 		buildId(),
+		// Compiles messages/*.json into src/paraglide on dev start and build, and on
+		// every change to them. The `i18n` script runs the same compile for typecheck
+		// and tests. Only the base locale strategy: the active locale lives in
+		// src/lib/i18n/state.ts, which overrides getLocale (see docs/i18n.md).
+		paraglideVitePlugin({
+			project: "./project.inlang",
+			outdir: "./src/paraglide",
+			strategy: ["baseLocale"],
+			disableAsyncLocalStorage: true,
+		}),
 		devtools(),
 		cloudflare({ viteEnvironment: { name: "ssr" } }),
 		tailwindcss(),

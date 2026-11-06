@@ -2,6 +2,7 @@ import { SearchIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 import { Button } from "#/components/ui/button.tsx";
+import { m } from "#/paraglide/messages.js";
 
 const subscribeNever = () => () => {};
 
@@ -21,13 +22,13 @@ export function SearchButton({ onClick }: { onClick: () => void }) {
 	return (
 		<Button
 			variant="outline"
-			aria-label="Search tools"
+			aria-label={m.search_button_label()}
 			aria-keyshortcuts="Control+K Meta+K"
 			onClick={onClick}
 			className="max-sm:size-9 max-sm:px-0 sm:w-40 sm:justify-start lg:w-52 sm:text-muted-foreground"
 		>
 			<SearchIcon aria-hidden />
-			<span className="max-sm:hidden">Search tools</span>
+			<span className="max-sm:hidden">{m.search_button_label()}</span>
 			<kbd className="ml-auto text-xs font-medium max-sm:hidden pointer-coarse:hidden">
 				{isApple ? "⌘K" : "Ctrl K"}
 			</kbd>

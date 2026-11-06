@@ -1,0 +1,8 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"language_switcher_current": "Language: {language}",
+	"theme_toggle_default": "Switch theme",
+	"theme_toggle_to_light": "Switch to light theme",
+	"theme_toggle_to_dark": "Switch to dark theme",
+	"search_button_label": "Search tools"
+}

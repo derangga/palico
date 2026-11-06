@@ -12,6 +12,7 @@
 	"env": { "browser": true },
 	"ignorePatterns": [
 		"src/routeTree.gen.ts",
+		"src/paraglide/**",
 		"src/components/ui/**",
 		"public/vendor/**",
 		".agent/**",
