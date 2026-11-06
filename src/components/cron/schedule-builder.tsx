@@ -1,7 +1,13 @@
 import { Info } from "lucide-react";
-import { type CSSProperties, useState } from "react";
+import type { CSSProperties } from "react";
 
-import { Input } from "#/components/ui/input.tsx";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "#/components/ui/select.tsx";
 import {
 	BUILDER_MODES,
 	type BuilderMode,
@@ -33,8 +39,80 @@ const withValue = (choices: ReadonlyArray<number>, value: number) =>
 const CHIP =
 	"relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 font-mono text-sm transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out select-none hover:bg-muted active:scale-[0.97] has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:checked]:font-bold has-[input:checked]:ring-1 has-[input:checked]:ring-primary has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 motion-reduce:active:scale-100";
 
-const FIELD_CONTROL =
-	"h-11 rounded-md border border-input bg-background px-3 font-mono text-base md:text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const toItems = (values: ReadonlyArray<number>, label: (n: number) => string) =>
+	values.map((n) => ({ value: String(n), label: label(n) }));
+
+const HOURS = toItems(
+	Array.from({ length: 24 }, (_, at) => at),
+	pad,
+);
+
+const MINUTES = toItems(
+	Array.from({ length: 60 }, (_, at) => at),
+	pad,
+);
+
+const DAYS_OF_MONTH = toItems(
+	Array.from({ length: 31 }, (_, at) => at + 1),
+	ordinal,
+);
+
+// h-11 keeps the 44px touch target. It has to name the data-size variant, because
+// SelectTrigger sets its own height through one and a plain h-11 would lose.
+const SELECT_TRIGGER =
+	"font-mono text-base transition-[color,border-color,box-shadow,scale] active:scale-[0.97] data-[size=default]:h-11 motion-reduce:active:scale-100";
+
+function NumberSelect({
+	items,
+	value,
+	onChange,
+	triggerClassName,
+	contentClassName,
+	...label
+}: {
+	readonly items: ReadonlyArray<{ value: string; label: string }>;
+	readonly value: number;
+	readonly onChange: (value: number) => void;
+	readonly triggerClassName?: string;
+	readonly contentClassName?: string;
+} & (
+	| { readonly "aria-label": string }
+	| { readonly "aria-labelledby": string }
+)) {
+	return (
+		<Select
+			items={items}
+			value={String(value)}
+			onValueChange={(next) => {
+				if (next !== null) onChange(Number(next));
+			}}
+		>
+			<SelectTrigger
+				className={cn(SELECT_TRIGGER, triggerClassName)}
+				{...label}
+			>
+				<SelectValue />
+			</SelectTrigger>
+			<SelectContent
+				// Open under the field. Aligning the chosen row over it needs the full
+				// list height, which the cap below takes away.
+				alignItemWithTrigger={false}
+				className={cn(
+					// The base popup fills the viewport. About seven rows is enough, and
+					// the min() keeps it inside a short screen.
+					"max-h-[min(16rem,var(--available-height))]",
+					contentClassName,
+				)}
+			>
+				{items.map((item) => (
+					<SelectItem key={item.value} value={item.value} className="font-mono">
+						{item.label}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	);
+}
 
 function Frequency({
 	mode,
@@ -196,46 +274,33 @@ function TimeField({
 	readonly minute: number;
 	readonly onChange: (time: { hour: number; minute: number }) => void;
 }) {
-	const value = `${pad(hour)}:${pad(minute)}`;
-
-	// A time input reports an empty string while someone is part way through
-	// typing it. Keep that text so the segments are not reset under the cursor.
-	const [draft, setDraft] = useState(value);
-	const [syncedValue, setSyncedValue] = useState(value);
-
-	if (value !== syncedValue) {
-		setSyncedValue(value);
-		setDraft(value);
-	}
-
-	function change(text: string) {
-		setDraft(text);
-
-		const [h, m] = text.split(":").map(Number);
-
-		if (h !== undefined && m !== undefined && !Number.isNaN(h + m)) {
-			onChange({ hour: h, minute: m });
-		}
-	}
-
 	return (
-		<div className="flex flex-col gap-2">
-			<label
-				htmlFor="cron-time"
-				className="text-[0.8125rem] font-semibold text-muted-foreground"
-			>
+		<fieldset className="flex flex-col gap-2">
+			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">
 				At what time?
-			</label>
-			<Input
-				id="cron-time"
-				type="time"
-				value={draft}
-				onChange={(event) => change(event.target.value)}
-				// An emptied field has no time to keep, so show the one in use again.
-				onBlur={() => setDraft(value)}
-				className={cn(FIELD_CONTROL, "sm:w-44")}
-			/>
-		</div>
+			</legend>
+			<div className="flex items-center gap-2">
+				<NumberSelect
+					aria-label="Hour"
+					items={HOURS}
+					value={hour}
+					onChange={(next) => onChange({ hour: next, minute })}
+					triggerClassName="w-[4.5rem]"
+					contentClassName="min-w-24"
+				/>
+				<span aria-hidden className="font-mono text-base text-muted-foreground">
+					:
+				</span>
+				<NumberSelect
+					aria-label="Minute"
+					items={MINUTES}
+					value={minute}
+					onChange={(next) => onChange({ hour, minute: next })}
+					triggerClassName="w-[4.5rem]"
+					contentClassName="min-w-24"
+				/>
+			</div>
+		</fieldset>
 	);
 }
 
@@ -248,24 +313,20 @@ function DayOfMonthField({
 }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<label
-				htmlFor="cron-day-of-month"
+			<span
+				id="cron-day-of-month"
 				className="text-[0.8125rem] font-semibold text-muted-foreground"
 			>
 				On which day of the month?
-			</label>
-			<select
-				id="cron-day-of-month"
+			</span>
+			<NumberSelect
+				aria-labelledby="cron-day-of-month"
+				items={DAYS_OF_MONTH}
 				value={value}
-				onChange={(event) => onChange(Number(event.target.value))}
-				className={cn(FIELD_CONTROL, "font-sans sm:w-44")}
-			>
-				{Array.from({ length: 31 }, (_, at) => at + 1).map((day) => (
-					<option key={day} value={day}>
-						{ordinal(day)}
-					</option>
-				))}
-			</select>
+				onChange={onChange}
+				triggerClassName="w-28 font-sans"
+				contentClassName="min-w-28"
+			/>
 			{value > 28 && (
 				<p className="text-xs text-muted-foreground">
 					Months with fewer days are skipped.

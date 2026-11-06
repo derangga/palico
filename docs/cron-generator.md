@@ -21,8 +21,8 @@ line is the thing to steer by.
    the field at fault. Copy shows only for a valid expression.
 3. **Builder.** Below the result, a segmented control picks how often: Minutes,
    Hourly, Daily, Weekly or Monthly. Each mode shows only the controls it needs:
-   minute chips, an "at which minute" chip, a time input, seven day toggles, a
-   day-of-month select. The pill under the segments slides with a transform.
+   minute chips, an "at which minute" chip, an hour select and a minute select,
+   seven day toggles, a day-of-month select. The pill under the segments slides with a transform.
 4. **Edit as text.** The button swaps the builder for one input in the same
    card, so the page never has two editors on screen. The input keeps what was
    typed, so `@daily` is not rewritten under the cursor. Enter or leaving the
@@ -84,15 +84,17 @@ The page was reworked for a 375px screen first:
   edit buttons. The seven day toggles share one row, so they are 44px tall and
   about 39px wide on a 375px screen.
 - Inputs are 16px or larger so iOS does not zoom on focus. The shared `Input`
-  drops to 14px at `md`, so the time and expression inputs repeat their size
-  at `md` too, or an iPad in portrait would zoom.
+  drops to 14px at `md`, so the expression input repeats its size at `md` too,
+  or an iPad in portrait would zoom. The selects use `text-base` at every width.
 - The day toggles are two-letter labels with the full name for screen readers.
   The only ticked day is disabled and a line says why, so a tap never does
   nothing without a reason.
-- The time field is a native `type="time"`, which gives phones their own
-  picker. It keeps a draft string, because a time input reports an empty value
-  while someone is typing a segment and a controlled input would reset it. Leaving
-  the field shows the time in use again.
+- The time is two Base UI selects in a fieldset, hour (00 to 23) and minute
+  (00 to 59), and the day of the month is a select too. A native `type="time"`
+  or `<select>` opens a browser popup that CSS cannot style, so it clashed with
+  the theme. The cost is that phones no longer get the OS time wheel, and the
+  minute list has 60 items. Typing on an open list jumps to a match. A select
+  always holds a whole value, so there is no draft state.
 - The templates list is a bottom sheet, not a wrapping row of pills.
 - The sentence is a live region only while it holds a valid sentence. An error
   changes on almost every keystroke, so it is not announced, and the input points
