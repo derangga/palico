@@ -15,7 +15,7 @@ import {
 	SheetTrigger,
 } from "#/components/ui/sheet.tsx";
 import { useIsMobile } from "#/hooks/use-mobile.ts";
-import { TEMPLATE_GROUPS, TEMPLATES } from "#/lib/cron/templates.ts";
+import { TEMPLATES_BY_GROUP } from "#/lib/cron/templates.ts";
 import { cn } from "#/lib/utils.ts";
 
 function TemplateList({
@@ -27,7 +27,7 @@ function TemplateList({
 }) {
 	return (
 		<div className="flex flex-col gap-1 overflow-y-auto overscroll-contain px-2 pb-3">
-			{TEMPLATE_GROUPS.map((group) => (
+			{TEMPLATES_BY_GROUP.map(({ group, templates }) => (
 				<section key={group} aria-labelledby={`cron-template-${group}`}>
 					<h3
 						id={`cron-template-${group}`}
@@ -36,39 +36,37 @@ function TemplateList({
 						{group}
 					</h3>
 					<ul>
-						{TEMPLATES.filter((template) => template.group === group).map(
-							(template) => {
-								const selected = current === template.expression;
+						{templates.map((template) => {
+							const selected = current === template.expression;
 
-								return (
-									<li key={template.expression}>
-										<button
-											type="button"
-											aria-current={selected ? "true" : undefined}
-											onClick={() => onPick(template.expression)}
+							return (
+								<li key={template.expression}>
+									<button
+										type="button"
+										aria-current={selected ? "true" : undefined}
+										onClick={() => onPick(template.expression)}
+										className={cn(
+											"flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-1.5 text-left transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
+											selected && "bg-primary/10",
+										)}
+									>
+										<span className="flex-1 text-[0.9375rem] font-semibold">
+											{template.label}
+										</span>
+										<code className="font-mono text-[0.8125rem] text-muted-foreground">
+											{template.expression}
+										</code>
+										<Check
+											aria-hidden
 											className={cn(
-												"flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-1.5 text-left transition-colors duration-150 outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50",
-												selected && "bg-primary/10",
+												"size-4 shrink-0 text-primary",
+												!selected && "invisible",
 											)}
-										>
-											<span className="flex-1 text-[0.9375rem] font-semibold">
-												{template.label}
-											</span>
-											<code className="font-mono text-[0.8125rem] text-muted-foreground">
-												{template.expression}
-											</code>
-											<Check
-												aria-hidden
-												className={cn(
-													"size-4 shrink-0 text-primary",
-													!selected && "invisible",
-												)}
-											/>
-										</button>
-									</li>
-								);
-							},
-						)}
+										/>
+									</button>
+								</li>
+							);
+						})}
 					</ul>
 				</section>
 			))}
@@ -96,7 +94,7 @@ export function TemplatePicker({
 	}
 
 	const trigger = (
-		<Button variant="ghost" size="sm" className="-mr-2 h-9 sm:h-8">
+		<Button variant="ghost" size="sm" className="-mr-2 h-11 sm:h-8">
 			<ListChecks />
 			Templates
 		</Button>

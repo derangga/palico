@@ -6,26 +6,25 @@ import {
 	BUILDER_MODES,
 	type BuilderMode,
 	type BuilderState,
-	DEFAULT_BUILDER,
 	WEEK_ORDER,
 } from "#/lib/cron/builder.ts";
-import { ordinal } from "#/lib/cron/describe.ts";
+import { ordinal, pad } from "#/lib/cron/describe.ts";
 import { cn } from "#/lib/utils.ts";
 
 const EVERY_CHOICES = [1, 2, 5, 10, 15, 20, 30];
 const MINUTE_CHOICES = [0, 15, 30, 45];
 
-const WEEKDAYS = [
-	{ short: "Mo", name: "Monday" },
-	{ short: "Tu", name: "Tuesday" },
-	{ short: "We", name: "Wednesday" },
-	{ short: "Th", name: "Thursday" },
-	{ short: "Fr", name: "Friday" },
-	{ short: "Sa", name: "Saturday" },
-	{ short: "Su", name: "Sunday" },
-] as const;
-
-const pad = (n: number) => String(n).padStart(2, "0");
+// Keyed by the cron weekday number, so the order the buttons are drawn in
+// (WEEK_ORDER) never has to line up with this table by position.
+const DAY_LABELS: Record<number, { short: string; name: string }> = {
+	0: { short: "Su", name: "Sunday" },
+	1: { short: "Mo", name: "Monday" },
+	2: { short: "Tu", name: "Tuesday" },
+	3: { short: "We", name: "Wednesday" },
+	4: { short: "Th", name: "Thursday" },
+	5: { short: "Fr", name: "Friday" },
+	6: { short: "Sa", name: "Saturday" },
+};
 
 // Keeps a value the chips do not list (typed in as text, say) visible and checked.
 const withValue = (choices: ReadonlyArray<number>, value: number) =>
@@ -35,7 +34,7 @@ const CHIP =
 	"relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 font-mono text-sm transition-[background-color,border-color,box-shadow,scale] duration-150 ease-out select-none hover:bg-muted active:scale-[0.97] has-[input:checked]:border-primary has-[input:checked]:bg-primary/10 has-[input:checked]:font-bold has-[input:checked]:ring-1 has-[input:checked]:ring-primary has-[input:focus-visible]:border-ring has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 motion-reduce:active:scale-100";
 
 const FIELD_CONTROL =
-	"h-11 rounded-md border border-input bg-background px-3 font-mono text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+	"h-11 rounded-md border border-input bg-background px-3 font-mono text-base md:text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 function Frequency({
 	mode,
@@ -50,14 +49,19 @@ function Frequency({
 		<fieldset>
 			<legend className="sr-only">How often</legend>
 			<div
-				className="relative grid grid-cols-5 rounded-lg border border-input bg-background p-[3px]"
-				style={{ "--i": Math.max(index, 0) } as CSSProperties}
+				className="relative grid grid-cols-[repeat(var(--n),minmax(0,1fr))] rounded-lg border border-input bg-background p-[3px]"
+				style={
+					{
+						"--i": Math.max(index, 0),
+						"--n": BUILDER_MODES.length,
+					} as CSSProperties
+				}
 			>
 				{/* The pill slides with transform only, and hides when no mode fits. */}
 				<span
 					aria-hidden
 					className={cn(
-						"absolute inset-y-[3px] left-[3px] w-[calc((100%-6px)/5)] translate-x-[calc(var(--i)*100%)] rounded-md bg-primary transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-opacity",
+						"absolute inset-y-[3px] left-[3px] w-[calc((100%-6px)/var(--n))] translate-x-[calc(var(--i)*100%)] rounded-md bg-primary transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-opacity",
 						index < 0 && "opacity-0",
 					)}
 				/>
@@ -65,7 +69,7 @@ function Frequency({
 					<label
 						key={entry.mode}
 						className={cn(
-							"relative z-10 flex min-h-10 cursor-pointer items-center justify-center rounded-md text-[0.8125rem] font-semibold transition-colors duration-150 select-none has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:text-sm",
+							"relative z-10 flex min-h-11 cursor-pointer items-center justify-center rounded-md text-[0.8125rem] font-semibold transition-colors duration-150 select-none has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:text-sm",
 							entry.mode === mode
 								? "text-primary-foreground"
 								: "text-foreground",
@@ -140,23 +144,29 @@ function DayPicker({
 		if (days.length > 1) onChange(days.filter((entry) => entry !== day));
 	}
 
+	const lastDay = days.length === 1 ? days[0] : undefined;
+
 	return (
 		<fieldset className="flex flex-col gap-2">
 			<legend className="mb-2 text-[0.8125rem] font-semibold text-muted-foreground">
 				On which days?
 			</legend>
 			<div className="grid grid-cols-7 gap-1 sm:gap-2">
-				{WEEK_ORDER.map((day, position) => {
-					const weekday = WEEKDAYS[position];
+				{WEEK_ORDER.map((day) => {
+					const weekday = DAY_LABELS[day];
 
 					return (
 						<label
 							key={day}
-							className={cn(CHIP, "min-w-0 px-0 font-sans font-bold")}
+							className={cn(
+								CHIP,
+								"min-w-0 px-0 font-sans font-bold has-[input:disabled]:cursor-default",
+							)}
 						>
 							<input
 								type="checkbox"
 								checked={days.includes(day)}
+								disabled={day === lastDay}
 								onChange={() => toggle(day)}
 								className="sr-only"
 							/>
@@ -166,6 +176,11 @@ function DayPicker({
 					);
 				})}
 			</div>
+			{lastDay !== undefined && (
+				<p className="text-xs text-muted-foreground">
+					A weekly schedule keeps at least one day.
+				</p>
+			)}
 		</fieldset>
 	);
 }
@@ -184,10 +199,10 @@ function TimeField({
 	// A time input reports an empty string while someone is part way through
 	// typing it. Keep that text so the segments are not reset under the cursor.
 	const [draft, setDraft] = useState(value);
-	const [seen, setSeen] = useState(value);
+	const [syncedValue, setSyncedValue] = useState(value);
 
-	if (value !== seen) {
-		setSeen(value);
+	if (value !== syncedValue) {
+		setSyncedValue(value);
 		setDraft(value);
 	}
 
@@ -214,6 +229,8 @@ function TimeField({
 				type="time"
 				value={draft}
 				onChange={(event) => change(event.target.value)}
+				// An emptied field has no time to keep, so show the one in use again.
+				onBlur={() => setDraft(value)}
 				className={cn(FIELD_CONTROL, "sm:w-44")}
 			/>
 		</div>
@@ -262,12 +279,16 @@ function DayOfMonthField({
  */
 export function ScheduleBuilder({
 	state,
+	base,
 	onChange,
 }: {
 	readonly state: BuilderState | undefined;
+	/** The last schedule the form could show. Picking a mode from the notice keeps its details. */
+	readonly base: BuilderState;
 	readonly onChange: (state: BuilderState) => void;
 }) {
-	const current = state ?? DEFAULT_BUILDER;
+	const current = state ?? base;
+
 	const patch = (next: Partial<BuilderState>) =>
 		onChange({ ...current, ...next });
 

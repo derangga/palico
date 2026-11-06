@@ -40,7 +40,8 @@ export function ScheduleReadout({
 		>
 			<p
 				id={STATUS_ID}
-				aria-live="polite"
+				// An error changes on almost every keystroke while typing, so only a good sentence is announced.
+				aria-live={error ? "off" : "polite"}
 				className={cn(
 					"min-h-7 text-balance",
 					sentence
@@ -57,10 +58,7 @@ export function ScheduleReadout({
 				{sentence ?? error?.message}
 			</p>
 
-			<dl
-				aria-label="Expression, one cell per field"
-				className="grid grid-cols-5 gap-1.5"
-			>
+			<dl className="grid grid-cols-5 gap-1.5">
 				{FIELD_NAMES.map((name, index) => {
 					const token = tokens[index];
 					const invalid = error?.field === name;
@@ -68,7 +66,6 @@ export function ScheduleReadout({
 					return (
 						<div
 							key={name}
-							aria-current={activeField === index ? "true" : undefined}
 							className={cn(
 								"flex min-w-0 flex-col-reverse items-center gap-0.5 rounded-md border bg-background px-0.5 pt-2 pb-1.5",
 								activeField === index && "border-primary ring-1 ring-primary",
@@ -76,7 +73,7 @@ export function ScheduleReadout({
 									"border-destructive bg-destructive/10 ring-1 ring-destructive",
 							)}
 						>
-							<dt className="text-[0.6875rem] font-semibold text-muted-foreground">
+							<dt className="text-xs font-semibold text-muted-foreground">
 								{FIELD_LABELS[name].label}
 							</dt>
 							<dd className="max-w-full truncate px-0.5 font-mono text-base font-medium sm:text-lg">

@@ -23,5 +23,6 @@ export const FIELD_LABELS: Record<
 
 /** Which of the five fields the caret sits in, by counting the gaps before it. */
 export function fieldAtCaret(text: string, caret: number): number {
-	return Math.min(4, text.slice(0, caret).split(/\s+/).length - 1);
+	// Leading spaces do not start a field, matching how the readout splits the text.
+	return Math.min(4, text.slice(0, caret).trimStart().split(/\s+/).length - 1);
 }

@@ -70,21 +70,33 @@ Daily at 09:30 and not a reset.
 (`1-5`) and shorter runs as a list (`1,2`). Seven days become `*`.
 
 While the text is not a valid expression there is no model, so going back to the
-builder shows the same notice until the text is fixed or a mode is picked.
+builder shows the same notice until the text is fixed or a mode is picked. The
+page also remembers the last schedule the form could show and uses it as the
+base for the next one, so a half-written field does not reset the chosen days or
+day of the month.
 
 ## Mobile
 
 The page was reworked for a 375px screen first:
 
-- Every target is 44px: segments are 40px inside a 3px frame, chips and
-  inputs are 44px, the copy and edit buttons are 44px below `sm`.
-- Inputs are 16px or larger so iOS does not zoom on focus.
-- The seven day toggles share one row. They are two-letter labels with the full
-  name for screen readers.
+- Every target is 44px tall below `sm`: segments, chips, inputs, the
+  Templates button, the symbol keys, the symbol-help summary and the copy and
+  edit buttons. The seven day toggles share one row, so they are 44px tall and
+  about 39px wide on a 375px screen.
+- Inputs are 16px or larger so iOS does not zoom on focus. The shared `Input`
+  drops to 14px at `md`, so the time and expression inputs repeat their size
+  at `md` too, or an iPad in portrait would zoom.
+- The day toggles are two-letter labels with the full name for screen readers.
+  The only ticked day is disabled and a line says why, so a tap never does
+  nothing without a reason.
 - The time field is a native `type="time"`, which gives phones their own
   picker. It keeps a draft string, because a time input reports an empty value
-  while someone is typing a segment and a controlled input would reset it.
+  while someone is typing a segment and a controlled input would reset it. Leaving
+  the field shows the time in use again.
 - The templates list is a bottom sheet, not a wrapping row of pills.
+- The sentence is a live region only while it holds a valid sentence. An error
+  changes on almost every keystroke, so it is not announced, and the input points
+  at it with `aria-describedby`.
 
 ## What the parser accepts
 
@@ -139,10 +151,12 @@ hours. The tests in `describe.test.ts` hold the exact sentences.
 
 ## Tests
 
-- `schedule.test.ts`: every accepted form, every field error, macros, weekday 7.
+- `schedule.test.ts`: every accepted form, every field error, macros, weekday 7,
+  and `splitFields`.
 - `next-runs.test.ts`: rollover, leap days, either-day matching, a schedule that
   never runs. All use UTC, so the result does not depend on the machine.
 - `describe.test.ts`: the sentence for each shape.
 - `format.test.ts`: relative time wording.
+- `field-labels.test.ts`: which field the text caret is in.
 - `builder.test.ts`: every shape the form reads, the shapes it refuses, the
   expression it writes for each mode, and a round trip of both.

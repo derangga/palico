@@ -8,14 +8,18 @@ import { FIELD_NAMES } from "#/lib/cron/schedule.ts";
 const INPUT_ID = "cron-expression";
 
 // Symbols that are slow to find on a phone keyboard. Space moves to the next field.
-const KEYS: ReadonlyArray<{ readonly insert: string; readonly label: string }> =
-	[
-		{ insert: "*", label: "*" },
-		{ insert: ",", label: "," },
-		{ insert: "-", label: "-" },
-		{ insert: "/", label: "/" },
-		{ insert: " ", label: "space" },
-	];
+const KEYS: ReadonlyArray<{
+	readonly insert: string;
+	readonly label: string;
+	readonly accessibleName: string;
+	readonly word?: boolean;
+}> = [
+	{ insert: "*", label: "*", accessibleName: "Insert *" },
+	{ insert: ",", label: ",", accessibleName: "Insert a comma" },
+	{ insert: "-", label: "-", accessibleName: "Insert a dash" },
+	{ insert: "/", label: "/", accessibleName: "Insert a slash" },
+	{ insert: " ", label: "space", accessibleName: "Insert a space", word: true },
+];
 
 const SYNTAX: ReadonlyArray<{
 	readonly symbol: string;
@@ -70,7 +74,16 @@ export function ExpressionEditor({
 	const input = useRef<HTMLInputElement>(null);
 
 	// The editor only mounts when someone asks for it, so move straight into it.
-	useEffect(() => input.current?.focus(), []);
+	useEffect(() => {
+		const element = input.current;
+
+		if (!element) return;
+
+		element.focus();
+		onActiveFieldChange(
+			fieldAtCaret(element.value, element.selectionStart ?? 0),
+		);
+	}, [onActiveFieldChange]);
 
 	function reportCaret() {
 		const element = input.current;
@@ -124,7 +137,7 @@ export function ExpressionEditor({
 				autoComplete="off"
 				autoCapitalize="off"
 				autoCorrect="off"
-				className="h-12 font-mono text-xl"
+				className="h-12 font-mono text-xl md:text-xl"
 			/>
 
 			<p className="min-h-5 text-xs text-muted-foreground">
@@ -144,15 +157,15 @@ export function ExpressionEditor({
 						key={key.label}
 						type="button"
 						variant="outline"
-						aria-label={
-							key.label === "space" ? "Insert a space" : `Insert ${key.label}`
-						}
+						aria-label={key.accessibleName}
 						onPointerDown={(event) => event.preventDefault()}
 						onClick={() => insert(key.insert)}
 						className="h-11 font-mono text-lg"
 					>
-						{key.label === "space" ? (
-							<span className="font-sans text-sm font-semibold">space</span>
+						{key.word ? (
+							<span className="font-sans text-sm font-semibold">
+								{key.label}
+							</span>
 						) : (
 							key.label
 						)}
@@ -161,7 +174,7 @@ export function ExpressionEditor({
 			</div>
 
 			<details className="border-t pt-2 text-sm">
-				<summary className="flex min-h-9 cursor-pointer items-center font-semibold text-muted-foreground">
+				<summary className="flex min-h-11 cursor-pointer sm:min-h-9 items-center font-semibold text-muted-foreground">
 					What do the symbols mean?
 				</summary>
 				<dl className="mt-1 grid gap-x-4 gap-y-2 sm:grid-cols-[auto_1fr]">

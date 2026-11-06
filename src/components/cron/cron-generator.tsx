@@ -63,6 +63,12 @@ export function CronGenerator() {
 		builderFor(DEFAULT_EXPRESSION, DEFAULT_BUILDER),
 	);
 
+	// The last schedule the form could show. Typing passes through expressions
+	// it cannot (a half-written field), and the details should survive that.
+	const [lastBuilder, setLastBuilder] = useState(
+		() => builder ?? DEFAULT_BUILDER,
+	);
+
 	const [editing, setEditing] = useState(false);
 	const [activeField, setActiveField] = useState<number | undefined>();
 	const [zone, setZone] = useState<CronZone>("local");
@@ -81,18 +87,24 @@ export function CronGenerator() {
 	);
 
 	function loadExpression(next: string) {
+		const shown = builderFor(next, lastBuilder);
+
 		setExpression(next);
-		setBuilder(builderFor(next, builder ?? DEFAULT_BUILDER));
+		setBuilder(shown);
+
+		if (shown) setLastBuilder(shown);
 	}
 
 	function changeBuilder(next: BuilderState) {
 		setBuilder(next);
+		setLastBuilder(next);
 		setExpression(expressionFromBuilder(next));
 	}
 
 	function pickTemplate(next: string) {
 		loadExpression(next);
 		setEditing(false);
+		setActiveField(undefined);
 	}
 
 	// Leaving the box settles it: a good expression is written out in full
@@ -149,7 +161,11 @@ export function CronGenerator() {
 								onActiveFieldChange={setActiveField}
 							/>
 						) : (
-							<ScheduleBuilder state={builder} onChange={changeBuilder} />
+							<ScheduleBuilder
+								state={builder}
+								base={lastBuilder}
+								onChange={changeBuilder}
+							/>
 						)}
 					</section>
 				</div>

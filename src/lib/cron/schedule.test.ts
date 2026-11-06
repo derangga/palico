@@ -2,7 +2,7 @@ import { Cause, Effect, Exit, Option } from "effect";
 import { describe, expect, it } from "vitest";
 
 import type { CronSyntaxError } from "./errors.ts";
-import { parseCron } from "./schedule.ts";
+import { parseCron, splitFields } from "./schedule.ts";
 
 const parse = (expression: string) => Effect.runSync(parseCron(expression));
 
@@ -87,5 +87,27 @@ describe("parseCron", () => {
 
 	it("explains @reboot", () => {
 		expect(failure("@reboot").message).toMatch(/startup/);
+	});
+});
+
+describe("splitFields", () => {
+	it("splits on any run of whitespace and trims the ends", () => {
+		expect(splitFields("  0   9 *\t* 1-5 ")).toEqual([
+			"0",
+			"9",
+			"*",
+			"*",
+			"1-5",
+		]);
+	});
+
+	it("writes a macro out as five fields", () => {
+		expect(splitFields("@daily")).toEqual(["0", "0", "*", "*", "*"]);
+		expect(splitFields(" @HOURLY ")).toEqual(["0", "*", "*", "*", "*"]);
+	});
+
+	it("returns whatever count it was given, so the caller can tell", () => {
+		expect(splitFields("0 9 *")).toHaveLength(3);
+		expect(splitFields("")).toEqual([""]);
 	});
 });

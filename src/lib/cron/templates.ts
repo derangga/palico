@@ -1,15 +1,8 @@
 // Starting points for the generator. Each one is a plain expression, so picking
 // one loads it into the builder and the person can change it from there.
-export type TemplateGroup = "Often" | "Daily" | "Weekly" | "Monthly";
+type TemplateGroup = "Often" | "Daily" | "Weekly" | "Monthly";
 
-export const TEMPLATE_GROUPS: ReadonlyArray<TemplateGroup> = [
-	"Often",
-	"Daily",
-	"Weekly",
-	"Monthly",
-];
-
-export interface CronTemplate {
+interface CronTemplate {
 	readonly group: TemplateGroup;
 	readonly label: string;
 	readonly expression: string;
@@ -25,5 +18,21 @@ export const TEMPLATES: ReadonlyArray<CronTemplate> = [
 	{ group: "Weekly", label: "Every Sunday at 2:00", expression: "0 2 * * 0" },
 	{ group: "Monthly", label: "First of the month", expression: "0 0 1 * *" },
 ];
+
+const GROUPS: ReadonlyArray<TemplateGroup> = [
+	"Often",
+	"Daily",
+	"Weekly",
+	"Monthly",
+];
+
+/** The templates under their group headings, in the order the list shows them. */
+export const TEMPLATES_BY_GROUP: ReadonlyArray<{
+	readonly group: TemplateGroup;
+	readonly templates: ReadonlyArray<CronTemplate>;
+}> = GROUPS.map((group) => ({
+	group,
+	templates: TEMPLATES.filter((template) => template.group === group),
+}));
 
 export const DEFAULT_EXPRESSION = "0 9 * * 1-5";
