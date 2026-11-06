@@ -14,17 +14,17 @@ import { cn } from "#/lib/utils.ts";
 const EVERY_CHOICES = [1, 2, 5, 10, 15, 20, 30];
 const MINUTE_CHOICES = [0, 15, 30, 45];
 
-// Keyed by the cron weekday number, so the order the buttons are drawn in
-// (WEEK_ORDER) never has to line up with this table by position.
-const DAY_LABELS: Record<number, { short: string; name: string }> = {
-	0: { short: "Su", name: "Sunday" },
-	1: { short: "Mo", name: "Monday" },
-	2: { short: "Tu", name: "Tuesday" },
-	3: { short: "We", name: "Wednesday" },
-	4: { short: "Th", name: "Thursday" },
-	5: { short: "Fr", name: "Friday" },
-	6: { short: "Sa", name: "Saturday" },
-};
+// Indexed by the cron weekday number (0 is Sunday), not by where the button is
+// drawn, so the order in WEEK_ORDER never has to line up with this by position.
+const DAY_LABELS = [
+	{ short: "Su", name: "Sunday" },
+	{ short: "Mo", name: "Monday" },
+	{ short: "Tu", name: "Tuesday" },
+	{ short: "We", name: "Wednesday" },
+	{ short: "Th", name: "Thursday" },
+	{ short: "Fr", name: "Friday" },
+	{ short: "Sa", name: "Saturday" },
+] as const;
 
 // Keeps a value the chips do not list (typed in as text, say) visible and checked.
 const withValue = (choices: ReadonlyArray<number>, value: number) =>
@@ -45,17 +45,19 @@ function Frequency({
 }) {
 	const index = BUILDER_MODES.findIndex((entry) => entry.mode === mode);
 
+	// SAFETY: React types style by known property names only. --i and --n are
+	// custom properties that the class names below read through var().
+	const style = {
+		"--i": Math.max(index, 0),
+		"--n": BUILDER_MODES.length,
+	} as CSSProperties;
+
 	return (
 		<fieldset>
 			<legend className="sr-only">How often</legend>
 			<div
 				className="relative grid grid-cols-[repeat(var(--n),minmax(0,1fr))] rounded-lg border border-input bg-background p-[3px]"
-				style={
-					{
-						"--i": Math.max(index, 0),
-						"--n": BUILDER_MODES.length,
-					} as CSSProperties
-				}
+				style={style}
 			>
 				{/* The pill slides with transform only, and hides when no mode fits. */}
 				<span

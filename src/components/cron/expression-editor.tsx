@@ -147,31 +147,30 @@ export function ExpressionEditor({
 			</p>
 
 			{/* Keeps focus in the box, so the phone keyboard stays up between taps. */}
-			<div
-				role="group"
-				aria-label="Insert a symbol"
-				className="grid grid-cols-5 gap-2 pointer-fine:hidden"
-			>
-				{KEYS.map((key) => (
-					<Button
-						key={key.label}
-						type="button"
-						variant="outline"
-						aria-label={key.accessibleName}
-						onPointerDown={(event) => event.preventDefault()}
-						onClick={() => insert(key.insert)}
-						className="h-11 font-mono text-lg"
-					>
-						{key.word ? (
-							<span className="font-sans text-sm font-semibold">
-								{key.label}
-							</span>
-						) : (
-							key.label
-						)}
-					</Button>
-				))}
-			</div>
+			<fieldset className="pointer-fine:hidden">
+				<legend className="sr-only">Insert a symbol</legend>
+				<div className="grid grid-cols-5 gap-2">
+					{KEYS.map((key) => (
+						<Button
+							key={key.label}
+							type="button"
+							variant="outline"
+							aria-label={key.accessibleName}
+							onPointerDown={(event) => event.preventDefault()}
+							onClick={() => insert(key.insert)}
+							className="h-11 font-mono text-lg"
+						>
+							{key.word ? (
+								<span className="font-sans text-sm font-semibold">
+									{key.label}
+								</span>
+							) : (
+								key.label
+							)}
+						</Button>
+					))}
+				</div>
+			</fieldset>
 
 			<details className="border-t pt-2 text-sm">
 				<summary className="flex min-h-11 cursor-pointer sm:min-h-9 items-center font-semibold text-muted-foreground">
