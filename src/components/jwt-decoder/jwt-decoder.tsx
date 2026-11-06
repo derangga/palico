@@ -107,8 +107,9 @@ export function JwtDecoder() {
 				)}
 
 				{token && algorithm && (
-					<div className="grid items-start gap-4 md:grid-cols-2">
-						<div className="flex flex-col gap-4">
+					// grid-cols-1 is minmax(0, 1fr), and the columns are min-w-0, so a long unwrapped JSON line scrolls inside its card. A bare grid column grows to the widest line and pushes the cards past the screen on a phone.
+					<div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+						<div className="flex min-w-0 flex-col gap-4">
 							<PartCard
 								part="header"
 								text={token.headerText}
@@ -123,7 +124,7 @@ export function JwtDecoder() {
 							/>
 						</div>
 
-						<div className="flex flex-col gap-4">
+						<div className="flex min-w-0 flex-col gap-4">
 							<ClaimsCard claims={claims} window={timeWindow} now={now} />
 							<VerifyCard
 								token={token}
