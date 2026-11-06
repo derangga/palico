@@ -164,6 +164,7 @@ function timeText(schedule: CronSchedule): TimeText {
 
 	if (hour.isAll) {
 		const phrase = capitalize(minutePhrase(minute));
+
 		const text =
 			soleStep(minute) || minute.isAll
 				? phrase
@@ -225,6 +226,7 @@ export function describeSchedule(schedule: CronSchedule): string {
 	if (!dayOfMonth.isAll && !dayOfWeek.isAll) {
 		// Standard cron runs on either day when neither field starts with `*`.
 		const both = dayOfMonth.startsWithStar || dayOfWeek.startsWithStar;
+
 		const parts = {
 			day: dayOfMonthText(dayOfMonth),
 			weekday: dayOfWeekText(dayOfWeek),

@@ -3,7 +3,7 @@
 // Supports `*`, lists (`1,15`), ranges (`1-5`), steps (`*/10`, `0-30/5`),
 // month and weekday names, `7` as Sunday, and the `@hourly` family of macros.
 
-import { Effect } from "effect";
+import { Effect, Match } from "effect";
 
 import { m } from "#/paraglide/messages.js";
 
@@ -277,11 +277,11 @@ export const parseCron = (
 
 		if (tokens.length !== 5) {
 			return yield* fail(
-				tokens.length === 6
-					? m.cron_err_six_fields()
-					: tokens.length === 7
-						? m.cron_err_seven_fields()
-						: m.cron_err_field_count({ count: tokens.length }),
+				Match.value(tokens.length).pipe(
+					Match.when(6, () => m.cron_err_six_fields()),
+					Match.when(7, () => m.cron_err_seven_fields()),
+					Match.orElse((count) => m.cron_err_field_count({ count })),
+				),
 			);
 		}
 

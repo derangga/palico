@@ -23,6 +23,7 @@ const DAY_MS = 24 * HOUR_MS;
 /** "in 5 minutes", "in 3 hours", "in 2 days". Rounds down, so it never promises a run sooner than it is. */
 export function relativeTime(from: Date, to: Date): string {
 	const gap = to.getTime() - from.getTime();
+
 	const relative = new Intl.RelativeTimeFormat(currentLocale(), {
 		numeric: "auto",
 	});
