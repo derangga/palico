@@ -7,6 +7,7 @@ import {
 	toHex,
 } from "#/lib/color/format.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -78,6 +79,7 @@ export function PickedTray({
 							getText={() => toCssVariables(picked, format)}
 							copiedMessage={m.palette_copy_css_done()}
 							failureMessage={m.palette_copy_css_failed()}
+							onCopied={() => recordToolUse("/color-picker")}
 						/>
 					</div>
 				</>

@@ -7,6 +7,7 @@ import { copyText } from "#/lib/clipboard.ts";
 import { COLOR_FORMATS, formatColor, toHex } from "#/lib/color/format.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -25,7 +26,10 @@ function useCopy(value: string): readonly [boolean, () => Promise<void>] {
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(value));
 
-		if (Option.isSome(toastOnExit(exit, m.color_copy_failed()))) flash();
+		if (Option.isSome(toastOnExit(exit, m.color_copy_failed()))) {
+			flash();
+			recordToolUse("/color-picker");
+		}
 	}
 
 	return [copied, copy];

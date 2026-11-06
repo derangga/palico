@@ -15,6 +15,7 @@ import {
 	MAX_INPUT_CHARS,
 	megabytes,
 } from "#/lib/json-converter/types.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 import {
@@ -155,6 +156,7 @@ export function JsonConverter() {
 		const body = target === "csv" ? `\uFEFF${output}` : output;
 
 		downloadText(body, `${base}.${FILE_EXTENSION[target]}`, MIME_TYPE[target]);
+		recordToolUse("/json-converter");
 	}
 
 	return (

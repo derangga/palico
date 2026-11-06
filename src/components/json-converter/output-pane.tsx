@@ -15,6 +15,7 @@ import {
 	INDENTS,
 	type JsonIndent,
 } from "#/lib/json-converter/types.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -130,6 +131,7 @@ export function OutputPane({
 								getText={() => output}
 								copiedMessage={m.jc_copied_announce()}
 								failureMessage={m.jc_copy_failed()}
+								onCopied={() => recordToolUse("/json-converter")}
 								className="max-sm:h-11"
 							/>
 						</>

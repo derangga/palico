@@ -12,6 +12,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { computeDiff, type DiffResult } from "#/lib/file/diff.ts";
 import type { DiffLanguage } from "#/lib/file/types.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 // Warm the singleton worker pool as soon as the workspace mounts so the first
@@ -60,6 +61,7 @@ export function DiffWorkspace() {
 			// Start every result plain so the selector acts as a re-highlight toggle.
 			setLanguage("text");
 			setResult(exit.value);
+			recordToolUse("/diff-viewer");
 
 			return;
 		}

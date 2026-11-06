@@ -27,6 +27,7 @@ import {
 	sourceFormatMeta,
 } from "#/lib/image/types.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/resizer")({
@@ -164,6 +165,7 @@ function ResizerPage() {
 
 		if (Exit.isSuccess(exit)) {
 			dispatch({ type: "succeed", result: exit.value });
+			recordToolUse("/resizer");
 			toast.success(
 				m.resizer_done_toast({
 					width: exit.value.width,

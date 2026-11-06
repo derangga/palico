@@ -36,6 +36,7 @@ import type { StorageQuotaError } from "#/lib/offline/errors.ts";
 import { guardedEngineLoad } from "#/lib/offline/gate.ts";
 import { offlineRuntime } from "#/lib/offline/runtime.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 // One-time download the consent gate negotiates before the model is fetched.
@@ -210,6 +211,7 @@ function BackgroundRemovalPage() {
 		if (Exit.isSuccess(exit)) {
 			setResult(exit.value);
 			setStatus("done");
+			recordToolUse("/background-removal");
 
 			return;
 		}

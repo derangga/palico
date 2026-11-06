@@ -17,6 +17,7 @@ import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-organize")({
@@ -66,6 +67,7 @@ function PdfOrganizePage() {
 		const result = toastOnExit(exit, m.pdforg_save_failed());
 
 		if (Option.isNone(result)) return;
+		recordToolUse("/pdf-organize");
 		downloadBlob(
 			result.value,
 			`${state.file.name.replace(/\.pdf$/i, "")}_organized.pdf`,

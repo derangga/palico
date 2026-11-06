@@ -14,6 +14,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { useQrCamera } from "#/hooks/use-qr-camera.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { readQrFromFile } from "#/lib/qr/worker-client.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 interface ReaderState {
@@ -78,6 +79,7 @@ export function QrReader() {
 
 		if (Exit.isSuccess(exit)) {
 			setState({ view: { phase: "found", reading: exit.value }, source });
+			recordToolUse("/qr-reader");
 
 			return;
 		}
@@ -101,6 +103,7 @@ export function QrReader() {
 			view: { phase: "found", reading: result },
 			source: { kind: "camera" },
 		});
+		recordToolUse("/qr-reader");
 	}
 
 	function startCamera() {

@@ -24,6 +24,7 @@ import {
 } from "#/lib/metadata/metadata.ts";
 import { ACCEPTED_MIME_TYPES } from "#/lib/metadata/types.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/strip-metadata")({
@@ -108,6 +109,7 @@ function StripMetadataPage() {
 		const ok = cleaned.size;
 
 		if (ok > 0) {
+			recordToolUse("/strip-metadata");
 			toast.success(
 				ok === 1
 					? m.metadata_success_one({ count: ok })

@@ -14,6 +14,7 @@ import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
 import { filesLabel, pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-merge")({
@@ -143,6 +144,7 @@ function PdfMergePage() {
 		const result = toastOnExit(exit, m.pdfmerge_failed());
 
 		if (Option.isNone(result)) return;
+		recordToolUse("/pdf-merge");
 		downloadBlob(result.value, "merged.pdf");
 	}
 

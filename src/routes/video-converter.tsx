@@ -23,6 +23,7 @@ import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	checkFileSize,
@@ -245,6 +246,7 @@ function ConverterShell() {
 			const failed = inputs.length - ok;
 
 			if (ok > 0) {
+				recordToolUse("/video-converter");
 				toast.success(
 					ok === 1
 						? m.videoconv_success_one({ count: ok, label: formatLabel })

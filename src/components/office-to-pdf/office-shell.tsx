@@ -22,6 +22,7 @@ import {
 } from "#/lib/file/office-types.ts";
 import { filesLabel } from "#/lib/i18n/counts.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export function OfficeShell() {
@@ -171,6 +172,7 @@ export function OfficeShell() {
 		setConverting(false);
 
 		if (ok > 0) {
+			recordToolUse("/office-to-pdf");
 			toast.success(
 				ok === 1
 					? m.office_success_one({ count: ok })

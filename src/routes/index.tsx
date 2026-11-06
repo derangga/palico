@@ -3,9 +3,11 @@ import { useEffect } from "react";
 
 import "#/components/home/home.css";
 import { ToolTile } from "#/components/home/tool-tile.tsx";
+import { YourTools } from "#/components/home/your-tools.tsx";
 import { buttonVariants } from "#/components/ui/button.tsx";
 import { seoHead } from "#/lib/seo.ts";
-import { CATEGORY_STYLES, toolGroups } from "#/lib/tool-categories.ts";
+import { CATEGORY_STYLES, TOOLS, toolGroups } from "#/lib/tool-categories.ts";
+import { yourToolsScript } from "#/lib/tool-history/prepaint.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -21,7 +23,12 @@ export const Route = createFileRoute("/")({
 
 		return {
 			...seo,
-			scripts: [...seo.scripts, { children: SEEN_SCRIPT }],
+			scripts: [
+				...seo.scripts,
+				{ children: SEEN_SCRIPT },
+				// Reserves the height of the "Your tools" row. See prepaint.ts.
+				{ children: yourToolsScript(TOOLS.map((tool) => tool.to)) },
+			],
 		};
 	},
 	component: Home,
@@ -103,36 +110,41 @@ function Home() {
 				</div>
 			</section>
 
-			<div className="mt-10 grid gap-8 lg:mt-12 lg:gap-10">
-				{toolGroups.map((group) => (
-					<section key={group.id} aria-labelledby={`tools-${group.id}`}>
-						<h2
-							id={`tools-${group.id}`}
-							className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"
-						>
-							<span
-								aria-hidden
-								className={cn(
-									"size-2.5 rounded-full",
-									CATEGORY_STYLES[group.id].fill,
-								)}
-							/>
-							{group.label}
-						</h2>
-						{/* Two columns from sm; an odd last tile spans the row. */}
-						<ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
-							{group.tools.map((tool) => (
-								<li
-									key={tool.to}
-									className="tool-in grid"
-									style={{ "--i": TILE_INDEX.get(tool.to) }}
-								>
-									<ToolTile tool={tool} />
-								</li>
-							))}
-						</ul>
-					</section>
-				))}
+			<div className="mt-10 lg:mt-12">
+				<YourTools />
+				<div className="grid gap-8 lg:gap-10">
+					{toolGroups.map((group) => (
+						<section key={group.id} aria-labelledby={`tools-${group.id}`}>
+							<h2
+								id={`tools-${group.id}`}
+								// Focus lands here when "Your tools" disappears under the cursor.
+								tabIndex={-1}
+								className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground outline-none"
+							>
+								<span
+									aria-hidden
+									className={cn(
+										"size-2.5 rounded-full",
+										CATEGORY_STYLES[group.id].fill,
+									)}
+								/>
+								{group.label}
+							</h2>
+							{/* Two columns from sm; an odd last tile spans the row. */}
+							<ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:[&>li:last-child:nth-child(odd)]:col-span-2">
+								{group.tools.map((tool) => (
+									<li
+										key={tool.to}
+										className="tool-in grid"
+										style={{ "--i": TILE_INDEX.get(tool.to) }}
+									>
+										<ToolTile tool={tool} />
+									</li>
+								))}
+							</ul>
+						</section>
+					))}
+				</div>
 			</div>
 		</div>
 	);

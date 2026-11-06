@@ -45,18 +45,45 @@ function scoreToken(texts: ReadonlyArray<ToolText>, token: string): number {
 }
 
 /**
+ * With an empty query: the tools at `paths` first, in the order of `paths`, then
+ * every other tool in registry order. A path that is not in `tools` is skipped,
+ * and a repeated path counts once.
+ */
+function putHistoryFirst(
+	tools: ReadonlyArray<Tool>,
+	paths: ReadonlyArray<string>,
+): ReadonlyArray<Tool> {
+	if (paths.length === 0) return tools;
+
+	const byPath = new Map(tools.map((tool) => [tool.to, tool]));
+
+	const first = [...new Set(paths)].flatMap((path) => {
+		const tool = byPath.get(path);
+
+		return tool ? [tool] : [];
+	});
+
+	const taken = new Set(first);
+
+	return [...first, ...tools.filter((tool) => !taken.has(tool))];
+}
+
+/**
  * Tools matching every word of the query, best match first. Ties keep registry
- * order. An empty query returns every tool in registry order.
+ * order. An empty query returns every tool in registry order, except that the
+ * tools in `history` (favourites, then recent, as the tool history lists them)
+ * come first. A typed query ignores `history`: relevance decides.
  */
 export function searchTools(
 	query: string,
 	tools: ReadonlyArray<Tool> = TOOLS,
+	history: ReadonlyArray<string> = [],
 ): ReadonlyArray<Tool> {
 	// Split on anything that is not a letter or digit, so "pdf-merge" finds
 	// Merge PDFs.
 	const tokens = query.toLowerCase().split(NOT_WORD).filter(Boolean);
 
-	if (tokens.length === 0) return tools;
+	if (tokens.length === 0) return putHistoryFirst(tools, history);
 
 	const locale = currentLocale();
 

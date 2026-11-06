@@ -34,6 +34,7 @@ import {
 } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/converter")({
@@ -181,6 +182,7 @@ function ConverterPage() {
 		const ok = outputs.length;
 
 		if (ok > 0) {
+			recordToolUse("/converter");
 			toast.success(
 				ok === 1
 					? m.converter_success_one({ count: ok, label })

@@ -1,0 +1,45 @@
+/*
+ * Favourite star. Press feedback on the button, one pop when a mouse or touch
+ * click turns the star on. Nothing moves on a keyboard click, on hydration, or
+ * when another tab changes the list. Only transform and opacity move.
+ */
+.tool-star {
+	transition:
+		transform 120ms var(--ease-out),
+		background-color 150ms var(--ease-out),
+		color 150ms var(--ease-out);
+}
+
+.tool-star:active {
+	transform: scale(0.9);
+}
+
+.tool-star[aria-disabled="true"]:active {
+	transform: none;
+}
+
+@keyframes star-pop {
+	0% {
+		transform: scale(0.85);
+	}
+	55% {
+		transform: scale(1.12);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+.tool-star-pop {
+	animation: star-pop 240ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tool-star:active {
+		transform: none;
+	}
+
+	.tool-star-pop {
+		animation: none;
+	}
+}

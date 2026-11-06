@@ -15,6 +15,7 @@ import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import {
 	fitLongSide,
@@ -147,6 +148,7 @@ function GifShell() {
 					type: "makeSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
+				recordToolUse("/video-to-gif");
 				toast.success(`${m.videogif_ready()} ${m.common_output_ready_hint()}`);
 			} else {
 				const message = Option.match(Cause.findErrorOption(exit.cause), {

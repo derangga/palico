@@ -1,16 +1,18 @@
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import { Dialog } from "@base-ui/react/dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { SearchIcon, XIcon } from "lucide-react";
+import { SearchIcon, StarIcon, XIcon } from "lucide-react";
 import { type CSSProperties, useEffect, useState } from "react";
 
 import { OfflineDot } from "#/components/offline/offline-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { useKeyboardInset } from "#/hooks/use-keyboard-inset.ts";
 import { useOfflineStatus } from "#/hooks/use-offline-status.ts";
+import { useToolHistory } from "#/hooks/use-tool-history.ts";
 import { OfflineStatus } from "#/lib/offline/shapes.ts";
 import {
 	CATEGORY_STYLES,
+	TOOLS,
 	type Tool,
 	type ToolCategory,
 	toolGroups,
@@ -79,7 +81,8 @@ export function SearchPalette({
 }) {
 	const [query, setQuery] = useState("");
 	const navigate = useNavigate();
-	const results = searchTools(query);
+	const history = useToolHistory();
+	const results = searchTools(query, TOOLS, history.paths);
 	const searching = query.trim() !== "";
 	const keyboard = useKeyboardInset(open);
 
@@ -125,14 +128,26 @@ export function SearchPalette({
 		void navigate({ to: tool.to });
 	};
 
+	// With an empty query `results` has favourites then recent tools first.
+	// They get their own group at the top and are left out of the category
+	// groups below, so no tool is listed twice.
+	const yours = results.filter((tool) => history.paths.includes(tool.to));
+
 	// One shape for both views: category groups when empty, one unlabeled
 	// ranked group while searching. No group at all when nothing matches.
 	const sections: Section[] = !searching
-		? toolGroups.map((group) => ({
-				value: group.label,
-				category: group.id,
-				items: group.tools,
-			}))
+		? [
+				...(yours.length > 0
+					? [{ value: m.your_tools_title(), items: yours }]
+					: []),
+				...toolGroups.flatMap((group) => {
+					const items = group.tools.filter((tool) => !yours.includes(tool));
+
+					return items.length > 0
+						? [{ value: group.label, category: group.id, items }]
+						: [];
+				}),
+			]
 		: results.length > 0
 			? [{ value: m.search_results_group(), items: [...results] }]
 			: [];
@@ -221,12 +236,12 @@ export function SearchPalette({
 									{/* The ranked results group keeps a label for screen readers only. */}
 									<Autocomplete.GroupLabel
 										className={
-											section.category
-												? "flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground"
-												: "sr-only"
+											searching
+												? "sr-only"
+												: "flex items-center gap-2 px-3 pt-2 pb-1 text-xs font-semibold text-muted-foreground"
 										}
 									>
-										{section.category && (
+										{section.category ? (
 											<span
 												aria-hidden
 												className={cn(
@@ -234,6 +249,13 @@ export function SearchPalette({
 													CATEGORY_STYLES[section.category].fill,
 												)}
 											/>
+										) : (
+											!searching && (
+												<StarIcon
+													aria-hidden
+													className="size-2.5 fill-current"
+												/>
+											)
 										)}
 										{section.value}
 									</Autocomplete.GroupLabel>

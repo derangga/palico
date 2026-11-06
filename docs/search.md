@@ -21,7 +21,11 @@ search dependency.
 3. The palette is a Base UI `Dialog` with an `Autocomplete` in `inline` mode, so
    the list sits inside the dialog and not in a popup.
 4. With an empty query the list is the category groups, with the same dots
-   as the home grid. Typing switches to one flat ranked list. The first row is
+   as the home grid, under a "Your tools" group when there is history: starred
+   tools, then recently used ones (see `docs/recent-tools.md`). A tool in
+   "Your tools" is left out of its category group, so no tool is listed twice.
+   Without history the group is absent and nothing changes. Typing switches to
+   one flat ranked list, which ignores history. The first row is
    highlighted as soon as the person types, so Enter works straight away.
 5. Enter on the highlighted row, or a click, closes the palette and navigates.
    `Autocomplete.Item` fires `onClick` for both. Escape closes and returns focus
@@ -56,7 +60,12 @@ Background through its `ai` keyword and does not find Compress Video through
 "email" or Markdown Preview through "mermaid".
 
 Results sort by score, highest first. Ties keep registry order, so the order is
-stable. An empty query returns every tool in registry order.
+stable. An empty query returns every tool in registry order, except that
+`searchTools(query, tools, history)` puts the tools named in `history` first, in
+the order given. The palette passes the paths from `useToolHistory` (favourites,
+then recent). A path that is not a tool is skipped and a repeated path counts
+once. A typed query ignores `history`: relevance decides, so a favourite does not
+outrank a better match.
 
 It is not an Effect function and has no error type, because it is synchronous and
 has no failure path.
@@ -148,7 +157,7 @@ only when searching.
 ## Not covered
 
 - Typo tolerant matching. Revisit past about 50 tools or if people report misses.
-- Recently used tools and any stored state.
+- Ranking typed results by history. Only the empty list uses it.
 - Actions (toggle theme, manage offline data) and Home as a result.
 - A search field on the home page or in the sidebar.
 - Searching inside tool pages or across `docs/`.
@@ -160,8 +169,9 @@ only when searching.
 
 ## Tests
 
-`src/lib/tool-search.test.ts` covers the empty query, the full ranking order, tie
-order, AND across words, a keyword-only hit, case and spacing, punctuation, no
+`src/lib/tool-search.test.ts` covers the empty query, the empty query with history
+(favourites then recent first, the order given, no duplicates, unknown paths
+skipped, a typed query unaffected), the full ranking order, tie order, AND across words, a keyword-only hit, case and spacing, punctuation, no
 match, the image converter first for `jpg`, `png` and `webp`, and a registry
 guard: searching a tool's own full label returns that tool first. The guard does
 not cover partial labels or format terms, so a keyword change that reorders those
