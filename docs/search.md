@@ -106,9 +106,26 @@ only when searching.
 
 ## UI notes
 
-- The palette does not animate. DESIGN.md says not to animate keyboard-driven
-  actions, and Cmd/Ctrl+K is one. The overlay copies the sheet's colours and blur
-  but has no transition, so it opens and closes at once.
+- From `md` up the palette does not animate. DESIGN.md says not to animate
+  keyboard-driven actions, and Cmd/Ctrl+K is one. The overlay copies the sheet's
+  colours and blur but has no transition, so it opens and closes at once.
+- Below `md` the same `Dialog.Popup` is a bottom sheet, switched by `max-md:` and
+  `md:` classes, not by a JS branch, so there is one tree and no hydration
+  mismatch. Tapping the header button is touch driven and occasional, so the sheet
+  slides: `translate` from 100% to 0 in 220ms with `ease-drawer`, and out in
+  150ms with `ease-out`. The backdrop fades in 150ms. Under
+  `prefers-reduced-motion` the sheet fades and does not slide.
+- The sheet has a close button (44px, `md:hidden`) beside the field. Backdrop
+  tap and Escape also close it. There is no drag handle yet, because a handle
+  that does not drag misleads. Drag-to-dismiss is not built (see Not covered).
+- On iOS Safari the layout viewport does not shrink when the keyboard opens, so a
+  `fixed` sheet at `bottom: 0` would sit behind it. `useKeyboardInset`
+  (`src/hooks/use-keyboard-inset.ts`) reads `visualViewport` while the palette is
+  open and sets `--kb-bottom` (the covered pixels), `--kb-height` and `--kb-pad`
+  (the safe-area padding, dropped while the keyboard is up) on the popup. The
+  sheet then lifts above the keyboard and caps its height at the visible area.
+  The field stays at the top of the sheet. Android Chrome resizes the layout
+  viewport, so there the inset stays 0.
 - The search box is a rounded field with the same classes as `ui/input.tsx`, so
   it gets the standard 3px Mauve focus ring. It sits inside 8px of padding in the
   popup, which gives the ring room, because the popup clips overflow. An earlier
@@ -117,8 +134,7 @@ only when searching.
 - The shortcut matches the K key by its letter. When the layout has no Latin K
   (Russian, Greek) it falls back to the physical position (`event.code`). A Latin
   layout such as Dvorak keeps its own letter, so Ctrl+K stays where it prints.
-- The popup sits at 12dvh from the top with a height cap in dvh, so the on-screen
-  keyboard does not cover the list on a phone.
+- On `md` and up the popup sits at 12dvh from the top with a height cap in dvh.
 - The header button is icon-only on narrow screens and reads "Search tools" with a
   key hint from `sm` up. The hint says "Ctrl K" on the server and on first render,
   then switches to the Command symbol on Apple devices after hydration
@@ -137,6 +153,10 @@ only when searching.
 - A search field on the home page or in the sidebar.
 - Searching inside tool pages or across `docs/`.
 - Highlighting the matched text in a row.
+- Drag-to-dismiss and a drag handle on the mobile sheet. If added, only the
+  handle and header should drag, so it does not fight list scrolling, and a flick
+  faster than about 0.11 px/ms should dismiss. Base UI's `Dialog` has no drag, so
+  it needs pointer handling.
 
 ## Tests
 
