@@ -1,17 +1,16 @@
-// Trim selection bar — the "Video trim selection" control from the wireframe,
-// styled as a filmstrip (frames behind the track, the kept range bracketed by
-// draggable handles, a playhead with a time pill). Layout follows the reference
-// design but uses palico's warm tokens, not the reference's navy/cyan.
+// Trim selection bar for video and audio. A track with something behind it (the
+// filmstrip frames or a waveform), the kept range bracketed by draggable
+// handles, and a playhead with a time pill.
 //
 // Pure presentational + DOM interaction: no ffmpeg, no Effect. The parent owns
-// the numbers (duration/start/end/current) and the <video> element; this
+// the numbers (duration/start/end/current) and the media element; this
 // component only reports intent via callbacks.
 
-import { useCallback, useId, useRef } from "react";
+import { type ReactNode, useCallback, useId, useRef } from "react";
 
 import { cn } from "#/lib/utils.ts";
 
-interface VideoTrimTimelineProps {
+interface TrimTimelineProps {
 	/** Total source duration in seconds. */
 	readonly duration: number;
 	/** Selection start in seconds. */
@@ -22,6 +21,10 @@ interface VideoTrimTimelineProps {
 	readonly currentTime: number;
 	/** Evenly-spaced filmstrip frames (data URLs). Empty → plain track. */
 	readonly thumbnails?: ReadonlyArray<string>;
+	/** Drawn behind the track instead of the filmstrip, e.g. a waveform. */
+	readonly backdrop?: ReactNode;
+	/** Track height. Defaults to h-16. */
+	readonly trackClassName?: string;
 	/** Smallest allowed selection length. Defaults to 0.5s. */
 	readonly minSelection?: number;
 	/** Largest allowed selection length. Defaults to no limit. */
@@ -62,12 +65,14 @@ const fmt = (totalSeconds: number) => {
 	return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${tenths}`;
 };
 
-export function VideoTrimTimeline({
+export function TrimTimeline({
 	duration,
 	start,
 	end,
 	currentTime,
 	thumbnails = EMPTY_THUMBNAILS,
+	backdrop,
+	trackClassName = "h-16",
 	minSelection = 0.5,
 	maxSelection = Number.POSITIVE_INFINITY,
 	step = 1,
@@ -75,7 +80,7 @@ export function VideoTrimTimeline({
 	onChangeStart,
 	onChangeEnd,
 	onScrub,
-}: VideoTrimTimelineProps) {
+}: TrimTimelineProps) {
 	const trackRef = useRef<HTMLDivElement>(null);
 	const startHandleId = useId();
 	const endHandleId = useId();
@@ -156,7 +161,8 @@ export function VideoTrimTimeline({
 		[secAt, onScrub],
 	);
 
-	// Arrow keys nudge a handle; Home/End jump to its allowed extreme.
+	// Arrow keys nudge a handle, Shift+Arrow and PageUp/PageDown move 10 steps,
+	// Home/End jump to its allowed extreme.
 	const handleKey = useCallback(
 		(
 			e: React.KeyboardEvent,
@@ -166,15 +172,22 @@ export function VideoTrimTimeline({
 			commit: (sec: number) => void,
 		) => {
 			let next: number | null = null;
+			const nudge = e.shiftKey ? step * 10 : step;
 
 			switch (e.key) {
 				case "ArrowLeft":
 				case "ArrowDown":
-					next = current - step;
+					next = current - nudge;
 					break;
 				case "ArrowRight":
 				case "ArrowUp":
-					next = current + step;
+					next = current + nudge;
+					break;
+				case "PageDown":
+					next = current - step * 10;
+					break;
+				case "PageUp":
+					next = current + step * 10;
 					break;
 				case "Home":
 					next = min;
@@ -203,24 +216,26 @@ export function VideoTrimTimeline({
 				onPointerDown={onTrackDown}
 				onPointerMove={onTrackMove}
 				className={cn(
-					"relative h-16 w-full touch-none",
+					"relative w-full touch-none",
+					trackClassName,
 					disabled && "pointer-events-none",
 				)}
 			>
-				{/* Filmstrip frames (clipped to the track). */}
+				{/* Filmstrip frames or the backdrop (clipped to the track). */}
 				<div className="absolute inset-0 flex overflow-hidden rounded-lg border bg-muted">
-					{thumbnails.length > 0
-						? thumbnails.map((src, i) => (
-								<img
-									// oxlint-disable-next-line react/no-array-index-key -- frames are positional and never reordered.
-									key={i}
-									src={src}
-									alt=""
-									draggable={false}
-									className="h-full min-w-0 flex-1 object-cover"
-								/>
-							))
-						: null}
+					{backdrop ??
+						(thumbnails.length > 0
+							? thumbnails.map((src, i) => (
+									<img
+										// oxlint-disable-next-line react/no-array-index-key -- frames are positional and never reordered.
+										key={i}
+										src={src}
+										alt=""
+										draggable={false}
+										className="h-full min-w-0 flex-1 object-cover"
+									/>
+								))
+							: null)}
 				</div>
 
 				{/* Dim the regions outside the selection. */}
@@ -277,7 +292,7 @@ export function VideoTrimTimeline({
 					onKeyDown={(e) =>
 						handleKey(e, start, startMin, startMax, onChangeStart)
 					}
-					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center before:absolute before:inset-y-0 before:-left-4 before:right-0 justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${startPct}%` }}
 				>
 					{GRIP}
@@ -299,7 +314,7 @@ export function VideoTrimTimeline({
 					onPointerDown={onEndHandleDown}
 					onPointerMove={onEndHandleMove}
 					onKeyDown={(e) => handleKey(e, end, endMin, endMax, onChangeEnd)}
-					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+					className="absolute -inset-y-1 z-30 flex w-3 -translate-x-1/2 cursor-ew-resize touch-none items-center before:absolute before:inset-y-0 before:left-0 before:-right-4 justify-center rounded-md border border-primary bg-primary shadow-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
 					style={{ left: `${endPct}%` }}
 				>
 					{GRIP}

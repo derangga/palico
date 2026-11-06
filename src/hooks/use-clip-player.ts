@@ -1,6 +1,6 @@
-// Preview player for picking a range out of one video, shared by /video-cutter
-// and /video-to-gif. Owns the <video> element, its object URL, the playhead,
-// the selection and the filmstrip. Tool-specific job state stays in the route.
+// Preview player for picking a range out of one video or audio file, shared by
+// /video-cutter, /video-to-gif and /audio-cutter. Owns the media element, its
+// object URL, the playhead, the selection and the filmstrip. Tool-specific job state stays in the route.
 //
 // The playhead is driven by a continuous rAF that reads the <video> element, so
 // it tracks smoothly during playback and stays right after a seek or pause.
@@ -96,13 +96,18 @@ function reducer(state: ClipPlayerState, action: Action): ClipPlayerState {
 
 const wholeVideo = (duration: number) => duration;
 
-export function useClipPlayer({
+// T is the element the page renders: <video> by default, <audio> for the audio
+// cutter.
+export function useClipPlayer<T extends HTMLMediaElement = HTMLVideoElement>({
 	initialEnd = wholeVideo,
+	filmstrip = true,
 }: {
-	// Where the selection ends when a video loads. Defaults to the whole video.
+	// Where the selection ends when a file loads. Defaults to the whole file.
 	initialEnd?: (duration: number) => number;
+	// Build the thumbnail strip. Off for audio, which has no frames.
+	filmstrip?: boolean;
 } = {}) {
-	const videoRef = useRef<HTMLVideoElement>(null);
+	const mediaRef = useRef<T>(null);
 	const objectUrlRef = useRef<string | null>(null);
 	const [state, dispatch] = useReducer(reducer, initialState);
 	const { file, objectUrl, start, end, currentTime } = state;
@@ -121,7 +126,7 @@ export function useClipPlayer({
 		let raf = 0;
 
 		const tick = () => {
-			const v = videoRef.current;
+			const v = mediaRef.current;
 
 			if (v) {
 				if (!v.paused && v.currentTime >= end) {
@@ -144,6 +149,8 @@ export function useClipPlayer({
 	// Build the filmstrip as soon as a file is picked. Failure is non-fatal: the
 	// timeline renders a plain track.
 	useEffect(() => {
+		if (!filmstrip) return;
+
 		if (!file) {
 			dispatch({ type: "setThumbnails", value: [] });
 
@@ -161,7 +168,7 @@ export function useClipPlayer({
 		return () => {
 			cancelled = true;
 		};
-	}, [file]);
+	}, [file, filmstrip]);
 
 	function openFile(f: File) {
 		if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -180,7 +187,7 @@ export function useClipPlayer({
 	}
 
 	function onLoadedMetadata() {
-		const v = videoRef.current;
+		const v = mediaRef.current;
 
 		if (!v) return;
 		const d = Number.isFinite(v.duration) ? v.duration : 0;
@@ -188,13 +195,13 @@ export function useClipPlayer({
 			type: "loadedMetadata",
 			duration: d,
 			end: initialEnd(d),
-			videoWidth: v.videoWidth,
-			videoHeight: v.videoHeight,
+			videoWidth: v instanceof HTMLVideoElement ? v.videoWidth : 0,
+			videoHeight: v instanceof HTMLVideoElement ? v.videoHeight : 0,
 		});
 	}
 
 	function seekTo(sec: number) {
-		const v = videoRef.current;
+		const v = mediaRef.current;
 
 		if (!v) return;
 		// Keep the playhead inside the kept range so it can't sit in the dimmed regions.
@@ -204,7 +211,7 @@ export function useClipPlayer({
 	}
 
 	function restart() {
-		const v = videoRef.current;
+		const v = mediaRef.current;
 
 		if (!v) return;
 		v.currentTime = start;
@@ -213,7 +220,7 @@ export function useClipPlayer({
 	}
 
 	function togglePlay() {
-		const v = videoRef.current;
+		const v = mediaRef.current;
 
 		if (!v) return;
 
@@ -243,7 +250,7 @@ export function useClipPlayer({
 
 	return {
 		...state,
-		videoRef,
+		mediaRef,
 		openFile,
 		reset,
 		onLoadedMetadata,
@@ -256,4 +263,5 @@ export function useClipPlayer({
 	};
 }
 
-export type ClipPlayer = ReturnType<typeof useClipPlayer>;
+export type ClipPlayer<T extends HTMLMediaElement = HTMLVideoElement> =
+	ReturnType<typeof useClipPlayer<T>>;

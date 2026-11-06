@@ -57,7 +57,7 @@ closes with the real problems we hit while building it and how each was resolved
 ```mermaid
 flowchart TD
     Route["src/routes/video-cutter.tsx<br/>(React UI)"]
-    Timeline["components/video-trim-timeline.tsx<br/>(filmstrip + handles + playhead)"]
+    Timeline["components/trim-timeline.tsx<br/>(filmstrip + handles + playhead)"]
 
     subgraph SafeToImport["Static import safe (no @ffmpeg/*)"]
         Cache["cache.ts<br/>asset URLs, LoadPhase, isEngineCached"]
@@ -90,7 +90,7 @@ The same "static import safe" versus "dynamic import only" split as the converte
 applies. The new modules are `trim.ts` (the stream-copy pipeline — dynamic import
 only, because it statically imports the engine), `thumbnails.ts` (filmstrip
 extraction — pure DOM, no FFmpeg, so it is safe to static import and runs the
-moment a file is picked), and the `video-trim-timeline.tsx` component. Everything
+moment a file is picked), and the `trim-timeline.tsx` component. Everything
 under `cache.ts`, `engine.ts`, and the bulk of `limits.ts` / `types.ts` /
 `errors.ts` is shared with the converter.
 
@@ -199,13 +199,13 @@ The pipeline lives in `trim.ts`:
 The preview is a plain `<video>` element fed an object URL of the chosen file. The
 playhead and selection are coordinated entirely in the route via local state
 (`duration`, `start`, `end`, `currentTime`), with the visual rendered by
-`video-trim-timeline.tsx`.
+`trim-timeline.tsx`.
 
 ```mermaid
 flowchart TD
     V["&lt;video&gt; element"] -->|rAF reads currentTime| RAF["requestAnimationFrame loop"]
     RAF -->|setCurrentTime each frame| State["currentTime state"]
-    State --> TL["VideoTrimTimeline (playhead position)"]
+    State --> TL["TrimTimeline (playhead position)"]
     TL -->|drag start handle| CS["onChangeStart"]
     TL -->|drag end handle| CE["onChangeEnd"]
     TL -->|click/drag track| SC["onScrub -> video.currentTime"]
@@ -459,7 +459,7 @@ media decoding, so they are validated manually in `bun run dev`.
 | File                                       | Responsibility                                                                |
 | ------------------------------------------ | ----------------------------------------------------------------------------- |
 | `src/routes/video-cutter.tsx`              | UI: engine gate, dropzone, preview, controls, timeline wiring, proceed/save   |
-| `src/components/video-trim-timeline.tsx`   | Filmstrip track, bracket handles, playhead + time pill (presentational only)  |
+| `src/components/trim-timeline.tsx`   | Filmstrip track, bracket handles, playhead + time pill (presentational only)  |
 | `src/lib/video/trim.ts`                    | `trimVideo`, `buildTrimArgs`, `outputContainer`, `trimmedOutputName` (static FFmpeg) |
 | `src/lib/video/thumbnails.ts`              | `generateThumbnails` via offscreen `<video>` + `<canvas>` (no `@ffmpeg/*`)     |
 | `src/lib/video/limits.ts`                  | `CUTTER_CAPS`, `checkCutterFileSize` (shared device class + verdict)          |

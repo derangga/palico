@@ -32,6 +32,7 @@ import { Route as ConverterRouteImport } from './routes/converter'
 import { Route as CompressorRouteImport } from './routes/compressor'
 import { Route as ColorPickerRouteImport } from './routes/color-picker'
 import { Route as BackgroundRemovalRouteImport } from './routes/background-removal'
+import { Route as AudioCutterRouteImport } from './routes/audio-cutter'
 import { Route as IndexRouteImport } from './routes/index'
 
 const VideoToGifRoute = VideoToGifRouteImport.update({
@@ -149,6 +150,11 @@ const BackgroundRemovalRoute = BackgroundRemovalRouteImport.update({
   path: '/background-removal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AudioCutterRoute = AudioCutterRouteImport.update({
+  id: '/audio-cutter',
+  path: '/audio-cutter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -157,6 +163,7 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audio-cutter': typeof AudioCutterRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audio-cutter': typeof AudioCutterRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
@@ -210,6 +218,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audio-cutter': typeof AudioCutterRoute
   '/background-removal': typeof BackgroundRemovalRoute
   '/color-picker': typeof ColorPickerRoute
   '/compressor': typeof CompressorRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audio-cutter'
     | '/background-removal'
     | '/color-picker'
     | '/compressor'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audio-cutter'
     | '/background-removal'
     | '/color-picker'
     | '/compressor'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/audio-cutter'
     | '/background-removal'
     | '/color-picker'
     | '/compressor'
@@ -317,6 +329,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AudioCutterRoute: typeof AudioCutterRoute
   BackgroundRemovalRoute: typeof BackgroundRemovalRoute
   ColorPickerRoute: typeof ColorPickerRoute
   CompressorRoute: typeof CompressorRoute
@@ -505,6 +518,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BackgroundRemovalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/audio-cutter': {
+      id: '/audio-cutter'
+      path: '/audio-cutter'
+      fullPath: '/audio-cutter'
+      preLoaderRoute: typeof AudioCutterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -517,6 +537,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AudioCutterRoute: AudioCutterRoute,
   BackgroundRemovalRoute: BackgroundRemovalRoute,
   ColorPickerRoute: ColorPickerRoute,
   CompressorRoute: CompressorRoute,
