@@ -26,8 +26,7 @@ async function handle(req: WorkerRequest): Promise<{
 				id: req.id,
 				ok: false,
 				reason: "decode",
-				message:
-					err instanceof Error ? err.message : "Could not decode this image.",
+				detail: err instanceof Error ? err.message : undefined,
 			},
 			transfer: [],
 		};
@@ -43,7 +42,6 @@ async function handle(req: WorkerRequest): Promise<{
 				id: req.id,
 				ok: false,
 				reason: "dimensions",
-				message: `Image is ${width}×${height}px, larger than the ${req.maxDimension}px limit.`,
 				width,
 				height,
 			},
@@ -116,8 +114,7 @@ async function handle(req: WorkerRequest): Promise<{
 				id: req.id,
 				ok: false,
 				reason: "encode",
-				message:
-					err instanceof Error ? err.message : "Could not encode this image.",
+				detail: err instanceof Error ? err.message : undefined,
 			},
 			transfer: [],
 		};

@@ -1,5 +1,7 @@
 import { Effect, Result, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	DecodeError,
 	DimensionsTooLargeError,
@@ -67,9 +69,10 @@ export const validateSize = (
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(
-						MAX_FILE_BYTES / (1024 * 1024),
-					)} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+					}),
 				}),
 			)
 		: Effect.void;
@@ -85,7 +88,7 @@ const convertOne = Effect.fn("ImageConverter.convertOne")(function* (
 		catch: (err) =>
 			new DecodeError({
 				fileName: input.file.name,
-				message: err instanceof Error ? err.message : "Could not read file.",
+				message: err instanceof Error ? err.message : m.error_read_file(),
 			}),
 	});
 

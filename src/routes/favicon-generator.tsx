@@ -21,6 +21,7 @@ import {
 	generateFavicons,
 } from "#/lib/image/favicon.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/favicon-generator")({
 	head: () => seoHead("/favicon-generator"),
@@ -50,11 +51,11 @@ function faviconErrorMessage(failure: FaviconError | undefined): string {
 		case "FileTooLargeError":
 			return failure.message;
 		case "DecodeError":
-			return "Couldn't read this image. Try a different file.";
+			return m.favicon_err_read();
 		case "EncodeError":
-			return "Couldn't generate the favicons from this image.";
+			return m.favicon_err_generate();
 		default:
-			return "Failed to generate favicons.";
+			return m.favicon_err_generic();
 	}
 }
 
@@ -110,7 +111,7 @@ function FaviconGeneratorPage() {
 		if (!file) return;
 
 		if (!file.type.startsWith("image/")) {
-			toast.error(`"${file.name}" is not an image.`);
+			toast.error(m.common_not_an_image({ name: file.name }));
 
 			return;
 		}
@@ -153,15 +154,14 @@ function FaviconGeneratorPage() {
 		);
 
 		console.error(failure);
-		toast.error("Couldn't bundle the zip.");
+		toast.error(m.favicon_err_zip());
 	}
 
 	return (
 		<PageShell>
-			<PageHeader title="Favicon Generator">
-				Drop in a logo or icon and get every favicon size modern browsers, iOS,
-				and Android need, plus a ready-to-paste <code>{"<link>"}</code> snippet.
-				Everything runs on your device.
+			<PageHeader title={m.tool_favicon_generator_label()}>
+				{m.favicon_description_before()} <code>{"<link>"}</code>{" "}
+				{m.favicon_description_after()}
 			</PageHeader>
 
 			<input
@@ -181,14 +181,14 @@ function FaviconGeneratorPage() {
 						<EmptyMedia variant="icon">
 							<ImageIcon />
 						</EmptyMedia>
-						<EmptyTitle>Pick an image to start</EmptyTitle>
+						<EmptyTitle>{m.common_pick_image_title()}</EmptyTitle>
 						<EmptyDescription>
-							We'll center-crop non-square images, flatten the Apple touch icon
-							onto white, and bundle a real <code>favicon.ico</code>.
+							{m.favicon_pick_before()} <code>favicon.ico</code>
+							{m.favicon_pick_after()}
 						</EmptyDescription>
 					</EmptyHeader>
 					<EmptyContent>
-						<Button onClick={pick}>Choose image</Button>
+						<Button onClick={pick}>{m.common_choose_image()}</Button>
 					</EmptyContent>
 				</Empty>
 			) : (
@@ -210,7 +210,7 @@ function FaviconGeneratorPage() {
 						<div className="min-w-0 flex-1">
 							<p className="truncate text-sm font-medium">{source.name}</p>
 							<p className="text-xs text-muted-foreground">
-								Source image · center-cropped to square
+								{m.favicon_source_note()}
 							</p>
 						</div>
 						<Button
@@ -220,21 +220,21 @@ function FaviconGeneratorPage() {
 							disabled={status === "processing"}
 						>
 							<RotateCcw />
-							Start over
+							{m.common_start_over()}
 						</Button>
 					</div>
 
 					{status === "processing" && (
 						<div className="flex items-center gap-3 rounded-xl border bg-card p-6 text-sm text-muted-foreground">
 							<Loader2 className="size-4 animate-spin" />
-							Generating favicons…
+							{m.favicon_generating()}
 						</div>
 					)}
 
 					{status === "done" && assetUrls && assets && (
 						<>
 							<h2 className="mt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-								Generated favicons
+								{m.favicon_generated()}
 							</h2>
 							<ul className="flex flex-col gap-2">
 								{assets.map((asset, i) => {
@@ -283,7 +283,7 @@ function FaviconGeneratorPage() {
 												onClick={() => downloadBlob(asset.blob, asset.name)}
 											>
 												<Download />
-												Save
+												{m.common_save()}
 											</Button>
 										</li>
 									);
@@ -292,8 +292,9 @@ function FaviconGeneratorPage() {
 
 							<div className="flex items-center justify-between gap-2 rounded-xl border bg-card p-3">
 								<p className="text-xs text-muted-foreground">
-									Zip includes <code>site.webmanifest</code> and a copy-paste{" "}
-									<code>{"<head>"}</code> snippet.
+									{m.favicon_zip_before()} <code>site.webmanifest</code>{" "}
+									{m.favicon_zip_middle()} <code>{"<head>"}</code>{" "}
+									{m.favicon_zip_after()}
 								</p>
 								<Button onClick={downloadAll} disabled={zipping}>
 									{zipping ? (
@@ -301,7 +302,7 @@ function FaviconGeneratorPage() {
 									) : (
 										<Download />
 									)}
-									Download all (.zip)
+									{m.common_download_all_zip()}
 								</Button>
 							</div>
 						</>

@@ -1,4 +1,5 @@
 import { Input } from "#/components/ui/input.tsx";
+import { m } from "#/paraglide/messages.js";
 
 export function PixelControls({
 	pxWidth,
@@ -24,7 +25,7 @@ export function PixelControls({
 			<div className="flex flex-wrap items-end gap-4">
 				<div className="flex flex-col gap-1.5">
 					<span className="text-xs font-medium text-muted-foreground">
-						Width (px)
+						{m.resizer_width()}
 					</span>
 					<Input
 						type="number"
@@ -37,7 +38,7 @@ export function PixelControls({
 				<span className="pb-2 text-muted-foreground">×</span>
 				<div className="flex flex-col gap-1.5">
 					<span className="text-xs font-medium text-muted-foreground">
-						Height (px)
+						{m.resizer_height()}
 					</span>
 					<Input
 						type="number"
@@ -55,7 +56,7 @@ export function PixelControls({
 					checked={maintainAR}
 					onChange={(e) => onToggleAR(e.target.checked)}
 				/>
-				Maintain aspect ratio
+				{m.resizer_keep_ratio()}
 			</label>
 			<label className="flex items-center gap-2 text-sm">
 				<input
@@ -64,7 +65,7 @@ export function PixelControls({
 					checked={noEnlarge}
 					onChange={(e) => onSetNoEnlarge(e.target.checked)}
 				/>
-				Do not enlarge (no upscaling)
+				{m.resizer_no_enlarge()}
 			</label>
 		</div>
 	);

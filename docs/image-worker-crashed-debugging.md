@@ -8,6 +8,11 @@ single toast:
 
 > Image worker crashed.
 
+With the app in Indonesian the same toast reads "Proses gambar berhenti
+tiba-tiba." (`error_worker_crashed` in `messages/id.json`). The worker sends the
+browser's own error text as `detail`, and `worker-client.ts` words the failure in
+the active language, because a worker has no active language of its own.
+
 This document records the problem, the full debugging process, the root cause
 (which turned out to be **two** independent bugs), and the fix. It is written so
 the next person who sees a worker fail _only in production_ can recognise the

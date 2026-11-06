@@ -1,5 +1,7 @@
 import { ArrowRight, ImageIcon, X } from "lucide-react";
 
+import { m } from "#/paraglide/messages.js";
+
 export function SourceBar({
 	fileName,
 	srcW,
@@ -37,7 +39,7 @@ export function SourceBar({
 				type="button"
 				onClick={onRemove}
 				className="text-muted-foreground hover:text-foreground"
-				aria-label="Remove image"
+				aria-label={m.resizer_remove_image()}
 			>
 				<X className="size-4" />
 			</button>

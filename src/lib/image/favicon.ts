@@ -1,5 +1,7 @@
 import { Effect, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { DecodeError, EncodeError, FileTooLargeError } from "./errors.ts";
 import { MAX_FILE_BYTES } from "./types.ts";
 import { createZip } from "./zip.ts";
@@ -41,9 +43,10 @@ const validateSize = (file: File): Effect.Effect<void, FileTooLargeError> =>
 					fileName: file.name,
 					size: file.size,
 					limit: MAX_FILE_BYTES,
-					message: `"${file.name}" is larger than the ${Math.round(
-						MAX_FILE_BYTES / (1024 * 1024),
-					)} MB limit.`,
+					message: m.error_file_too_large({
+						name: file.name,
+						limit: Math.round(MAX_FILE_BYTES / (1024 * 1024)),
+					}),
 				}),
 			)
 		: Effect.void;
@@ -61,8 +64,7 @@ const withDecodedBitmap = <A, E>(
 			catch: (err) =>
 				new DecodeError({
 					fileName: file.name,
-					message:
-						err instanceof Error ? err.message : "Could not decode image.",
+					message: err instanceof Error ? err.message : m.error_decode_image(),
 				}),
 		}),
 		use,
@@ -89,7 +91,7 @@ function drawFavicon(
 	const canvas = new OffscreenCanvas(size, size);
 	const ctx = canvas.getContext("2d");
 
-	if (!ctx) throw new Error("Could not get a 2D canvas context.");
+	if (!ctx) throw new Error(m.error_canvas_context());
 
 	if (flattenWhite) {
 		ctx.fillStyle = "#ffffff";
@@ -115,8 +117,7 @@ const encodePng = (
 				new EncodeError({
 					fileName,
 					format: "png",
-					message:
-						err instanceof Error ? err.message : "Could not draw favicon.",
+					message: err instanceof Error ? err.message : m.error_favicon_draw(),
 				}),
 		});
 
@@ -126,7 +127,7 @@ const encodePng = (
 				new EncodeError({
 					fileName,
 					format: "png",
-					message: err instanceof Error ? err.message : "Could not encode PNG.",
+					message: err instanceof Error ? err.message : m.error_encode_png(),
 				}),
 		});
 
@@ -136,8 +137,7 @@ const encodePng = (
 				new EncodeError({
 					fileName,
 					format: "png",
-					message:
-						err instanceof Error ? err.message : "Could not read PNG bytes.",
+					message: err instanceof Error ? err.message : m.error_png_bytes(),
 				}),
 		});
 

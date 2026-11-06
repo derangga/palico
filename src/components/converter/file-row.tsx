@@ -6,6 +6,7 @@ import { formatBytes, handleSaveOne } from "#/components/converter/utils.ts";
 import { useJustDone } from "#/components/done-burst.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export function FileRow({
 	item,
@@ -38,7 +39,7 @@ export function FileRow({
 					{item.status === "done" &&
 						item.savedPct != null &&
 						item.savedPct > 0 &&
-						` · ${item.savedPct}% smaller`}
+						` · ${m.common_smaller({ percent: item.savedPct })}`}
 					{item.status === "error" && item.message && (
 						<span className="text-destructive">: {item.message}</span>
 					)}
@@ -51,13 +52,13 @@ export function FileRow({
 			{item.status === "done" && onCompare && (
 				<Button variant="ghost" size="sm" onClick={onCompare}>
 					<Columns2 />
-					Compare
+					{m.common_compare()}
 				</Button>
 			)}
 			{item.status === "done" && item.outBlob && (
 				<Button variant="ghost" size="sm" onClick={() => handleSaveOne(item)}>
 					<Download />
-					Save
+					{m.common_save()}
 				</Button>
 			)}
 			{!isRunning && (
@@ -65,7 +66,7 @@ export function FileRow({
 					type="button"
 					onClick={onRemove}
 					className="text-muted-foreground hover:text-foreground"
-					aria-label={`Remove ${item.file.name}`}
+					aria-label={m.common_remove_file({ name: item.file.name })}
 				>
 					<X className="size-4" />
 				</button>

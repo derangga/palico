@@ -1,5 +1,7 @@
 import { Effect, Schema } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import {
 	type ConvertError,
 	DecodeError,
@@ -84,7 +86,11 @@ export const runImageWorker = (params: {
 										width: res.width ?? 0,
 										height: res.height ?? 0,
 										limit: MAX_DIMENSION,
-										message: res.message,
+										message: m.error_image_dimensions({
+											width: res.width ?? 0,
+											height: res.height ?? 0,
+											limit: MAX_DIMENSION,
+										}),
 									}),
 								),
 							);
@@ -94,7 +100,7 @@ export const runImageWorker = (params: {
 								Effect.fail(
 									new DecodeError({
 										fileName: params.fileName,
-										message: res.message,
+										message: res.detail ?? m.error_decode_image(),
 									}),
 								),
 							);
@@ -105,7 +111,7 @@ export const runImageWorker = (params: {
 									new EncodeError({
 										fileName: params.fileName,
 										format: params.format,
-										message: res.message,
+										message: res.detail ?? m.error_encode_image(),
 									}),
 								),
 							);
@@ -117,7 +123,7 @@ export const runImageWorker = (params: {
 						Effect.fail(
 							new WorkerError({
 								fileName: params.fileName,
-								message: event.message || "Image worker crashed.",
+								message: event.message || m.error_worker_crashed(),
 							}),
 						),
 					);

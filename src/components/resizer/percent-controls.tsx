@@ -1,5 +1,6 @@
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
+import { m } from "#/paraglide/messages.js";
 
 const PRESETS = [75, 50, 25] as const;
 
@@ -25,7 +26,7 @@ export function PercentControls({
 				))}
 				<div className="ml-2 flex items-center gap-2">
 					<span className="text-xs font-medium text-muted-foreground">
-						Custom
+						{m.resizer_custom()}
 					</span>
 					<Input
 						type="number"
@@ -39,8 +40,7 @@ export function PercentControls({
 				</div>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Scales to a fraction of the original. Capped at 100%. The resizer never
-				upscales.
+				{m.resizer_percent_note()}
 			</p>
 		</div>
 	);
