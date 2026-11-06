@@ -1,6 +1,7 @@
 import {
 	AudioLines,
 	AudioWaveform,
+	Braces,
 	CalendarClock,
 	Combine,
 	Eraser,
@@ -130,7 +131,8 @@ type ToolId =
 	| "qr_reader"
 	| "palette_extractor"
 	| "color_picker"
-	| "cron_generator";
+	| "cron_generator"
+	| "json_converter";
 
 const splitKeywords = (text: string) =>
 	text
@@ -305,6 +307,11 @@ export const TOOLS: ReadonlyArray<Tool> = [
 	defineTool("cron_generator", {
 		to: "/cron-generator",
 		icon: CalendarClock,
+		category: "developer",
+	}),
+	defineTool("json_converter", {
+		to: "/json-converter",
+		icon: Braces,
 		category: "developer",
 	}),
 ];
