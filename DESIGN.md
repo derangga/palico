@@ -123,7 +123,7 @@ switched with a toggle in the header. Surfaces are calm and slightly cool
 (Latte Base `#eff1f5`, Mocha Base `#1e1e2e`). Colour lives in small, repeated
 spots: tool chips and tiles, status pills, progress bars, underlines and hover
 edges. Mauve is the single primary action colour. Each tool category has its
-own accent pair so people can tell Image, Video, File, Color and Developer tools apart at
+own accent pair so people can tell Image, Video & Audio, File, Color and Developer tools apart at
 a glance. Typography stays one voice, Nunito Variable, with weight and scale
 carrying hierarchy.
 
@@ -232,7 +232,7 @@ tile and icon fill; the second is the tint or secondary detail.
 | Category | Accent pair | Tools |
 | --- | --- | --- |
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
-| Video | Peach + Yellow | Video converter, video cutter |
+| Video & Audio (`video`) | Peach + Yellow | Video converter, video cutter, video compressor, video to GIF, extract audio, audio cutter |
 | File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, QR code generator, QR code reader |
 | Color | Blue + Sapphire | Palette extractor, color picker |
 | Developer | Lavender + Flamingo | Cron generator, Markdown preview, diff viewer |

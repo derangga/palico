@@ -70,6 +70,17 @@ export class NoAudioTrackError extends Schema.TaggedError<NoAudioTrackError>()(
 	},
 ) {}
 
+// Audio Cutter failures: an unsupported file, reading or staging it, the stream
+// copy, or reading the output back. The cutter never re-encodes, so there is no
+// "encode" in the name.
+export class AudioTrimError extends Schema.TaggedError<AudioTrimError>()(
+	"AudioTrimError",
+	{
+		fileName: Schema.String,
+		message: Schema.String,
+	},
+) {}
+
 // Compress Video failures: reading or probing the file, encoding (including
 // OOM), or reading the output back.
 export class VideoCompressError extends Schema.TaggedError<VideoCompressError>()(

@@ -1,5 +1,6 @@
 import {
 	AudioLines,
+	AudioWaveform,
 	CalendarClock,
 	Combine,
 	Eraser,
@@ -30,8 +31,9 @@ import type { EngineId } from "#/lib/offline/shapes.ts";
 /**
  * The one registry of tools. The home grid and the sidebar both read it, and
  * `categoryOfPath` lets any page find its category from the URL.
- * Grouping follows DESIGN.md: Image (Mauve + Pink), Video (Peach + Yellow),
- * File (Teal + Green), Color (Blue + Sapphire), Developer (Lavender + Flamingo).
+ * Grouping follows DESIGN.md: Image (Mauve + Pink), Video & Audio (Peach +
+ * Yellow, id "video"), File (Teal + Green), Color (Blue + Sapphire), Developer
+ * (Lavender + Flamingo).
  */
 export type ToolCategory = "image" | "video" | "file" | "color" | "developer";
 
@@ -52,7 +54,7 @@ export type Tool = {
 
 export const CATEGORIES: ReadonlyArray<{ id: ToolCategory; label: string }> = [
 	{ id: "image", label: "Image" },
-	{ id: "video", label: "Video" },
+	{ id: "video", label: "Video & Audio" },
 	{ id: "file", label: "File" },
 	{ id: "color", label: "Color" },
 	{ id: "developer", label: "Developer" },
@@ -213,6 +215,30 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		seoDescription:
 			"Save the sound of a video as MP3, M4A, Opus or WAV. Runs in your browser, so the video never leaves your device.",
 		icon: AudioLines,
+		category: "video",
+		engine: "ffmpeg",
+	},
+	{
+		to: "/audio-cutter",
+		label: "Audio Cutter",
+		blurb: "Trim a clip out of any audio file.",
+		keywords: [
+			"trim",
+			"clip",
+			"shorten",
+			"mp3",
+			"wav",
+			"m4a",
+			"ogg",
+			"opus",
+			"flac",
+			"sound",
+			"waveform",
+		],
+		seoTitle: "Audio Cutter: Trim MP3, WAV, M4A",
+		seoDescription:
+			"Trim a clip out of an MP3, WAV, M4A, OGG or FLAC file. Pick a start and an end on the waveform, then save the cut. Runs in your browser and works offline.",
+		icon: AudioWaveform,
 		category: "video",
 		engine: "ffmpeg",
 	},
@@ -428,7 +454,7 @@ export const CATEGORY_STYLES: Record<
 		vars: "[--tile-edge:var(--cat-image)] [--tile-tint:var(--cat-image-2)]",
 	},
 	video: {
-		label: "Video",
+		label: "Video & Audio",
 		fill: "bg-cat-video",
 		chip: "bg-cat-video/20",
 		tint: "bg-cat-video-2/15",

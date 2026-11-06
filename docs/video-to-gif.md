@@ -89,7 +89,7 @@ your GIF…" with a spinner, and Cancel terminates the worker like the cutter.
 | --- | --- |
 | `src/hooks/use-clip-player.ts` | `/video-cutter`: object URL, rAF playhead, selection, filmstrip |
 | `src/components/video-clip-stage.tsx` | `/video-cutter`: preview, controls, timeline |
-| `src/components/video-trim-timeline.tsx` | `/video-cutter`; `maxSelection` was added for this tool |
+| `src/components/trim-timeline.tsx` | `/video-cutter`; `maxSelection` was added for this tool |
 | `src/hooks/use-object-url.ts` | the compressor's compare panel |
 
 The run and cancel handlers, the side panel and the error class stay per tool.

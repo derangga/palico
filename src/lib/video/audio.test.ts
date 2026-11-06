@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
 	AUDIO_FORMATS,
 	type AudioFormat,
+	audioCutFormat,
 	buildAudioArgs,
 	parseAudioProbe,
 } from "./audio.ts";
@@ -122,5 +123,26 @@ describe("parseAudioProbe", () => {
 		expect(
 			Result.isFailure(parseAudioProbe('{"streams":[{"channels":2}]}')),
 		).toBe(true);
+	});
+});
+
+describe("audioCutFormat", () => {
+	const file = (name: string, type = "") => new File([], name, { type });
+
+	it("takes the format from the extension, even with no MIME type", () => {
+		expect(audioCutFormat(file("song.flac"))).toEqual(
+			Option.some({ ext: "flac", mime: "audio/flac" }),
+		);
+		expect(audioCutFormat(file("Voice.MP3", "audio/x-wrong"))).toEqual(
+			Option.some({ ext: "mp3", mime: "audio/mpeg" }),
+		);
+	});
+
+	it("rejects files it cannot copy back out", () => {
+		expect(Option.isNone(audioCutFormat(file("clip.mp4", "video/mp4")))).toBe(
+			true,
+		);
+		expect(Option.isNone(audioCutFormat(file("notes")))).toBe(true);
+		expect(Option.isNone(audioCutFormat(file("a.constructor")))).toBe(true);
 	});
 });

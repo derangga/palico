@@ -8,7 +8,7 @@ const SITE_NAME = "Palico";
 const HOME_TITLE = "Palico: Free, private, offline file tools. No sign-up.";
 
 const HOME_DESCRIPTION =
-	"Free, offline toolkit for images, video and PDFs. Convert, resize, compress and more in your browser. No uploads, no tracking, no account.";
+	"Free, offline toolkit for images, video, audio and PDFs. Convert, resize, compress and more in your browser. No uploads, no tracking, no account.";
 
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
 

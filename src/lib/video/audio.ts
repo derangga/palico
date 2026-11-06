@@ -5,6 +5,8 @@
 
 import { Effect, Option, Result, Schema } from "effect";
 
+import { inputExtension } from "./types.ts";
+
 export const AudioFormat = Schema.Literals(["mp3", "m4a", "opus", "wav"]);
 
 export type AudioFormat = Schema.Schema.Type<typeof AudioFormat>;
@@ -137,4 +139,33 @@ export const buildAudioArgs = (
 		args: ["-i", inputName, "-map", "0:a:0", ...codecArgs, outputName],
 		copied,
 	};
+};
+
+// Containers the audio cutter takes. The cut copies the stream, so the output
+// keeps the input's container. Kept apart from AudioFormat (the Extract Audio
+// outputs) so that tool's dropdown does not gain FLAC and OGG.
+const CUT_MIME = new Map([
+	["mp3", "audio/mpeg"],
+	["m4a", "audio/mp4"],
+	["aac", "audio/aac"],
+	["wav", "audio/wav"],
+	["ogg", "audio/ogg"],
+	["opus", "audio/ogg"],
+	["flac", "audio/flac"],
+]);
+
+export interface AudioCutFormat {
+	readonly ext: string;
+	readonly mime: string;
+}
+
+// The extension decides, not file.type: browsers give an empty or odd type for
+// FLAC and Opus.
+export const audioCutFormat = (file: File): Option.Option<AudioCutFormat> => {
+	const ext = inputExtension(file);
+
+	return Option.map(Option.fromNullishOr(CUT_MIME.get(ext)), (mime) => ({
+		ext,
+		mime,
+	}));
 };
