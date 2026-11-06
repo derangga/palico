@@ -100,6 +100,15 @@ the browser, and the page says so under the input.
 - Tokens past 100,000 characters are refused, so a huge paste cannot stall the
   page on each keystroke.
 
+## Mobile
+
+The cards grid names its mobile column (`grid-cols-1`, which is `minmax(0,1fr)`) and
+both columns are `min-w-0`. Without that the implicit `auto` column grows to the
+widest JSON line: an `overflow-auto` box scrolls its own content, but its content
+still counts toward the min-content width of what surrounds it, so the long `iss`
+line of the example made the cards wider than the screen. Targets are 44px below
+`sm` and inputs are 16px.
+
 ## Where the work runs
 
 On the page, no worker. A token is a few KB and `crypto.subtle.verify` is async
