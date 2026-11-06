@@ -3,9 +3,10 @@ import { CircleAlert, Pencil, SlidersHorizontal } from "lucide-react";
 import { CopyTextButton } from "#/components/copy-text-button.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import type { CronSyntaxError } from "#/lib/cron/errors.ts";
-import { FIELD_LABELS } from "#/lib/cron/field-labels.ts";
+import { fieldLabels } from "#/lib/cron/field-labels.ts";
 import { FIELD_NAMES, splitFields } from "#/lib/cron/schedule.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 export const STATUS_ID = "cron-status";
 
@@ -35,7 +36,7 @@ export function ScheduleReadout({
 
 	return (
 		<section
-			aria-label="Result"
+			aria-label={m.cron_result_aria()}
 			className="animate-pop-in flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm sm:p-5"
 		>
 			<p
@@ -74,7 +75,7 @@ export function ScheduleReadout({
 							)}
 						>
 							<dt className="text-xs font-semibold text-muted-foreground">
-								{FIELD_LABELS[name].label}
+								{fieldLabels(name).label}
 							</dt>
 							<dd className="max-w-full truncate px-0.5 font-mono text-base font-medium sm:text-lg">
 								{token || "·"}
@@ -87,10 +88,10 @@ export function ScheduleReadout({
 			<div className="flex flex-col gap-2 sm:flex-row">
 				{!error && (
 					<CopyTextButton
-						label="Copy"
+						label={m.cron_copy()}
 						getText={() => expression.trim()}
-						copiedMessage={`Copied ${expression.trim()}`}
-						failureMessage="Couldn't copy the expression."
+						copiedMessage={m.cron_copied({ expression: expression.trim() })}
+						failureMessage={m.cron_copy_failed()}
 						className="h-11 flex-1 sm:h-9 sm:flex-none"
 					/>
 				)}
@@ -100,7 +101,7 @@ export function ScheduleReadout({
 					className="h-11 sm:h-9"
 				>
 					{editing ? <SlidersHorizontal /> : <Pencil />}
-					{editing ? "Use builder" : "Edit as text"}
+					{editing ? m.cron_use_builder() : m.cron_edit_text()}
 				</Button>
 			</div>
 		</section>

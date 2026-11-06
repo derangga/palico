@@ -6,6 +6,7 @@ import { MarkdownPreview } from "#/components/markdown-preview.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { copyMarkdown, downloadMarkdown } from "#/lib/markdown/actions.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 const DOWNLOAD_FILENAME = "document.md";
 
@@ -31,13 +32,13 @@ export function MarkdownPreviewPanel({
 		const exit = await Effect.runPromiseExit(copyMarkdown(source));
 
 		if (Exit.isSuccess(exit)) {
-			toast.success("Markdown copied to clipboard.");
+			toast.success(m.markdown_copied());
 
 			return;
 		}
 
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
-		toast.error(failure?.message ?? "Couldn't copy to the clipboard.");
+		toast.error(failure?.message ?? m.markdown_copy_failed());
 	}
 
 	async function handleDownload() {
@@ -47,7 +48,7 @@ export function MarkdownPreviewPanel({
 
 		if (Exit.isSuccess(exit)) return;
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
-		toast.error(failure?.message ?? "Couldn't download the file.");
+		toast.error(failure?.message ?? m.markdown_download_failed());
 	}
 
 	return (
@@ -63,8 +64,8 @@ export function MarkdownPreviewPanel({
 					variant="ghost"
 					size="icon-sm"
 					onClick={handleCopy}
-					aria-label="Copy Markdown"
-					title="Copy Markdown"
+					aria-label={m.markdown_copy()}
+					title={m.markdown_copy()}
 				>
 					<Copy />
 				</Button>
@@ -73,8 +74,8 @@ export function MarkdownPreviewPanel({
 					variant="ghost"
 					size="icon-sm"
 					onClick={handleDownload}
-					aria-label="Download .md"
-					title="Download .md"
+					aria-label={m.markdown_download()}
+					title={m.markdown_download()}
 				>
 					<Download />
 				</Button>
@@ -83,8 +84,16 @@ export function MarkdownPreviewPanel({
 					variant="ghost"
 					size="icon-sm"
 					onClick={onToggleFullscreen}
-					aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-					title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+					aria-label={
+						isFullscreen
+							? m.markdown_fullscreen_exit()
+							: m.markdown_fullscreen_enter()
+					}
+					title={
+						isFullscreen
+							? m.markdown_fullscreen_exit()
+							: m.markdown_fullscreen_enter()
+					}
 				>
 					{isFullscreen ? <Minimize2 /> : <Maximize2 />}
 				</Button>

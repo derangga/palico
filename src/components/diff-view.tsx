@@ -14,6 +14,7 @@ import {
 } from "#/components/ui/empty.tsx";
 import type { DiffResult } from "#/lib/file/diff.ts";
 import type { DiffLanguage } from "#/lib/file/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface DiffViewProps {
 	readonly result: DiffResult;
@@ -131,7 +132,7 @@ export function DiffView({
 					<LanguageSelect value={language} onChange={onLanguageChange} />
 					<Button variant="destructive" size="sm" onClick={onBack}>
 						<X />
-						Back
+						{m.diff_back()}
 					</Button>
 				</div>
 			</div>
@@ -160,14 +161,11 @@ export function DiffView({
 							<EmptyMedia variant="icon">
 								<FileCheck2 />
 							</EmptyMedia>
-							<EmptyTitle>No differences</EmptyTitle>
-							<EmptyDescription>
-								The original and changed text are identical. Go back and edit
-								either side, then find the difference again.
-							</EmptyDescription>
+							<EmptyTitle>{m.diff_none_title()}</EmptyTitle>
+							<EmptyDescription>{m.diff_none_desc()}</EmptyDescription>
 						</EmptyHeader>
 						<Button variant="outline" onClick={onBack}>
-							Back to editor
+							{m.diff_back_editor()}
 						</Button>
 					</Empty>
 				)}

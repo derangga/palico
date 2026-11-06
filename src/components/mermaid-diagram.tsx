@@ -3,6 +3,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useId, useState } from "react";
 
 import { renderMermaid } from "#/lib/markdown/mermaid.ts";
+import { m } from "#/paraglide/messages.js";
 
 // Each state carries the `chart` source it was computed for. When the prop
 // changes, the stored state still describes the previous source, so we treat it
@@ -58,7 +59,7 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 			setRendered({
 				status: "error",
 				chart,
-				message: failure?.message ?? "This diagram couldn't be rendered.",
+				message: failure?.message ?? m.markdown_diagram_failed(),
 			});
 		});
 
@@ -76,7 +77,7 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 	if (state.status === "error") {
 		return (
 			<div className="not-prose my-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-				<p className="font-medium">Couldn't render this diagram</p>
+				<p className="font-medium">{m.markdown_diagram_error()}</p>
 				<p className="mt-1 whitespace-pre-wrap font-mono text-xs opacity-80">
 					{state.message}
 				</p>
@@ -97,7 +98,7 @@ export function MermaidDiagram({ chart }: { readonly chart: string }) {
 
 	return (
 		<div className="not-prose my-4 text-sm text-muted-foreground">
-			Rendering diagram…
+			{m.markdown_diagram_rendering()}
 		</div>
 	);
 }

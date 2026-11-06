@@ -2,13 +2,16 @@ import { ChoiceGroup } from "#/components/choice-group.tsx";
 import { formatRun, relativeTime } from "#/lib/cron/format.ts";
 import { type CronZone, nextRuns } from "#/lib/cron/next-runs.ts";
 import type { CronSchedule } from "#/lib/cron/schedule.ts";
+import { m } from "#/paraglide/messages.js";
 
 const RUN_COUNT = 8;
 
-const ZONES = [
-	{ value: "local", label: "Your time" },
-	{ value: "utc", label: "UTC" },
-] as const;
+// A function, because the label depends on the active language.
+const zones = () =>
+	[
+		{ value: "local", label: m.cron_zone_local() },
+		{ value: "utc", label: "UTC" },
+	] as const;
 
 function Message({ children }: { readonly children: string }) {
 	return <p className="text-sm text-muted-foreground">{children}</p>;
@@ -31,15 +34,15 @@ export function NextRuns({
 
 	return (
 		<section
-			aria-label="Next runs"
+			aria-label={m.cron_next_runs()}
 			className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm"
 		>
-			<h2 className="text-sm font-medium">Next runs</h2>
+			<h2 className="text-sm font-medium">{m.cron_next_runs()}</h2>
 
 			<ChoiceGroup
-				legend="Show times in"
+				legend={m.cron_show_times()}
 				name="cron-zone"
-				choices={ZONES}
+				choices={zones()}
 				value={zone}
 				onChange={onZoneChange}
 				columns="sm:grid-cols-2"
@@ -47,14 +50,10 @@ export function NextRuns({
 
 			{!schedule || !now ? (
 				<Message>
-					{schedule
-						? "Working out the times."
-						: "Fix the expression to see when it runs."}
+					{schedule ? m.cron_working_out() : m.cron_fix_expression()}
 				</Message>
 			) : runs.length === 0 ? (
-				<Message>
-					This schedule never runs. A date like 31 February does not exist.
-				</Message>
+				<Message>{m.cron_never_runs()}</Message>
 			) : (
 				<ol className="flex flex-col divide-y">
 					{runs.map((run) => (

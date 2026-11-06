@@ -5,6 +5,8 @@
 
 import { Effect } from "effect";
 
+import { m } from "#/paraglide/messages.js";
+
 import { CronSyntaxError } from "./errors.ts";
 
 export type CronFieldName =
@@ -25,20 +27,18 @@ export const FIELD_NAMES: ReadonlyArray<CronFieldName> = [
 interface FieldSpec {
 	readonly min: number;
 	readonly max: number;
-	readonly label: string;
 	readonly names?: ReadonlyArray<string>;
 	/** The value of the first name. Month names start at 1, weekday names at 0. */
 	readonly namesFrom?: number;
 }
 
 export const FIELD_SPECS: Record<CronFieldName, FieldSpec> = {
-	minute: { min: 0, max: 59, label: "minute" },
-	hour: { min: 0, max: 23, label: "hour" },
-	dayOfMonth: { min: 1, max: 31, label: "day of month" },
+	minute: { min: 0, max: 59 },
+	hour: { min: 0, max: 23 },
+	dayOfMonth: { min: 1, max: 31 },
 	month: {
 		min: 1,
 		max: 12,
-		label: "month",
 		names: [
 			"jan",
 			"feb",
@@ -59,7 +59,6 @@ export const FIELD_SPECS: Record<CronFieldName, FieldSpec> = {
 	dayOfWeek: {
 		min: 0,
 		max: 7,
-		label: "day of week",
 		names: ["sun", "mon", "tue", "wed", "thu", "fri", "sat"],
 		namesFrom: 0,
 	},
@@ -105,6 +104,22 @@ const MACROS = new Map([
 	["@hourly", "0 * * * *"],
 ]);
 
+// The field as it reads inside a sentence: "the minute field".
+const fieldNoun = (name: CronFieldName): string => {
+	switch (name) {
+		case "minute":
+			return m.cron_noun_minute();
+		case "hour":
+			return m.cron_noun_hour();
+		case "dayOfMonth":
+			return m.cron_noun_day_of_month();
+		case "month":
+			return m.cron_noun_month();
+		case "dayOfWeek":
+			return m.cron_noun_day_of_week();
+	}
+};
+
 const fail = (message: string, field?: CronFieldName) =>
 	Effect.fail(new CronSyntaxError({ message, field }));
 
@@ -119,7 +134,12 @@ const readValue = (
 
 			if (value < spec.min || value > spec.max) {
 				return yield* fail(
-					`${text} is outside ${spec.min} to ${spec.max} for the ${spec.label} field.`,
+					m.cron_err_out_of_range({
+						text,
+						min: spec.min,
+						max: spec.max,
+						field: fieldNoun(name),
+					}),
 					name,
 				);
 			}
@@ -133,8 +153,13 @@ const readValue = (
 
 		return yield* fail(
 			spec.names
-				? `"${text}" is not a number or a ${spec.label} name.`
-				: `"${text}" is not a number. The ${spec.label} field takes ${spec.min} to ${spec.max}.`,
+				? m.cron_err_not_number_or_name({ text, field: fieldNoun(name) })
+				: m.cron_err_not_number({
+						text,
+						field: fieldNoun(name),
+						min: spec.min,
+						max: spec.max,
+					}),
 			name,
 		);
 	});
@@ -146,13 +171,13 @@ const readPart = (
 ): Effect.Effect<CronPart, CronSyntaxError> =>
 	Effect.gen(function* () {
 		if (text === "") {
-			return yield* fail("There is an empty entry in a list.", name);
+			return yield* fail(m.cron_err_empty_entry(), name);
 		}
 
 		const slash = text.split("/");
 
 		if (slash.length > 2) {
-			return yield* fail(`"${text}" has more than one step.`, name);
+			return yield* fail(m.cron_err_multi_step({ text }), name);
 		}
 
 		const [base = "", stepText] = slash;
@@ -160,10 +185,7 @@ const readPart = (
 
 		if (stepText !== undefined) {
 			if (!/^\d+$/.test(stepText) || Number(stepText) < 1) {
-				return yield* fail(
-					`The step in "${text}" must be a whole number of 1 or more.`,
-					name,
-				);
+				return yield* fail(m.cron_err_bad_step({ text }), name);
 			}
 
 			step = Number(stepText);
@@ -176,7 +198,7 @@ const readPart = (
 		const dash = base.split("-");
 
 		if (dash.length > 2) {
-			return yield* fail(`"${base}" has more than one dash.`, name);
+			return yield* fail(m.cron_err_multi_dash({ text: base }), name);
 		}
 
 		const [startText = "", endText] = dash;
@@ -195,10 +217,7 @@ const readPart = (
 		const end = yield* readValue(endText, name, spec);
 
 		if (start > end) {
-			return yield* fail(
-				`The range "${base}" runs backwards. Put the smaller value first.`,
-				name,
-			);
+			return yield* fail(m.cron_err_backwards({ text: base }), name);
 		}
 
 		return { from: start, to: end, step, wild: false };
@@ -247,22 +266,22 @@ export const parseCron = (
 		const trimmed = expression.trim();
 
 		if (trimmed === "") {
-			return yield* fail("Type a cron expression, like 0 9 * * 1-5.");
+			return yield* fail(m.cron_err_empty());
 		}
 
 		if (trimmed.toLowerCase() === "@reboot") {
-			return yield* fail(
-				"@reboot runs at startup, so it has no schedule to show.",
-			);
+			return yield* fail(m.cron_err_reboot());
 		}
 
 		const tokens = expandMacro(trimmed).split(/\s+/);
 
 		if (tokens.length !== 5) {
 			return yield* fail(
-				tokens.length === 6 || tokens.length === 7
-					? `This tool reads five fields. Drop the seconds${tokens.length === 7 ? " and year" : ""} field and try again.`
-					: `A cron expression has five fields, and this one has ${tokens.length}.`,
+				tokens.length === 6
+					? m.cron_err_six_fields()
+					: tokens.length === 7
+						? m.cron_err_seven_fields()
+						: m.cron_err_field_count({ count: tokens.length }),
 			);
 		}
 

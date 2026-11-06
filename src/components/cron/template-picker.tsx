@@ -15,8 +15,9 @@ import {
 	SheetTrigger,
 } from "#/components/ui/sheet.tsx";
 import { useIsMobile } from "#/hooks/use-mobile.ts";
-import { TEMPLATES_BY_GROUP } from "#/lib/cron/templates.ts";
+import { templatesByGroup } from "#/lib/cron/templates.ts";
 import { cn } from "#/lib/utils.ts";
+import { m } from "#/paraglide/messages.js";
 
 function TemplateList({
 	current,
@@ -27,13 +28,13 @@ function TemplateList({
 }) {
 	return (
 		<div className="flex flex-col gap-1 overflow-y-auto overscroll-contain px-2 pb-3">
-			{TEMPLATES_BY_GROUP.map(({ group, templates }) => (
+			{templatesByGroup().map(({ group, title, templates }) => (
 				<section key={group} aria-labelledby={`cron-template-${group}`}>
 					<h3
 						id={`cron-template-${group}`}
 						className="px-3 pt-3 pb-1 text-xs font-bold text-muted-foreground"
 					>
-						{group}
+						{title}
 					</h3>
 					<ul>
 						{templates.map((template) => {
@@ -96,7 +97,7 @@ export function TemplatePicker({
 	const trigger = (
 		<Button variant="ghost" size="sm" className="-mr-2 h-11 sm:h-8">
 			<ListChecks />
-			Templates
+			{m.cron_templates()}
 		</Button>
 	);
 
@@ -110,7 +111,7 @@ export function TemplatePicker({
 				>
 					<SheetHeader className="pb-1">
 						<SheetTitle className="text-base font-extrabold">
-							Templates
+							{m.cron_templates()}
 						</SheetTitle>
 					</SheetHeader>
 					<TemplateList current={current} onPick={pick} />
@@ -126,7 +127,7 @@ export function TemplatePicker({
 				align="end"
 				className="flex max-h-[min(30rem,70dvh)] w-[24rem] flex-col p-0 pt-1"
 			>
-				<h2 className="sr-only">Templates</h2>
+				<h2 className="sr-only">{m.cron_templates()}</h2>
 				<TemplateList current={current} onPick={pick} />
 			</PopoverContent>
 		</Popover>

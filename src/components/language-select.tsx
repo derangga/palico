@@ -8,6 +8,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select.tsx";
 import { DIFF_LANGUAGES, DiffLanguage } from "#/lib/file/types.ts";
+import { m } from "#/paraglide/messages.js";
 
 interface LanguageSelectProps {
 	readonly value: DiffLanguage;
@@ -20,8 +21,12 @@ export function LanguageSelect({
 	onChange,
 	className,
 }: LanguageSelectProps) {
-	const label =
-		DIFF_LANGUAGES.find((l) => l.value === value)?.label ?? "Plain Text";
+	// Language names stay as written, except plain text, which is not a name.
+	const nameOf = (entry: { value: DiffLanguage; label: string }) =>
+		entry.value === "text" ? m.diff_plain_text() : entry.label;
+
+	const found = DIFF_LANGUAGES.find((l) => l.value === value);
+	const label = found ? nameOf(found) : m.diff_plain_text();
 
 	return (
 		<Select
@@ -36,7 +41,7 @@ export function LanguageSelect({
 			<SelectContent>
 				{DIFF_LANGUAGES.map((l) => (
 					<SelectItem key={l.value} value={l.value}>
-						{l.label}
+						{nameOf(l)}
 					</SelectItem>
 				))}
 			</SelectContent>
