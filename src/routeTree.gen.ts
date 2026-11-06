@@ -24,6 +24,7 @@ import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as PaletteExtractorRouteImport } from './routes/palette-extractor'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
+import { Route as JwtDecoderRouteImport } from './routes/jwt-decoder'
 import { Route as JsonConverterRouteImport } from './routes/json-converter'
 import { Route as FaviconGeneratorRouteImport } from './routes/favicon-generator'
 import { Route as ExtractAudioRouteImport } from './routes/extract-audio'
@@ -111,6 +112,11 @@ const MarkdownPreviewRoute = MarkdownPreviewRouteImport.update({
   path: '/markdown-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JwtDecoderRoute = JwtDecoderRouteImport.update({
+  id: '/jwt-decoder',
+  path: '/jwt-decoder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JsonConverterRoute = JsonConverterRouteImport.update({
   id: '/json-converter',
   path: '/json-converter',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/json-converter': typeof JsonConverterRoute
+  '/jwt-decoder': typeof JwtDecoderRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/json-converter': typeof JsonConverterRoute
+  '/jwt-decoder': typeof JwtDecoderRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/extract-audio': typeof ExtractAudioRoute
   '/favicon-generator': typeof FaviconGeneratorRoute
   '/json-converter': typeof JsonConverterRoute
+  '/jwt-decoder': typeof JwtDecoderRoute
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/extract-audio'
     | '/favicon-generator'
     | '/json-converter'
+    | '/jwt-decoder'
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
@@ -294,6 +304,7 @@ export interface FileRouteTypes {
     | '/extract-audio'
     | '/favicon-generator'
     | '/json-converter'
+    | '/jwt-decoder'
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
@@ -322,6 +333,7 @@ export interface FileRouteTypes {
     | '/extract-audio'
     | '/favicon-generator'
     | '/json-converter'
+    | '/jwt-decoder'
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
@@ -351,6 +363,7 @@ export interface RootRouteChildren {
   ExtractAudioRoute: typeof ExtractAudioRoute
   FaviconGeneratorRoute: typeof FaviconGeneratorRoute
   JsonConverterRoute: typeof JsonConverterRoute
+  JwtDecoderRoute: typeof JwtDecoderRoute
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
   PaletteExtractorRoute: typeof PaletteExtractorRoute
@@ -475,6 +488,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarkdownPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/jwt-decoder': {
+      id: '/jwt-decoder'
+      path: '/jwt-decoder'
+      fullPath: '/jwt-decoder'
+      preLoaderRoute: typeof JwtDecoderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/json-converter': {
       id: '/json-converter'
       path: '/json-converter'
@@ -567,6 +587,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExtractAudioRoute: ExtractAudioRoute,
   FaviconGeneratorRoute: FaviconGeneratorRoute,
   JsonConverterRoute: JsonConverterRoute,
+  JwtDecoderRoute: JwtDecoderRoute,
   MarkdownPreviewRoute: MarkdownPreviewRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,
   PaletteExtractorRoute: PaletteExtractorRoute,

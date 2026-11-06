@@ -13,6 +13,7 @@ import {
 	ImageIcon,
 	ImagePlay,
 	Images,
+	KeyRound,
 	LayoutGrid,
 	type LucideIcon,
 	Minimize2,
@@ -132,7 +133,8 @@ type ToolId =
 	| "palette_extractor"
 	| "color_picker"
 	| "cron_generator"
-	| "json_converter";
+	| "json_converter"
+	| "jwt_decoder";
 
 const splitKeywords = (text: string) =>
 	text
@@ -312,6 +314,11 @@ export const TOOLS: ReadonlyArray<Tool> = [
 	defineTool("json_converter", {
 		to: "/json-converter",
 		icon: Braces,
+		category: "developer",
+	}),
+	defineTool("jwt_decoder", {
+		to: "/jwt-decoder",
+		icon: KeyRound,
 		category: "developer",
 	}),
 ];
