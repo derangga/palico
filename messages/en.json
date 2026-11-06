@@ -602,7 +602,6 @@
 	"pdforg_help": "Drag pages to reorder. With the keyboard: arrow keys move between pages, Alt + arrow keys move a page, R rotates, Delete removes.",
 	"pdforg_grid_aria": "Pages. Arrow keys move between pages, Alt plus arrow keys move a page, R rotates, Delete removes.",
 	"pdforg_card_aria": "Page {page}, position {position} of {total}",
-	"pdforg_card_rotated": ", rotated {degrees} degrees",
 	"pdforg_move_earlier": "Move page {page} earlier",
 	"pdforg_move_later": "Move page {page} later",
 	"pdforg_rotate_left": "Rotate page {page} left",
@@ -869,5 +868,6 @@
 	"qrcam_err_disconnected": "The camera was disconnected. Check it and try again.",
 	"qrcam_err_show": "Couldn't show the camera. Try again, or choose an image instead.",
 	"qrcam_err_reader": "The QR reader stopped unexpectedly. Try again.",
-	"qrcam_err_frame": "Couldn't read the camera image. Try again."
+	"qrcam_err_frame": "Couldn't read the camera image. Try again.",
+	"pdforg_card_aria_rotated": "Page {page}, position {position} of {total}, rotated {degrees} degrees"
 }

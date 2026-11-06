@@ -602,7 +602,6 @@
 	"pdforg_help": "Seret halaman untuk mengurutkan ulang. Dengan keyboard: tombol panah berpindah antar halaman, Alt + panah memindahkan halaman, R memutar, Delete menghapus.",
 	"pdforg_grid_aria": "Halaman. Tombol panah berpindah antar halaman, Alt plus panah memindahkan halaman, R memutar, Delete menghapus.",
 	"pdforg_card_aria": "Halaman {page}, posisi {position} dari {total}",
-	"pdforg_card_rotated": ", diputar {degrees} derajat",
 	"pdforg_move_earlier": "Pindahkan halaman {page} ke depan",
 	"pdforg_move_later": "Pindahkan halaman {page} ke belakang",
 	"pdforg_rotate_left": "Putar halaman {page} ke kiri",
@@ -869,5 +868,6 @@
 	"qrcam_err_disconnected": "Kamera terputus. Periksa kamera lalu coba lagi.",
 	"qrcam_err_show": "Tidak bisa menampilkan kamera. Coba lagi, atau pilih gambar saja.",
 	"qrcam_err_reader": "Pembaca QR berhenti tiba-tiba. Coba lagi.",
-	"qrcam_err_frame": "Tidak bisa membaca gambar kamera. Coba lagi."
+	"qrcam_err_frame": "Tidak bisa membaca gambar kamera. Coba lagi.",
+	"pdforg_card_aria_rotated": "Halaman {page}, posisi {position} dari {total}, diputar {degrees} derajat"
 }

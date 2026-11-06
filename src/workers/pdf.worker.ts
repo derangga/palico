@@ -239,7 +239,6 @@ async function render(req: RenderRequest): Promise<void> {
 					type: "error",
 					id: req.id,
 					reason: "worker",
-					detail: "Could not get a 2D canvas context.",
 				});
 
 				return;

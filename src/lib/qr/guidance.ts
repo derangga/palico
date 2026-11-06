@@ -2,6 +2,7 @@
 // dense the result is, and what will make scanners struggle. Pure functions,
 // so the page can recompute them on every keystroke.
 
+import { formatDecimal } from "#/lib/format-bytes.ts";
 import { currentLocale } from "#/lib/i18n/state.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -14,8 +15,8 @@ import {
 	type QrMode,
 	sizeOfVersion,
 	smallestVersion,
-	unitLabel,
 } from "./tables.ts";
+import { unitLabel } from "./units.ts";
 
 export const QUIET_ZONE_MODULES = 4;
 
@@ -214,7 +215,7 @@ export function adviseOn(input: AdviceInput): Advice[] {
 			advice.push({
 				kind: "contrast",
 				severity: "warning",
-				message: m.qr_advice_contrast({ ratio: ratio.toFixed(1) }),
+				message: m.qr_advice_contrast({ ratio: formatDecimal(ratio, 1) }),
 			});
 		} else if (luminance(foreground) > luminance(background)) {
 			advice.push({

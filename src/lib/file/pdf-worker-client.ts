@@ -375,7 +375,8 @@ const toTypedError = (
 		default:
 			return new InvalidPdfError({
 				fileName,
-				message: res.detail ?? m.error_pdf_invalid(),
+				// pdf.js words its errors in English, so the page words this one.
+				message: m.error_pdf_invalid(),
 			});
 	}
 };

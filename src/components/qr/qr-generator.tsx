@@ -47,7 +47,7 @@ import {
 	toSvg,
 } from "#/lib/qr/render.ts";
 import type { EccLevel } from "#/lib/qr/tables.ts";
-import { unitLabel } from "#/lib/qr/tables.ts";
+import { unitLabel } from "#/lib/qr/units.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 

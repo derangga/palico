@@ -23,11 +23,11 @@ import {
 	MAX_VERSION,
 	MODE_INDICATOR,
 	MODE_UNIT,
-	unitLabel,
 	type QrMode,
 	rawCodewords,
 	smallestVersion,
 } from "./tables.ts";
+import { unitLabel } from "./units.ts";
 
 export interface QrCode {
 	readonly version: number;

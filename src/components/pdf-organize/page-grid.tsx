@@ -175,11 +175,20 @@ export function PageGrid({
 								else cards.current.delete(page.key);
 							}}
 							tabIndex={tab}
-							aria-label={`${m.pdforg_card_aria({
-								page: page.sourceIndex + 1,
-								position: index + 1,
-								total: pages.length,
-							})}${page.rotation ? m.pdforg_card_rotated({ degrees: page.rotation }) : ""}`}
+							aria-label={
+								page.rotation
+									? m.pdforg_card_aria_rotated({
+											page: page.sourceIndex + 1,
+											position: index + 1,
+											total: pages.length,
+											degrees: page.rotation,
+										})
+									: m.pdforg_card_aria({
+											page: page.sourceIndex + 1,
+											position: index + 1,
+											total: pages.length,
+										})
+							}
 							aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight R Shift+R Delete"
 							draggable={!disabled}
 							onFocus={() => setActiveKey(page.key)}

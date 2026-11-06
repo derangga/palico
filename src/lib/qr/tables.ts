@@ -1,5 +1,3 @@
-import { m } from "#/paraglide/messages.js";
-
 // Constants and size arithmetic from the QR Code spec (ISO/IEC 18004), model 2.
 // Shared by the encoder and the decoder, so both agree on every layout detail.
 
@@ -73,18 +71,6 @@ export const MODE_INDICATOR: Record<QrMode, number> = {
 };
 
 /** What `length` counts in each mode, for messages. */
-/** The unit a mode counts in, worded in the active language. */
-export const unitLabel = (unit: "digits" | "characters" | "bytes"): string => {
-	switch (unit) {
-		case "digits":
-			return m.qr_unit_digits();
-		case "characters":
-			return m.qr_unit_characters();
-		case "bytes":
-			return m.qr_unit_bytes();
-	}
-};
-
 export const MODE_UNIT: Record<QrMode, "digits" | "characters" | "bytes"> = {
 	numeric: "digits",
 	alphanumeric: "characters",
