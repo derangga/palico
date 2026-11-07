@@ -62,7 +62,7 @@ export function SegmentedControl<T extends string>({
 					<label
 						key={segment.value}
 						className={cn(
-							"relative z-10 flex min-h-11 cursor-pointer items-center justify-center rounded-md px-1.5 text-[0.8125rem] font-semibold transition-[color,transform] duration-150 ease-out select-none active:scale-[0.97] has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:min-h-8 sm:text-sm",
+							"relative z-10 flex min-h-11 cursor-pointer items-center justify-center rounded-md px-1.5 text-[0.8125rem] font-semibold transition-[color,transform] duration-150 ease-out select-none active:scale-[0.97] motion-reduce:active:scale-100 has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:min-h-8 sm:text-sm",
 							segment.value === value
 								? "text-primary-foreground"
 								: "text-foreground",

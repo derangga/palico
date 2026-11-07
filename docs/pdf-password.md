@@ -29,7 +29,15 @@ they want before they drop anything.
   other mode (`modeHint`), a note says so and has a "Switch to ..." button. The guess
   can be wrong (a locked file may only limit printing, which Lock replaces), so it
   never blocks and qpdf makes the real decision.
-- **The file stays** when the mode changes. Nothing is dropped twice.
+- **No form until the file is read.** The form mounts once `detectEncryption` has
+  answered (a quick read), because the mode may still move to match the file, and a
+  form that mounted first would be replaced while the person types or a job runs.
+- **Clicking the segment that is already on counts** as choosing (the radio fires no
+  change event, so the wrapper marks it on click).
+- **The file stays** when the mode changes. Nothing is dropped twice. After the note's
+  button is used, focus moves to the switch, since the button leaves with the note.
+- **A link to `?mode=` while on the page** opens that mode: the route keys the page by
+  the link's mode.
 - **Passwords do not.** Each form owns its typed passwords and is remounted (new `key`)
   per mode and per file, so switching mode, or choosing another file, discards them.
   The same goes for an engine failure: the engine card replaces the page body, and the
@@ -39,7 +47,8 @@ they want before they drop anything.
   the form that is waiting for the result.
 
 Motion: the switch's highlight slides on `translate`, and a segment scales to 0.97 on
-press (both are in the shared component). The form below fades in over 150 ms with a
+press, off under reduced motion (both are in the shared component, so the JSON
+converter's switch gets them too). The form below fades in over 150 ms with a
 4 px rise, `ease-out`, opacity only under reduced motion. It is a CSS transition from
 `starting:` styles on the remounted form, so it can be interrupted. It only plays when
 the last input on the switch was a pointer: arrow keys switch with no animation.

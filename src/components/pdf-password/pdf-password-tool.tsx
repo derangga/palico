@@ -52,6 +52,7 @@ export function PdfPasswordTool({
 	// does the form fade in: a key press that repeats all day gets no animation.
 	const [fadeForms, setFadeForms] = useState(false);
 
+	const switchRef = useRef<HTMLDivElement>(null);
 	const chosen = useRef(initialMode !== undefined);
 	// The file most recently dropped. Detecting a file's state is asynchronous, and a
 	// result for a file that has since been replaced is dropped.
@@ -132,8 +133,14 @@ export function PdfPasswordTool({
 			{gate.phase.kind === "ready" && (
 				<div className="grid gap-5">
 					<div
+						ref={switchRef}
 						onPointerDownCapture={() => setFadeForms(true)}
 						onKeyDownCapture={() => setFadeForms(false)}
+						// Clicking the segment that is already on fires no change event, but
+						// it still says what the person wants.
+						onClickCapture={() => {
+							chosen.current = true;
+						}}
 					>
 						<SegmentedControl
 							legend={m.pdfpw_mode_legend()}
@@ -187,7 +194,7 @@ export function PdfPasswordTool({
 					)}
 
 					{target && (
-						<div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-info/15 px-4 py-3 text-sm">
+						<output className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-info/15 px-4 py-3 text-sm">
 							<p className="min-w-0 flex-1">
 								{target === "unlock"
 									? m.pdfpw_notice_locked()
@@ -196,17 +203,30 @@ export function PdfPasswordTool({
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => chooseMode(target)}
+								onClick={(event) => {
+									// detail is 0 for a key press: no fade, as on the switch.
+									setFadeForms(event.detail > 0);
+									chooseMode(target);
+									// The button leaves with the note. Put focus on the switch.
+									requestAnimationFrame(() =>
+										switchRef.current
+											?.querySelector<HTMLInputElement>("input:checked")
+											?.focus(),
+									);
+								}}
 								disabled={working}
 							>
 								{target === "unlock"
 									? m.pdfpw_switch_unlock()
 									: m.pdfpw_switch_protect()}
 							</Button>
-						</div>
+						</output>
 					)}
 
-					{file && (
+					{/* Not before the file has been read: the mode can still move to match
+					    it, and a form that mounts first would be replaced under the
+					    person's hands, or mid-job. Reading a file is quick. */}
+					{file && encryption && (
 						<div
 							// A new key per mode and per file gives each form fresh state: no
 							// stale result from the last file, and no password carried across.

@@ -20,5 +20,7 @@ export const Route = createFileRoute("/pdf-password")({
 function PdfPasswordPage() {
 	const { mode } = Route.useSearch();
 
-	return <PdfPasswordTool initialMode={mode} />;
+	// Keyed by the link's mode, so following a link to ?mode=unlock while on this page
+	// opens it on Unlock instead of being ignored.
+	return <PdfPasswordTool key={mode ?? "auto"} initialMode={mode} />;
 }
