@@ -38,6 +38,7 @@ the top.
 Both language sheets use `option-list.tsx` for the rows.
 | Cron time | `cron/schedule-builder.tsx` | Hour and minute lists, applied on tap, Done closes. |
 | Markdown preview | `markdown-preview-drawer.tsx` | See below. |
+| Send to... | `handoff/send-to.tsx` | The tools a result can go to, grouped Suggested and Other tools. Choosing opens the tool. See `docs/chain-tools.md`. |
 
 The diff viewer also switches from `split` to `unified` below 768px. Two columns
 are about 170px wide on a phone. Its toolbar wraps and hides the decorative stat
