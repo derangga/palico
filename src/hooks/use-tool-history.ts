@@ -48,8 +48,6 @@ export function useToolHistory() {
 			recentPaths: parts?.recent ?? NONE,
 			/** Favourites first, then recent tools that are not starred. Registry tools only. */
 			paths: parts ? [...parts.favourites, ...parts.recent] : NONE,
-			/** True when the row shows a recent tool, so Clear has something to clear. */
-			hasRecent: parts ? parts.recent.length > 0 : false,
 			/** True when the row has at least one tool. Never true until `ready`. */
 			returning: parts ? isReturningVisitor(parts) : false,
 		};

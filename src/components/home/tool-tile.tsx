@@ -34,13 +34,16 @@ export function ToolTile({
 		<div
 			className={cn(
 				"tool-tile relative flex items-center gap-1 rounded-xl border border-border bg-card has-[a:focus-visible]:border-ring",
-				compact ? "h-14 pr-1 pl-3" : "py-4 pr-2 pl-4",
+				compact ? "h-14 pr-1 pl-2.5 sm:pl-3" : "py-4 pr-2 pl-4",
 				style.vars,
 			)}
 		>
 			<Link
 				to={tool.to}
-				className="flex min-w-0 flex-1 items-center gap-3 outline-none after:absolute after:inset-0 after:rounded-xl"
+				className={cn(
+					"flex min-w-0 flex-1 items-center outline-none after:absolute after:inset-0 after:rounded-xl",
+					compact ? "gap-2.5 sm:gap-3" : "gap-3",
+				)}
 			>
 				<span
 					className={cn(
@@ -56,7 +59,10 @@ export function ToolTile({
 					<span
 						className={cn(
 							"text-sm font-bold text-foreground",
-							compact && "line-clamp-2 leading-tight",
+							// Two columns at 390px leave about 60px for the name. A smaller size
+							// and a break inside a long word keep "Background" from being cut off.
+							compact &&
+								"line-clamp-2 text-[0.8125rem] leading-tight hyphens-auto [overflow-wrap:anywhere] sm:text-sm",
 						)}
 					>
 						{tool.label}

@@ -105,6 +105,18 @@ describe("yourToolsScript", () => {
 		});
 	});
 
+	it("shows one section when every recent tool is also starred", () => {
+		// Recent is stored but every entry is a favourite, so none is left to show.
+		const stored = value(["/a", "/b"], ["/a", "/b"]);
+
+		expect(run(stored).dataset).toEqual({ yourTools: "1", returning: "1" });
+		expect(rows(stored)).toEqual({
+			fav: ["1", "1"],
+			rec: ["0", "0"],
+			sections: "1",
+		});
+	});
+
 	it("counts the hint tile as one full-width favourites row", () => {
 		// No favourites but recent tools: the Favourites section holds the hint.
 		const stored = value([], ["/a", "/b", "/c", "/d", "/e"]);

@@ -30,7 +30,7 @@ export function BrowseByType() {
 					>
 						<summary
 							id={`tools-${group.id}`}
-							className="flex min-h-13 w-full cursor-pointer list-none items-center gap-3 rounded-xl px-4 text-sm font-bold text-foreground outline-none hover:bg-card focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden"
+							className="flex min-h-13 w-full cursor-pointer list-none items-center gap-3 rounded-xl px-4 text-sm font-bold text-foreground outline-none [@media(hover:hover)]:hover:bg-card focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden"
 						>
 							<span
 								aria-hidden

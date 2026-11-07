@@ -433,10 +433,6 @@ html[data-returning] .hero-lanes {
 		height: 1.25rem;
 	}
 
-	html[data-returning] .home-hero {
-		min-height: 10.625rem;
-	}
-
 	html[data-returning] .hero-copy {
 		max-width: 54%;
 		min-height: 10.625rem;
@@ -485,9 +481,12 @@ html[data-returning] .hero-lanes {
 	animation-play-state: paused;
 }
 
-/* Reduced motion: the lanes rest where they are and the mascot is still. */
+/* Reduced motion: the lanes rest where they are and the mascot is still. The
+ * data-dir selector is listed too: it sets animation-name with a higher
+ * specificity than a bare .hero-lane, so without it lane 2 would keep sliding. */
 @media (prefers-reduced-motion: reduce) {
 	.hero-lane,
+	.hero-lane[data-dir="down"],
 	.hero-mascot {
 		animation: none;
 	}

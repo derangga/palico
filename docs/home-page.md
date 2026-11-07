@@ -143,7 +143,16 @@ Why `<details>`:
   order and stop keyboard users opening the row.
 
 The rows are transparent with a border, not cards, so the tiles inside them are not a
-card in a card.
+card in a card. The summary hover colour only applies on hover-capable devices, so it
+does not stick after a tap.
+
+The category names are no longer headings, so heading navigation in a screen reader does
+not list the five categories. A heading inside a `<summary>` has poor support, so this
+is accepted. The rows are still reachable with Tab and announced as expandable.
+
+The compact tile (Your tools and Start here) sets the name at 0.8125rem below `sm` and
+lets a long word break (`overflow-wrap: anywhere`). Two columns at 390px leave about
+60px for the name, and a word like "Background" would otherwise be cut off.
 
 ## Not done
 
