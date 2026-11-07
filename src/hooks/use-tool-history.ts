@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
 import { TOOLS } from "#/lib/tool-categories.ts";
-import { yourToolsParts } from "#/lib/tool-history/model.ts";
+import {
+	isReturningVisitor,
+	yourToolsParts,
+} from "#/lib/tool-history/model.ts";
 import {
 	clearRecentTools,
 	ensureToolHistoryLoaded,
@@ -10,6 +13,8 @@ import {
 } from "#/lib/tool-history/store.ts";
 
 const KNOWN_PATHS: ReadonlySet<string> = new Set(TOOLS.map((tool) => tool.to));
+
+const NONE: ReadonlyArray<string> = [];
 
 /**
  * Favourite and recently used tools. `phase` is `idle` until after mount (the
@@ -37,10 +42,16 @@ export function useToolHistory() {
 			isFavourite: (path: string) => favourites.has(path),
 			toggleFavourite: toggleToolFavourite,
 			clearRecent: clearRecentTools,
+			/** Starred registry tools, in the order they were starred. */
+			favouritePaths: parts?.favourites ?? NONE,
+			/** Recent registry tools that are not starred, most recent first, at most six. */
+			recentPaths: parts?.recent ?? NONE,
 			/** Favourites first, then recent tools that are not starred. Registry tools only. */
-			paths: parts ? [...parts.favourites, ...parts.recent] : [],
+			paths: parts ? [...parts.favourites, ...parts.recent] : NONE,
 			/** True when the row shows a recent tool, so Clear has something to clear. */
 			hasRecent: parts ? parts.recent.length > 0 : false,
+			/** True when the row has at least one tool. Never true until `ready`. */
+			returning: parts ? isReturningVisitor(parts) : false,
 		};
 	}, [state]);
 }

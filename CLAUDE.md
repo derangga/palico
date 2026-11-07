@@ -46,6 +46,10 @@ Read the matching file before starting that kind of work.
   `palico-tools` storage key and `recordToolUse`. Read it before adding a tool
   (every tool must call `recordToolUse` when a result is ready) or touching
   `src/lib/tool-history/`.
+- `docs/home-page.md`: what is on Home and why: the two hero variants, the tool
+  lanes and their pause rules, "Start here", "Browse by type", and the
+  `data-returning` rule. Read it before touching `src/routes/index.tsx` or
+  `src/components/home/`.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
   new tool needs `keywords` in `src/lib/tool-categories.ts`.

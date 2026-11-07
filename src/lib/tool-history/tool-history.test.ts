@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { makeFakeToolHistoryHost } from "./fakes.ts";
 import {
 	clearRecent,
+	isReturningVisitor,
 	parseHistory,
 	recordUse,
 	serializeHistory,
@@ -236,6 +237,40 @@ describe("yourTools", () => {
 		};
 
 		expect(yourToolsParts(data, known).recent).toEqual([]);
+	});
+});
+
+describe("isReturningVisitor", () => {
+	const known = new Set(["/a", "/b"]);
+
+	const returning = (data: Parameters<typeof yourToolsParts>[0]) =>
+		isReturningVisitor(yourToolsParts(data, known));
+
+	it("is false for a first-time visitor", () => {
+		expect(returning(emptyHistory)).toBe(false);
+	});
+
+	it("is true with a favourite only, or a recent tool only", () => {
+		expect(returning({ ...emptyHistory, favourites: ["/a"] })).toBe(true);
+		expect(returning({ ...emptyHistory, recent: [{ to: "/b", at: 1 }] })).toBe(
+			true,
+		);
+	});
+
+	it("is false when everything stored is no longer a tool", () => {
+		expect(
+			returning({
+				version: 1,
+				favourites: ["/gone"],
+				recent: [{ to: "/also-gone", at: 1 }],
+			}),
+		).toBe(false);
+	});
+
+	it("is false after Clear when nothing is starred", () => {
+		const data = { ...emptyHistory, recent: [{ to: "/a", at: 1 }] };
+
+		expect(returning(clearRecent(data))).toBe(false);
 	});
 });
 

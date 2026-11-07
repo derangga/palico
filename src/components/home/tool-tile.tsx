@@ -14,9 +14,9 @@ import { cn } from "#/lib/utils.ts";
 // an anchor. The link stretches over the whole card with ::after, and the star
 // sits above it, so a click on the star never navigates.
 //
-// `compact` is the "Your tools" row: one line, no blurb, fixed height. The row
-// reserves its height before hydration (see home.css), so the height is a
-// constant here.
+// `compact` is the "Your tools" row and "Start here": no blurb, no offline dot,
+// a fixed height, and the name wraps to two lines. The row reserves its height
+// before hydration (see home.css), so the height is a constant here.
 export function ToolTile({
 	tool,
 	compact = false,
@@ -45,7 +45,7 @@ export function ToolTile({
 				<span
 					className={cn(
 						"tool-chip flex shrink-0 items-center justify-center rounded-lg",
-						compact ? "size-9" : "size-11",
+						compact ? "size-8 sm:size-9" : "size-11",
 						style.chip,
 						style.ink,
 					)}
@@ -56,7 +56,7 @@ export function ToolTile({
 					<span
 						className={cn(
 							"text-sm font-bold text-foreground",
-							compact && "truncate",
+							compact && "line-clamp-2 leading-tight",
 						)}
 					>
 						{tool.label}
