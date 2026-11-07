@@ -21,6 +21,7 @@ import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
 import { Route as PdfOrganizeRouteImport } from './routes/pdf-organize'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
+import { Route as PdfCompressRouteImport } from './routes/pdf-compress'
 import { Route as PaletteExtractorRouteImport } from './routes/palette-extractor'
 import { Route as OfficeToPdfRouteImport } from './routes/office-to-pdf'
 import { Route as MarkdownPreviewRouteImport } from './routes/markdown-preview'
@@ -95,6 +96,11 @@ const PdfOrganizeRoute = PdfOrganizeRouteImport.update({
 const PdfMergeRoute = PdfMergeRouteImport.update({
   id: '/pdf-merge',
   path: '/pdf-merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfCompressRoute = PdfCompressRouteImport.update({
+  id: '/pdf-compress',
+  path: '/pdf-compress',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaletteExtractorRoute = PaletteExtractorRouteImport.update({
@@ -189,6 +195,7 @@ export interface FileRoutesByFullPath {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
+  '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -218,6 +225,7 @@ export interface FileRoutesByTo {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
+  '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -248,6 +256,7 @@ export interface FileRoutesById {
   '/markdown-preview': typeof MarkdownPreviewRoute
   '/office-to-pdf': typeof OfficeToPdfRoute
   '/palette-extractor': typeof PaletteExtractorRoute
+  '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
   '/pdf-split': typeof PdfSplitRoute
@@ -279,6 +288,7 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
+    | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
+    | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/markdown-preview'
     | '/office-to-pdf'
     | '/palette-extractor'
+    | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
     | '/pdf-split'
@@ -367,6 +379,7 @@ export interface RootRouteChildren {
   MarkdownPreviewRoute: typeof MarkdownPreviewRoute
   OfficeToPdfRoute: typeof OfficeToPdfRoute
   PaletteExtractorRoute: typeof PaletteExtractorRoute
+  PdfCompressRoute: typeof PdfCompressRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfOrganizeRoute: typeof PdfOrganizeRoute
   PdfSplitRoute: typeof PdfSplitRoute
@@ -465,6 +478,13 @@ declare module '@tanstack/react-router' {
       path: '/pdf-merge'
       fullPath: '/pdf-merge'
       preLoaderRoute: typeof PdfMergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-compress': {
+      id: '/pdf-compress'
+      path: '/pdf-compress'
+      fullPath: '/pdf-compress'
+      preLoaderRoute: typeof PdfCompressRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/palette-extractor': {
@@ -591,6 +611,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarkdownPreviewRoute: MarkdownPreviewRoute,
   OfficeToPdfRoute: OfficeToPdfRoute,
   PaletteExtractorRoute: PaletteExtractorRoute,
+  PdfCompressRoute: PdfCompressRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfOrganizeRoute: PdfOrganizeRoute,
   PdfSplitRoute: PdfSplitRoute,
@@ -607,12 +628,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

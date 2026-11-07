@@ -6,12 +6,15 @@ import { m } from "#/paraglide/messages.js";
 import {
 	EncryptedPdfError,
 	InvalidPdfError,
+	PdfCompressError,
 	type PdfLoadError,
 	PdfRasterBudgetError,
 	PdfTooManyPagesError,
 	PdfWorkerError,
 } from "./errors.ts";
+import type { CompressPresetId } from "./pdf-compress-presets.ts";
 import {
+	type CompressStats,
 	MAX_PDF_PAGES,
 	type PdfThumbnail,
 	type PdfWorkerRequest,
@@ -64,6 +67,8 @@ const WorkerResponseTag = Schema.Struct({
 		"metadata",
 		"stripped",
 		"zip-chunk",
+		"compress-progress",
+		"compressed",
 		"error",
 	]),
 });
@@ -339,6 +344,46 @@ export const rasterizePdfToZip = (
 		);
 	});
 
+// Run both compression passes in the worker. `onProgress` fires once per image
+// of the image pass. Resolves with the new bytes and the image counts; whether
+// they are worth keeping is the caller's call (see pdf-compress-result.ts).
+export const compressPdfInWorker = (
+	params: {
+		readonly id: string;
+		readonly fileName: string;
+		readonly buffer: ArrayBuffer;
+		readonly maxPages: number;
+		readonly preset: CompressPresetId;
+	},
+	onProgress: (done: number, total: number) => void,
+): Effect.Effect<
+	{ readonly bytes: ArrayBuffer; readonly stats: CompressStats },
+	PdfLoadError
+> =>
+	runWorkerJob(
+		params.fileName,
+		{
+			type: "compress",
+			id: params.id,
+			buffer: params.buffer,
+			maxPages: params.maxPages,
+			preset: params.preset,
+		},
+		[params.buffer],
+		(res) => {
+			switch (res.type) {
+				case "compress-progress":
+					onProgress(res.done, res.total);
+
+					return Continue;
+				case "compressed":
+					return Succeed({ bytes: res.bytes, stats: res.stats });
+				default:
+					return Unhandled;
+			}
+		},
+	);
+
 const toTypedError = (
 	fileName: string,
 	res: Extract<PdfWorkerResponse, { type: "error" }>,
@@ -366,6 +411,24 @@ const toTypedError = (
 					(res.dpi ?? 0) > 72
 						? m.error_pdf_too_big_dpi({ dpi: res.dpi ?? 0 })
 						: m.error_pdf_too_big(),
+			});
+		case "compress-images":
+			return new PdfCompressError({
+				fileName,
+				stage: "images",
+				message: m.error_pdf_compress_images(),
+			});
+		case "compress-codec":
+			return new PdfCompressError({
+				fileName,
+				stage: "images",
+				message: m.error_pdf_compress_codec(),
+			});
+		case "compress-lossless":
+			return new PdfCompressError({
+				fileName,
+				stage: "lossless",
+				message: m.error_pdf_compress_lossless(),
 			});
 		case "worker":
 			return new PdfWorkerError({

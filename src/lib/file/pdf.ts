@@ -3,12 +3,15 @@ import { Effect } from "effect";
 import { m } from "#/paraglide/messages.js";
 
 import {
+	EncryptedPdfError,
 	InvalidPdfError,
 	PdfExtractError,
 	PdfMergeError,
 	PdfSplitError,
 	PdfTooLargeError,
 } from "./errors.ts";
+import type { CompressPresetId } from "./pdf-compress-presets.ts";
+import { chooseOutcome } from "./pdf-compress-result.ts";
 import {
 	MAX_PDF_BYTES,
 	MAX_PDF_PAGES,
@@ -20,6 +23,7 @@ import {
 	THUMBNAIL_WIDTH,
 } from "./pdf-types.ts";
 import {
+	compressPdfInWorker,
 	extractPdfPages,
 	mergePdfFiles,
 	rasterizePdfToZip,
@@ -202,6 +206,59 @@ export const mergePdfs = Effect.fn("Pdf.mergePdfs")(function* (params: {
 
 	return new Blob([merged], { type: "application/pdf" });
 });
+
+// Shrink a PDF in two passes (images, then a lossless rewrite). Resolves with a
+// CompressOutcome: the smaller file, or NotSmallerResult when the passes could
+// not beat the original. Same re-read rationale as extractPages. `onProgress`
+// fires once per image.
+export const compressPdf = Effect.fn("Pdf.compressPdf")(
+	// A: the call graph, and nothing else.
+	function* (
+		params: {
+			readonly id: string;
+			readonly file: File;
+			readonly preset: CompressPresetId;
+		},
+		onProgress: (done: number, total: number) => void,
+	) {
+		yield* validateSize(params.file);
+
+		const buffer = yield* Effect.tryPromise({
+			try: () => params.file.arrayBuffer(),
+			catch: (err) =>
+				new InvalidPdfError({
+					fileName: params.file.name,
+					message: err instanceof Error ? err.message : m.error_read_file(),
+				}),
+		});
+
+		const { bytes, stats } = yield* compressPdfInWorker(
+			{
+				id: params.id,
+				fileName: params.file.name,
+				buffer,
+				maxPages: MAX_PDF_PAGES,
+				preset: params.preset,
+			},
+			onProgress,
+		);
+
+		return chooseOutcome(params.file.size, bytes, stats);
+	},
+	// E: the one failure that gets compress-specific words. Every other error is
+	// already a tagged error with its own message.
+	(effect, params) =>
+		effect.pipe(
+			Effect.catchTag("EncryptedPdfError", () =>
+				Effect.fail(
+					new EncryptedPdfError({
+						fileName: params.file.name,
+						message: m.pdfcomp_encrypted(),
+					}),
+				),
+			),
+		),
+);
 
 // Render every page to PNG or JPEG and return them zipped as one Blob. Same
 // re-read rationale as extractPages. `onProgress` fires as pages finish.

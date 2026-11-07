@@ -14,6 +14,7 @@ import {
 // too. The bundled asset keeps everything offline — nothing is fetched at runtime.
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
+import { PRESETS } from "#/lib/file/pdf-compress-presets.ts";
 import {
 	MAX_RASTER_TOTAL_PIXELS,
 	memberName,
@@ -21,6 +22,8 @@ import {
 	rasterSize,
 } from "#/lib/file/pdf-raster.ts";
 import type {
+	CompressRequest,
+	CompressStats,
 	ExtractRequest,
 	MergeRequest,
 	PdfWorkerRequest,
@@ -568,6 +571,96 @@ async function rasterize(req: RasterizeRequest): Promise<void> {
 	}
 }
 
+// Compress PDF. The logic lives in src/lib/file/pdf-compress.ts (unit tested);
+// the worker loads the document, runs the image pass the preset asks for, then
+// the lossless pass, and maps each failure to its own error reason.
+async function compress(req: CompressRequest): Promise<void> {
+	const [{ PDFDocument }, pass, { createBrowserImageCodec }] =
+		await Promise.all([
+			import("pdf-lib"),
+			import("#/lib/file/pdf-compress.ts"),
+			import("#/lib/file/pdf-image-codec.ts"),
+		]);
+
+	let doc: import("pdf-lib").PDFDocument;
+
+	try {
+		// Keep the document's own Producer and ModDate; Remove Metadata is the
+		// tool for changing them.
+		doc = await PDFDocument.load(req.buffer, { updateMetadata: false });
+	} catch (err) {
+		post({ type: "error", id: req.id, ...classifyLoadError(err) });
+
+		return;
+	}
+
+	const pageCount = doc.getPageCount();
+
+	if (pageCount > req.maxPages) {
+		post({ type: "error", id: req.id, reason: "too-many-pages", pageCount });
+
+		return;
+	}
+
+	const { images } = PRESETS[req.preset];
+
+	let stats: CompressStats = {
+		imagesPass: false,
+		imagesRecompressed: 0,
+		imagesSkipped: 0,
+	};
+
+	if (images) {
+		try {
+			const result = await pass.recompressImages(
+				doc,
+				images,
+				createBrowserImageCodec(),
+				(done, total) =>
+					post({ type: "compress-progress", id: req.id, done, total }),
+			);
+
+			stats = {
+				imagesPass: true,
+				imagesRecompressed: result.recompressed,
+				imagesSkipped: result.skipped,
+			};
+		} catch (err) {
+			post({
+				type: "error",
+				id: req.id,
+				// A browser that cannot run the codec gets its own message.
+				reason:
+					err instanceof pass.CodecUnavailableError
+						? "compress-codec"
+						: "compress-images",
+				detail: err instanceof Error ? err.message : undefined,
+			});
+
+			return;
+		}
+	}
+
+	let bytes: Uint8Array;
+
+	try {
+		bytes = await pass.pdfLibLosslessPass(doc);
+	} catch (err) {
+		post({
+			type: "error",
+			id: req.id,
+			reason: "compress-lossless",
+			detail: err instanceof Error ? err.message : undefined,
+		});
+
+		return;
+	}
+
+	const buffer = bytes.slice().buffer;
+
+	post({ type: "compressed", id: req.id, bytes: buffer, stats }, [buffer]);
+}
+
 self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 	const req = event.data;
 
@@ -593,5 +686,7 @@ self.addEventListener("message", (event: MessageEvent<PdfWorkerRequest>) => {
 		stripMetadata(req).catch(fail);
 	} else if (req.type === "rasterize") {
 		rasterize(req).catch(fail);
+	} else if (req.type === "compress") {
+		compress(req).catch(fail);
 	}
 });
