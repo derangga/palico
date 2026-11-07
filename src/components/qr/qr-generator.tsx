@@ -48,6 +48,7 @@ import {
 } from "#/lib/qr/render.ts";
 import type { EccLevel } from "#/lib/qr/tables.ts";
 import { unitLabel } from "#/lib/qr/units.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -228,6 +229,7 @@ export function QrGenerator() {
 		setBusy(null);
 
 		if (Option.isSome(toastOnExit(exit, m.qrgen_export_failed()))) {
+			recordToolUse("/qr-generator");
 			toast.success(successText(kind));
 			setDone(kind);
 			flashTimer.current = window.setTimeout(() => setDone(null), FLASH_MS);

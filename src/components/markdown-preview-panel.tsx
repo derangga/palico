@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { MarkdownPreview } from "#/components/markdown-preview.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { copyMarkdown, downloadMarkdown } from "#/lib/markdown/actions.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -23,6 +24,7 @@ export function MarkdownActions({
 		const exit = await Effect.runPromiseExit(copyMarkdown(source));
 
 		if (Exit.isSuccess(exit)) {
+			recordToolUse("/markdown-preview");
 			toast.success(m.markdown_copied());
 
 			return;
@@ -37,7 +39,12 @@ export function MarkdownActions({
 			downloadMarkdown(source, DOWNLOAD_FILENAME),
 		);
 
-		if (Exit.isSuccess(exit)) return;
+		if (Exit.isSuccess(exit)) {
+			recordToolUse("/markdown-preview");
+
+			return;
+		}
+
 		const failure = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
 		toast.error(failure?.message ?? m.markdown_download_failed());
 	}

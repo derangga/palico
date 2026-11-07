@@ -27,6 +27,7 @@ import {
 } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-split")({
@@ -92,6 +93,7 @@ function PdfSplitPage() {
 		const result = toastOnExit(exit, m.pdfsplit_extract_failed());
 
 		if (Option.isNone(result)) return;
+		recordToolUse("/pdf-split");
 		downloadBlob(result.value, `${baseName(state.file.name)}_extracted.pdf`);
 	}
 
@@ -108,6 +110,7 @@ function PdfSplitPage() {
 		const result = toastOnExit(exit, m.pdfsplit_split_failed());
 
 		if (Option.isNone(result)) return;
+		recordToolUse("/pdf-split");
 		downloadBlob(result.value, `${baseName(state.file.name)}_split.zip`);
 	}
 

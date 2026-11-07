@@ -19,6 +19,7 @@ export function CopyTextButton({
 	getText,
 	copiedMessage,
 	failureMessage,
+	onCopied,
 	className,
 	variant,
 }: {
@@ -27,6 +28,8 @@ export function CopyTextButton({
 	/** Spoken to screen readers once the text is copied. */
 	readonly copiedMessage: string;
 	readonly failureMessage: string;
+	/** Runs once the text is on the clipboard, not when the copy fails. */
+	readonly onCopied?: () => void;
 	readonly className?: string;
 	readonly variant?: ComponentProps<typeof Button>["variant"];
 }) {
@@ -35,7 +38,10 @@ export function CopyTextButton({
 	async function copy() {
 		const exit = await Effect.runPromiseExit(copyText(getText()));
 
-		if (Option.isSome(toastOnExit(exit, failureMessage))) flash();
+		if (Option.isSome(toastOnExit(exit, failureMessage))) {
+			flash();
+			onCopied?.();
+		}
 	}
 
 	return (

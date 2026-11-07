@@ -21,6 +21,7 @@ import {
 	generateFavicons,
 } from "#/lib/image/favicon.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/favicon-generator")({
@@ -125,6 +126,7 @@ function FaviconGeneratorPage() {
 		if (Exit.isSuccess(exit)) {
 			setAssets(exit.value);
 			setStatus("done");
+			recordToolUse("/favicon-generator");
 
 			return;
 		}

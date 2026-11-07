@@ -5,6 +5,7 @@ import { Button } from "#/components/ui/button.tsx";
 import type { CronSyntaxError } from "#/lib/cron/errors.ts";
 import { fieldLabels } from "#/lib/cron/field-labels.ts";
 import { FIELD_NAMES, splitFields } from "#/lib/cron/schedule.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { cn } from "#/lib/utils.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -92,6 +93,7 @@ export function ScheduleReadout({
 						getText={() => expression.trim()}
 						copiedMessage={m.cron_copied({ expression: expression.trim() })}
 						failureMessage={m.cron_copy_failed()}
+						onCopied={() => recordToolUse("/cron-generator")}
 						className="h-11 sm:h-9"
 					/>
 				)}

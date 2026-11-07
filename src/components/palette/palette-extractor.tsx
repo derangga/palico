@@ -9,6 +9,7 @@ import {
 } from "#/components/palette/palette-result.tsx";
 import type { ColorFormat } from "#/lib/color/format.ts";
 import { readPaletteFromFile } from "#/lib/color/worker-client.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 interface ExtractState {
@@ -76,6 +77,7 @@ export function PaletteExtractor() {
 
 		if (Exit.isSuccess(exit)) {
 			setState({ view: { phase: "found", colors: exit.value }, file });
+			recordToolUse("/palette-extractor");
 
 			return;
 		}

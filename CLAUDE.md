@@ -38,6 +38,10 @@ Read the matching file before starting that kind of work.
 - `docs/bottom-sheets.md`: the swipeable bottom sheet (`ui/drawer.tsx`), where it
   replaces a popup below 768px, and the markdown preview sheet. Read it before
   adding a sheet or touching `src/components/markdown-preview-drawer.tsx`.
+- `docs/recent-tools.md`: the "Your tools" row on Home, the star toggle, the
+  `palico-tools` storage key and `recordToolUse`. Read it before adding a tool
+  (every tool must call `recordToolUse` when a result is ready) or touching
+  `src/lib/tool-history/`.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
   new tool needs `keywords` in `src/lib/tool-categories.ts`.

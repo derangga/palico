@@ -15,7 +15,7 @@
 		background-color 180ms var(--ease-out);
 }
 
-.tool-tile:active {
+.tool-tile:has(a:active) {
 	transform: translateY(0) scale(0.97);
 	box-shadow:
 		0 1px 0 0 var(--tile-edge),
@@ -40,7 +40,7 @@
 		transform: rotate(-6deg);
 	}
 
-	.tool-tile:active:hover {
+	.tool-tile:has(a:active):hover {
 		transform: translateY(0) scale(0.97);
 		box-shadow:
 			0 1px 0 0 var(--tile-edge),
@@ -49,7 +49,7 @@
 }
 
 /* The ring is drawn here because the tile's own box-shadow would replace a utility ring. */
-.tool-tile:focus-visible {
+.tool-tile:has(a:focus-visible) {
 	box-shadow:
 		0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent),
 		0 2px 0 0 color-mix(in oklab, var(--tile-edge) 55%, transparent),
@@ -81,9 +81,9 @@ html:not([data-home-seen]) .tool-in {
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.tool-tile:active,
+	.tool-tile:has(a:active),
 	.tool-tile:hover,
-	.tool-tile:active:hover,
+	.tool-tile:has(a:active):hover,
 	.tool-tile:hover .tool-chip {
 		transform: none;
 	}
@@ -91,5 +91,124 @@ html:not([data-home-seen]) .tool-in {
 	html:not([data-home-seen]) .tool-in {
 		animation: tool-fade 200ms ease-out backwards;
 		animation-delay: calc(var(--i, 0) * 40ms);
+	}
+}
+
+/*
+ * "Your tools" row.
+ *
+ * The page is prerendered without it. A pre-paint script (tool-history/
+ * prepaint.ts) sets data-your-tools on <html> and the row counts for two and
+ * three columns when storage holds tools, so the slot reserves the row's exact
+ * height and the groups below do not move when it fills in. Heights are the
+ * fixed sizes used by the row: header 2rem + 0.75rem, tiles 3.5rem with 0.75rem
+ * gaps, note 0.75rem + 1rem. Two columns below 640px, three from there.
+ */
+.your-tools-slot {
+	--yt-rows: var(--yt-rows-2, 1);
+}
+
+@media (min-width: 640px) {
+	.your-tools-slot {
+		--yt-rows: var(--yt-rows-3, 1);
+	}
+}
+
+.your-tools-slot.is-filled,
+html[data-your-tools] .your-tools-slot {
+	margin-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+	.your-tools-slot.is-filled,
+	html[data-your-tools] .your-tools-slot {
+		margin-bottom: 2.5rem;
+	}
+}
+
+html[data-your-tools] .your-tools-slot {
+	min-height: calc(
+		2.75rem + var(--yt-rows) * 3.5rem + (var(--yt-rows) - 1) * 0.75rem + 1.75rem
+	);
+}
+
+/*
+ * Entrance when the row first fills: opacity and a 6px rise, 220ms. It plays
+ * inside the reserved slot, so nothing else moves. Reduced motion keeps the fade.
+ */
+@keyframes your-tools-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+
+@keyframes your-tools-fade {
+	from {
+		opacity: 0;
+	}
+}
+
+.your-tools-in {
+	animation: your-tools-in 220ms var(--ease-out) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.your-tools-in {
+		animation: your-tools-fade 160ms ease-out backwards;
+	}
+}
+
+/*
+ * The first star of a visit, when the page had no row: the slot grows open in
+ * 220ms (grid-template-rows 0fr to 1fr) instead of pushing the groups down at
+ * once. It is the one place a layout property animates, because the shift cannot
+ * be avoided and this only happens on a deliberate click. The bottom gap moves
+ * inside the clipped section while it grows, and goes back to the slot's margin
+ * when the animation ends (same height, no jump). Overflow is clipped only while
+ * growing, so focus rings and tile shadows are never cut off at rest. Closing
+ * the row is not animated. Reduced motion opens it at once.
+ */
+.your-tools-slot.is-growing {
+	display: grid;
+	grid-template-rows: 1fr;
+	margin-bottom: 0;
+	animation: your-tools-grow 220ms var(--ease-out);
+}
+
+.your-tools-slot.is-growing > section {
+	min-height: 0;
+	overflow: hidden;
+	padding-bottom: 2rem;
+}
+
+@media (min-width: 1024px) {
+	.your-tools-slot.is-growing > section {
+		padding-bottom: 2.5rem;
+	}
+}
+
+@keyframes your-tools-grow {
+	from {
+		grid-template-rows: 0fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.your-tools-slot.is-growing {
+		display: block;
+		margin-bottom: 2rem;
+		animation: none;
+	}
+
+	.your-tools-slot.is-growing > section {
+		overflow: visible;
+		padding-bottom: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) and (min-width: 1024px) {
+	.your-tools-slot.is-growing {
+		margin-bottom: 2.5rem;
 	}
 }

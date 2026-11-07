@@ -33,6 +33,7 @@ import {
 import { MAX_DIMENSION, MAX_FILE_BYTES, MAX_FILES } from "#/lib/image/types.ts";
 import { createZip } from "#/lib/image/zip.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/compressor")({
@@ -207,6 +208,7 @@ function CompressorPage() {
 		const ok = outputs.length;
 
 		if (ok > 0) {
+			recordToolUse("/compressor");
 			toast.success(
 				ok === 1
 					? m.compressor_success_one({ count: ok })

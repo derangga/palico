@@ -18,6 +18,7 @@ import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { audioCutFormat } from "#/lib/video/audio.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize, overCapMessage } from "#/lib/video/limits.ts";
@@ -148,6 +149,7 @@ function CutterShell() {
 					type: "trimSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
+				recordToolUse("/audio-cutter");
 				toast.success(`${m.videocut_ready()} ${m.common_output_ready_hint()}`);
 			} else {
 				// Both failure types (EngineNotLoadedError | AudioTrimError) carry a

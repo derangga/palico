@@ -3,6 +3,7 @@ import { KeyRound } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
+import { useRecordToolUseOnce } from "#/hooks/use-record-tool-use-once.ts";
 import { useTokenClock } from "#/hooks/use-token-clock.ts";
 import { readAlgorithm } from "#/lib/jwt/algorithms.ts";
 import { boundariesOf, readClaims, windowAt } from "#/lib/jwt/claims.ts";
@@ -36,6 +37,9 @@ export function JwtDecoder() {
 
 	const reading = useMemo(() => readToken(text), [text]);
 	const token = reading.kind === "ok" ? reading.token : undefined;
+
+	// A decoded token is the result. Only the path is stored, never the token.
+	useRecordToolUseOnce("/jwt-decoder", token !== undefined);
 
 	const claims = useMemo(
 		() => (token ? readClaims(token.payload) : undefined),

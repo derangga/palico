@@ -16,6 +16,7 @@ import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { checkCutterFileSize, overCapMessage } from "#/lib/video/limits.ts";
 import { m } from "#/paraglide/messages.js";
@@ -128,6 +129,7 @@ function ExtractShell() {
 					type: "extractSuccess",
 					output: { blob: out.blob, name: out.name, size: out.size },
 				});
+				recordToolUse("/extract-audio");
 				toast.success(
 					out.copied
 						? `${m.extract_ready_copied()} ${m.common_output_ready_hint()}`

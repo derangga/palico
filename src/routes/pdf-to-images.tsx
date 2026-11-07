@@ -27,6 +27,7 @@ import {
 import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-to-images")({
@@ -96,6 +97,7 @@ function PdfToImagesPage() {
 		const result = toastOnExit(exit, m.pdfimg_failed());
 
 		if (Option.isNone(result)) return;
+		recordToolUse("/pdf-to-images");
 		downloadBlob(
 			result.value,
 			`${item.file.name.replace(/\.pdf$/i, "")}_images.zip`,

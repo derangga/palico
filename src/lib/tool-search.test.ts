@@ -116,6 +116,72 @@ describe("searchTools", () => {
 	});
 });
 
+describe("searchTools with tool history", () => {
+	const tools = [
+		fake("A", { to: "/a" }),
+		fake("B", { to: "/b" }),
+		fake("C", { to: "/c" }),
+		fake("D", { to: "/d" }),
+	];
+
+	it("puts favourites then recent first when the query is empty", () => {
+		// The history lists favourites, then recent, so /c is starred and /d is recent.
+		expect(labels(searchTools("", tools, ["/c", "/d"]))).toEqual([
+			"C",
+			"D",
+			"A",
+			"B",
+		]);
+	});
+
+	it("keeps the order the history gives, not registry order", () => {
+		expect(labels(searchTools("", tools, ["/d", "/b", "/a"]))).toEqual([
+			"D",
+			"B",
+			"A",
+			"C",
+		]);
+	});
+
+	it("lists a tool once, and skips paths that are not tools", () => {
+		expect(labels(searchTools("  ", tools, ["/b", "/gone", "/b"]))).toEqual([
+			"B",
+			"A",
+			"C",
+			"D",
+		]);
+	});
+
+	it("is registry order without history", () => {
+		expect(searchTools("", tools)).toEqual(tools);
+		expect(searchTools("", tools, [])).toEqual(tools);
+		expect(searchTools("")).toEqual(TOOLS);
+	});
+
+	it("leaves a typed query to relevance", () => {
+		const zips = [
+			fake("Other", { to: "/o", blurb: "make a zip" }),
+			fake("Zip tool", { to: "/z" }),
+		];
+
+		expect(labels(searchTools("zip", zips, ["/o"]))).toEqual([
+			"Zip tool",
+			"Other",
+		]);
+	});
+
+	it("works on the real registry", () => {
+		const ranked = searchTools("", TOOLS, ["/jwt-decoder", "/converter"]);
+
+		expect(ranked.map((tool) => tool.to).slice(0, 3)).toEqual([
+			"/jwt-decoder",
+			"/converter",
+			"/resizer",
+		]);
+		expect(ranked).toHaveLength(TOOLS.length);
+	});
+});
+
 describe("searchTools in Indonesian", () => {
 	const useIndonesian = () =>
 		Effect.runSync(SubscriptionRef.set(localeRef, "id"));

@@ -378,6 +378,7 @@ Built on Base UI primitives with a shadcn-derived structure. The feel across all
 - 14px radius tiles linking to each tool. A tile has a Mantle or Surface0 background, an icon chip filled with the category's first accent and a tinted detail from the second, and a `text`-coloured label.
 - Hover lifts the tile 2px and shows the accent edge (`0 4px 0` in the category accent); press squishes the edge to 1px. The icon chip does one small tilt. 160 to 200ms, `--ease-out`.
 - Tiles use token colours only. Do not hardcode `orange-*` or `emerald-*`, and do not put text over a background image.
+- Each tile has a star toggle for favourites (also in every tool page header). Unstarred it is a muted outline; starred it is filled in the category ink, never yellow, because yellow means warning. The "Your tools" row above the groups reuses the tile in a compact one-line form. See `docs/recent-tools.md`.
 
 ### Status pills and chips
 Tinted fill (`color-mix` of the status colour into the card colour), a coloured dot, and a `text` label. Never coloured text in Latte except Red.
@@ -418,7 +419,7 @@ All are CSS transitions or keyframes. No motion library is installed and none is
 ### Rules
 - **Curves:** `--ease-out` `cubic-bezier(0.23, 1, 0.32, 1)` for enter and press feedback; `--ease-drawer` `cubic-bezier(0.32, 0.72, 0, 1)` for the sidebar and sheets. Never `ease-linear` for UI movement; linear is only for constant-speed progress.
 - **Duration:** UI animations stay under 300ms; press feedback 100 to 160ms. The only things over 300ms are the home idle loop and the one-time celebration moments.
-- **Properties:** Animate only `transform` and `opacity` (colour and shadow transitions are fine for state). Keep `backdrop-filter` blur on small areas such as the sticky header. No layout properties.
+- **Properties:** Animate only `transform` and `opacity` (colour and shadow transitions are fine for state). Keep `backdrop-filter` blur on small areas such as the sticky header. No layout properties, with one exception: the "Your tools" row grows open (`grid-template-rows`, 220ms) when a first star is added in a visit, because that shift cannot be avoided (see `docs/recent-tools.md`).
 - **Loops:** Looping animation runs only on the home page, and pauses when `document.hidden`.
 - **Keyboard:** Do not animate keyboard-driven actions.
 - **Reduced motion:** Every animation has a `prefers-reduced-motion: reduce` version. It keeps opacity, colour and shadow transitions and drops movement (translate, scale, tilt, bob, hop, burst, clip-path reveal, width and slide or zoom enters). The mascot is static, the theme swap is instant, the done check appears without drawing, and spinners become a slow opacity pulse. Handled globally in `src/styles.css`.

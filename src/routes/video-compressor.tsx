@@ -17,6 +17,7 @@ import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { ENGINE_SIZE_LABEL } from "#/lib/video/cache.ts";
 import { CompressMode, CompressOutput } from "#/lib/video/compress-options.ts";
 import { checkFileSize, overCapMessage } from "#/lib/video/limits.ts";
@@ -150,6 +151,7 @@ function CompressShell() {
 								: null,
 					},
 				});
+				recordToolUse("/video-compressor");
 				toast.success(`${m.videocomp_ready()} ${m.common_output_ready_hint()}`);
 
 				return;

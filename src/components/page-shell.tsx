@@ -2,6 +2,7 @@ import { useRouterState } from "@tanstack/react-router";
 import type { ComponentProps, ReactNode } from "react";
 
 import { OfflineInfo } from "#/components/offline/offline-info.tsx";
+import { ToolStar } from "#/components/tool-star.tsx";
 import {
 	CATEGORY_STYLES,
 	categoryOfPath,
@@ -49,6 +50,7 @@ export function PageHeader({
 			<div>
 				<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 					<h1 className="text-2xl font-bold">{title}</h1>
+					{tool && <ToolStar tool={tool} className="-mx-1.5" />}
 					{category && (
 						// Tint only: a Latte accent as text fails contrast, so the label stays foreground.
 						<span
