@@ -17,7 +17,13 @@ const nextId = Effect.gen(function* () {
 	let id = "";
 
 	for (let i = 0; i < ID_LENGTH; i++) {
-		id += ID_ALPHABET[yield* Random.nextIntBetween(0, ID_ALPHABET.length)];
+		// halfOpen: the upper bound is inclusive by default, and
+		// ID_ALPHABET[ID_ALPHABET.length] is undefined.
+		const index = yield* Random.nextIntBetween(0, ID_ALPHABET.length, {
+			halfOpen: true,
+		});
+
+		id += ID_ALPHABET[index];
 	}
 
 	// SAFETY: eight characters from ID_ALPHABET match the HandoffId pattern in

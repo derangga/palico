@@ -205,6 +205,7 @@ const VIDEOS = ["video/*"];
 const AUDIO = ["audio/*"];
 const PDF = ["application/pdf"];
 const NO_FILE: Tool["accepts"] = [];
+
 // The Office tool's dropzone goes by extension. These are the MIME types a
 // browser gives the same files. No palico tool outputs them yet.
 const OFFICE_DOCS = [
@@ -214,6 +215,7 @@ const OFFICE_DOCS = [
 	"application/rtf",
 	"text/rtf",
 ];
+
 // The same list as ACCEPTED_MIME_TYPES in src/lib/metadata/types.ts.
 const METADATA_TYPES = [
 	"image/jpeg",

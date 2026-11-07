@@ -31,6 +31,7 @@ export const takeEntry = (param: string) =>
 			onNone: () => Effect.fail(new HandoffMissingError({ id: param })),
 			onSome: Effect.succeed,
 		});
+
 		const handoff = yield* Handoff;
 
 		return yield* handoff.take(id);

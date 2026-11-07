@@ -71,6 +71,26 @@ describe("Handoff put and take", () => {
 		expect(fake.store.size).toBe(0);
 	});
 
+	it("makes ids that decode, every time", async () => {
+		const fake = makeFakeHandoff();
+
+		const result = await run(
+			Effect.gen(function* () {
+				const ids: Array<string> = [];
+
+				for (let i = 0; i < 500; i++) ids.push(yield* putEntry(entry()));
+
+				return ids;
+			}).pipe(Effect.provide(fake.layer)),
+		);
+
+		expect(Exit.isSuccess(result)).toBe(true);
+
+		if (!Exit.isSuccess(result)) return;
+
+		for (const id of result.value) expect(id).toMatch(/^[a-z0-9]{8}$/);
+	});
+
 	it("fails with HandoffMissingError after a reload empties memory", async () => {
 		// An id that was valid before the reload. The new page has a fresh Map.
 		const fake = makeFakeHandoff();
