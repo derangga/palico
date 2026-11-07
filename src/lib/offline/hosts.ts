@@ -37,10 +37,15 @@ export interface SwHandle {
 // "Stop saving offline" the old worker keeps controlling the page until reload;
 // without the active-worker check, switching offline on again in the same visit
 // would read that stale controller as "an update exists".
-export const controlledAtRegistration = (
-	activeWorker: unknown,
-	controller: unknown,
-): boolean => activeWorker !== null && controller !== null;
+export interface WorkerPresence {
+	readonly hasActiveWorker: boolean;
+	readonly hasController: boolean;
+}
+
+export const controlledAtRegistration = ({
+	hasActiveWorker,
+	hasController,
+}: WorkerPresence): boolean => hasActiveWorker && hasController;
 
 export interface ServiceWorkerHostApi {
 	readonly supported: boolean;
@@ -120,7 +125,10 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 
 	return {
 		initial: reg.active ? "active" : "installing",
-		hadController: controlledAtRegistration(reg.active, sw.controller),
+		hadController: controlledAtRegistration({
+			hasActiveWorker: reg.active !== null,
+			hasController: sw.controller !== null,
+		}),
 		hasWaiting: reg.waiting !== null,
 		events,
 		update: Effect.tryPromise({

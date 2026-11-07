@@ -147,6 +147,7 @@ const waitForEnable = Effect.gen(function* () {
 // the shell to Failed.
 const runSession = Effect.gen(function* () {
 	yield* Queue.clear(disableQueue);
+
 	const outcome = yield* Effect.raceFirst(
 		registeredSession.pipe(Effect.as("ended" as const)),
 		Queue.take(disableQueue).pipe(Effect.as("disabled" as const)),

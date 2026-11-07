@@ -45,6 +45,7 @@ export const makeFakeSw = (
 		activate: 0,
 		reload: 0,
 	};
+
 	let registered = opts.registered ?? true;
 	let optedOut = opts.optedOut ?? false;
 	let failuresLeft = opts.registerFailures ?? 0;
@@ -57,10 +58,10 @@ export const makeFakeSw = (
 	// host, so a stale controller without an active worker does not count.
 	const makeHandle = (activeWorker: boolean): SwHandle => ({
 		initial: opts.initial ?? "active",
-		hadController: controlledAtRegistration(
-			activeWorker ? {} : null,
-			(opts.hadController ?? true) ? {} : null,
-		),
+		hadController: controlledAtRegistration({
+			hasActiveWorker: activeWorker,
+			hasController: opts.hadController ?? true,
+		}),
 		hasWaiting: opts.hasWaiting ?? false,
 		events: Stream.fromQueue(events),
 		update: Effect.sync(() => {
@@ -114,6 +115,7 @@ export const makeFakeSw = (
 				// An active worker exists only if one was registered before this call.
 				const activeWorker =
 					registered && (opts.initial ?? "active") === "active";
+
 				registered = true;
 
 				return Effect.succeed(makeHandle(activeWorker));

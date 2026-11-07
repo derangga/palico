@@ -6,6 +6,7 @@ import { makeFakeCache, makeFakeStorage, makeFakeSw, settle } from "./fakes.ts";
 import { guardedEngineLoad } from "./gate.ts";
 import { type CacheHost, type ServiceWorkerHost } from "./hosts.ts";
 import { startOffline } from "./register.ts";
+import { ShellState } from "./shapes.ts";
 import {
 	reloadNeededRef,
 	resetOfflineState,
@@ -149,7 +150,10 @@ describe("requestOffline", () => {
 			sw,
 			Effect.gen(function* () {
 				Effect.runSync(
-					SubscriptionRef.set(shellRef, { _tag: "Failed", message: "x" }),
+					SubscriptionRef.set(
+						shellRef,
+						ShellState.cases.Failed.make({ message: "x" }),
+					),
 				);
 				yield* requestOffline;
 				yield* settle;
@@ -312,6 +316,7 @@ describe("the stored opt-out", () => {
 			standalone: true,
 			optedOut: true,
 		});
+
 		await run(sw, Effect.void);
 		expect(sw.calls.register).toBe(0);
 		expect(shell()).toBe("Off");
@@ -386,6 +391,7 @@ describe("stop and enable racing", () => {
 				yield* requestOffline;
 				yield* stopOffline;
 				yield* settle;
+
 				// Either registered and Active, or unregistered and Off. Never a mix.
 				if (sw.isRegistered()) expect(shell()).toBe("Active");
 				else expect(shell()).toBe("Off");

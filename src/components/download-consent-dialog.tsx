@@ -45,6 +45,7 @@ export function DownloadConsentDialog({
 	// turns offline on (guardedEngineLoad). Say so while it is off or a failed
 	// attempt can be retried.
 	const shell = useStore(shellStore);
+
 	const shellOff =
 		ShellState.guards.Off(shell) || ShellState.guards.Failed(shell);
 
