@@ -168,6 +168,7 @@ moment is the person taking the result.
 | Compress Video | A compressed file was produced (not when the original was kept) |
 | Merge PDFs, Split PDF, Organize PDF, PDF to Images | The file is built, just before the download starts |
 | Office to PDF | At least one document converted |
+| Lock or unlock PDF | The file is built, just before the download starts |
 | Remove Metadata | At least one file was cleaned |
 | Palette Extractor, QR Code Reader | A palette or code was read |
 | QR Code Generator | A PNG or SVG was downloaded or copied |

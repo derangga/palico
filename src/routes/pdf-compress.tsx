@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
 import { Ban, Loader2, Lock, Minimize2, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -253,13 +253,13 @@ function PdfCompressPage() {
 					<Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 					<p>
 						{m.pdfcomp_encrypted()}{" "}
-						{/* A plain link: the unlock tool is its own route, and this one is not typed yet. */}
-						<a
-							href="/pdf-unlock"
+						<Link
+							to="/pdf-password"
+							search={{ mode: "unlock" }}
 							className="font-semibold text-primary underline"
 						>
 							{m.pdfcomp_unlock_link()}
-						</a>
+						</Link>
 					</p>
 				</div>
 			)}
