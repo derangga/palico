@@ -5,6 +5,8 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 import { toast } from "sonner";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { ModeToggle } from "#/components/resizer/mode-toggle.tsx";
 import { PercentControls } from "#/components/resizer/percent-controls.tsx";
@@ -18,6 +20,7 @@ import {
 } from "#/components/resizer/state.ts";
 import { downloadBlob, formatBytes } from "#/components/resizer/utils.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { currentLocale } from "#/lib/i18n/state.ts";
 import { resizeImage } from "#/lib/image/resizer.ts";
 import {
@@ -67,6 +70,13 @@ function ResizerPage() {
 		outW >= 1 &&
 		outH >= 1 &&
 		!blockedByEnlarge;
+
+	const handoff = useHandoff((files) => void selectFile(files), {
+		hasFile: source != null,
+	});
+
+	const resultName = (file: File) =>
+		outputFileName(file.name, sourceFormatMeta(file.type).ext);
 
 	async function selectFile(fileList: FileList | null) {
 		const file = fileList?.[0];
@@ -221,6 +231,8 @@ function ResizerPage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{!source ? (
 				<Dropzone
 					label={m.resizer_dropzone_label()}
@@ -309,13 +321,16 @@ function ResizerPage() {
 							result={result}
 							previewUrl={previewUrl}
 							formatLabel={sourceFormatLabel}
-							onSave={() => {
-								const meta = sourceFormatMeta(source.file.type);
-								downloadBlob(
-									result.blob,
-									outputFileName(source.file.name, meta.ext),
-								);
-							}}
+							onSave={() => downloadBlob(result.blob, resultName(source.file))}
+							sendTo={
+								<SendTo
+									from="resizer"
+									outputs={[
+										{ blob: result.blob, name: resultName(source.file) },
+									]}
+									size="sm"
+								/>
+							}
 						/>
 					)}
 

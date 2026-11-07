@@ -5,6 +5,7 @@ import { useReducer, useRef } from "react";
 import { toast } from "sonner";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CompressPanel } from "#/components/video-compressor/compress-panel.tsx";
 import {
@@ -15,6 +16,7 @@ import {
 import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -58,6 +60,8 @@ function CompressShell() {
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 	const [state, dispatch] = useReducer(compressReducer, initialCompressState);
 	const { file } = state;
+
+	const handoff = useHandoff(addFiles, { hasFile: file !== null });
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
@@ -191,6 +195,8 @@ function CompressShell() {
 	return (
 		<PageShell>
 			<PageHeader title={m.tool_video_compressor_label()}>{intro()}</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			{!file ? (
 				<Dropzone

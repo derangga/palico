@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { EnginePanel } from "#/components/pdf-password/engine-panel.tsx";
 import { LockForm } from "#/components/pdf-password/lock-form.tsx";
@@ -11,6 +12,7 @@ import { UnlockForm } from "#/components/pdf-password/unlock-form.tsx";
 import { SegmentedControl } from "#/components/segmented-control.tsx";
 import { StatusPill } from "#/components/status-pill.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { useQpdfGate } from "#/hooks/use-qpdf-gate.ts";
 import { MAX_PDF_BYTES } from "#/lib/file/pdf-types.ts";
 import { formatBytes } from "#/lib/format-bytes.ts";
@@ -105,6 +107,10 @@ export function PdfPasswordTool({
 		setMode((current) => modeAfterDetect(current, chosen.current, status));
 	}
 
+	const handoff = useHandoff((files) => void pick(files), {
+		hasFile: file !== undefined,
+	});
+
 	const target = file && encryption ? modeHint(mode, encryption) : undefined;
 
 	return (
@@ -127,6 +133,8 @@ export function PdfPasswordTool({
 			>
 				{m.pdfpw_description()}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			<EnginePanel phase={gate.phase} onStart={() => void gate.startLoad()} />
 

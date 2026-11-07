@@ -166,6 +166,7 @@ export function LockForm({
 					blob={done.blob}
 					name={done.name}
 					play={justDone}
+					sendable={false}
 				/>
 			)}
 		</>

@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Effect, Option } from "effect";
 import { Download, Loader2, RotateCcw, Undo2 } from "lucide-react";
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 
 import { downloadBlob } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import {
+	type SavedFile,
+	SavedResult,
+} from "#/components/handoff/saved-result.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { PageGrid } from "#/components/pdf-organize/page-grid.tsx";
 import {
@@ -12,9 +17,11 @@ import {
 	organizeReducer,
 } from "#/components/pdf-organize/state.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { extractPages, loadPdf } from "#/lib/file/pdf.ts";
+import { formatBytes } from "#/lib/format-bytes.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -29,6 +36,12 @@ const MB = 1024 * 1024;
 
 function PdfOrganizePage() {
 	const [state, dispatch] = useReducer(organizeReducer, initialOrganizeState);
+
+	// The last saved file, shown while the pages it was made from are unchanged.
+	const [saved, setSaved] = useState<{
+		readonly from: typeof state.pages;
+		readonly file: SavedFile;
+	} | null>(null);
 
 	async function loadFile(file: File) {
 		dispatch({ type: "loadStart", file });
@@ -68,11 +81,26 @@ function PdfOrganizePage() {
 
 		if (Option.isNone(result)) return;
 		recordToolUse("/pdf-organize");
-		downloadBlob(
-			result.value,
-			`${state.file.name.replace(/\.pdf$/i, "")}_organized.pdf`,
-		);
+		const name = `${state.file.name.replace(/\.pdf$/i, "")}_organized.pdf`;
+		downloadBlob(result.value, name);
+		setSaved({
+			from: state.pages,
+			file: {
+				blob: result.value,
+				name,
+				detail: `${pagesLabel(state.pages.length)} · ${formatBytes(result.value.size)}`,
+				outputs: [{ blob: result.value, name }],
+			},
+		});
 	}
+
+	function onFiles(files: FileList | null) {
+		const picked = files?.[0];
+
+		if (picked) void loadFile(picked);
+	}
+
+	const handoff = useHandoff(onFiles, { hasFile: state.file !== null });
 
 	const busy = state.rendering || state.saving;
 	const total = state.loaded.length;
@@ -107,6 +135,8 @@ function PdfOrganizePage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{!state.file && (
 				<Dropzone
 					label={m.pdf_dropzone_label()}
@@ -117,11 +147,7 @@ function PdfOrganizePage() {
 					})}
 					accept="application/pdf"
 					ariaLabel={m.pdforg_dropzone_aria()}
-					onFiles={(files) => {
-						const picked = files?.[0];
-
-						if (picked) void loadFile(picked);
-					}}
+					onFiles={onFiles}
 				/>
 			)}
 
@@ -162,6 +188,12 @@ function PdfOrganizePage() {
 							</Button>
 						</div>
 					</div>
+
+					{saved?.from === state.pages && (
+						<div className="mb-4">
+							<SavedResult from="pdf_organize" saved={saved.file} />
+						</div>
+					)}
 
 					{kept === 0 && !state.rendering ? (
 						<p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">

@@ -732,7 +732,6 @@
 	"pdfcomp_not_smaller_kept": "Your original is untouched.",
 	"pdfcomp_save_original": "Save original",
 	"pdfcomp_encrypted": "This PDF is password-protected. Unlock it first, then compress it.",
-	"pdfcomp_unlock_link": "Unlock this PDF",
 	"pdfcomp_failed": "Couldn't compress this PDF.",
 	"pdfcomp_note": "Text and drawings are never touched. Photos and scans are re-encoded as JPEG, and only kept when that makes them smaller.",
 	"pdfcomp_note_signatures": "Digital signatures and PDF/A conformance are not kept.",
@@ -1398,5 +1397,17 @@
 	"pdfpw_description": "Lock a PDF with a password, or remove the password from one you own or are allowed to open. It runs on your device, so the file and the password never leave it.",
 	"pdfpw_mode_legend": "What do you want to do?",
 	"pdfpw_mode_lock": "Lock",
-	"pdfpw_mode_unlock": "Unlock"
+	"pdfpw_mode_unlock": "Unlock",
+	"handoff_send_to": "Send to…",
+	"handoff_sheet_title": "Send to another tool",
+	"handoff_suggested": "Suggested",
+	"handoff_other_tools": "Other tools",
+	"handoff_sends_all": "Sends all {files}",
+	"handoff_from": "From {tool}",
+	"handoff_back_to": "Open {tool}",
+	"handoff_first_only": "This tool takes one file, so it took the first of {count}.",
+	"handoff_missing_title": "Drop the file again",
+	"handoff_missing_body": "Files passed between tools stay in this tab's memory only, so a reload clears them.",
+	"pdfcomp_send_to_unlock": "Send to Unlock",
+	"handoff_unzip_failed": "Couldn't unpack the result to send it. Save it and drop it into the next tool instead."
 }

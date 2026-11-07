@@ -732,7 +732,6 @@
 	"pdfcomp_not_smaller_kept": "File aslimu tidak berubah.",
 	"pdfcomp_save_original": "Simpan file asli",
 	"pdfcomp_encrypted": "PDF ini dilindungi kata sandi. Buka kuncinya dulu, lalu kompres.",
-	"pdfcomp_unlock_link": "Buka kunci PDF ini",
 	"pdfcomp_failed": "Tidak bisa mengompres PDF ini.",
 	"pdfcomp_note": "Teks dan gambar vektor tidak pernah diubah. Foto dan hasil pindai dienkode ulang sebagai JPEG, dan hanya dipakai jika hasilnya lebih kecil.",
 	"pdfcomp_note_signatures": "Tanda tangan digital dan kesesuaian PDF/A tidak dipertahankan.",
@@ -1398,5 +1397,17 @@
 	"pdfpw_description": "Kunci PDF dengan kata sandi, atau hapus kata sandi dari PDF milikmu atau yang boleh kamu buka. Berjalan di perangkatmu, jadi file dan kata sandi tidak pernah keluar darinya.",
 	"pdfpw_mode_legend": "Mau melakukan apa?",
 	"pdfpw_mode_lock": "Kunci",
-	"pdfpw_mode_unlock": "Buka kunci"
+	"pdfpw_mode_unlock": "Buka kunci",
+	"handoff_send_to": "Kirim ke…",
+	"handoff_sheet_title": "Kirim ke alat lain",
+	"handoff_suggested": "Disarankan",
+	"handoff_other_tools": "Alat lainnya",
+	"handoff_sends_all": "Mengirim semua {files}",
+	"handoff_from": "Dari {tool}",
+	"handoff_back_to": "Buka {tool}",
+	"handoff_first_only": "Alat ini menerima satu file, jadi hanya file pertama dari {count} yang diambil.",
+	"handoff_missing_title": "Taruh filenya lagi",
+	"handoff_missing_body": "File yang dikirim antar alat hanya disimpan di memori tab ini, jadi memuat ulang halaman akan menghapusnya.",
+	"pdfcomp_send_to_unlock": "Kirim ke Buka Kunci",
+	"handoff_unzip_failed": "Hasilnya tidak bisa dibuka untuk dikirim. Simpan dulu, lalu taruh di alat berikutnya."
 }

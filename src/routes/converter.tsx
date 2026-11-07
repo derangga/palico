@@ -12,6 +12,8 @@ import {
 	uniqueNames,
 } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -21,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { currentLocale } from "#/lib/i18n/state.ts";
 import { convertImages, type ProgressUpdate } from "#/lib/image/converter.ts";
 import {
@@ -58,6 +61,17 @@ function ConverterPage() {
 	);
 
 	const doneItems = items.filter((i) => i.status === "done" && i.outBlob);
+
+	const finished = doneItems.flatMap((item) =>
+		item.outBlob && item.outName
+			? [{ blob: item.outBlob, name: item.outName }]
+			: [],
+	);
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -241,6 +255,8 @@ function ConverterPage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			<Dropzone
 				label={m.converter_dropzone_label()}
 				actionLabel={m.common_choose_files()}
@@ -286,6 +302,7 @@ function ConverterPage() {
 							<Button variant="ghost" onClick={reset} disabled={isRunning}>
 								{m.common_clear()}
 							</Button>
+							{!isRunning && <SendTo from="converter" outputs={finished} />}
 							{doneItems.length > 1 && (
 								<Button
 									variant="outline"

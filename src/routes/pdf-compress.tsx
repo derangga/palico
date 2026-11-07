@@ -1,17 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
-import { Ban, Loader2, Lock, Minimize2, RotateCcw } from "lucide-react";
+import {
+	Ban,
+	Forward,
+	Loader2,
+	Lock,
+	Minimize2,
+	RotateCcw,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ChoiceGroup } from "#/components/choice-group.tsx";
 import { formatBytes } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { ResultCard } from "#/components/pdf-compress/result-card.tsx";
 import { CoverThumbnail } from "#/components/pdf-merge/cover-thumbnail.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
+import { useSendFiles } from "#/hooks/use-send-files.ts";
 import {
 	type CompressPresetId,
 	DEFAULT_COMPRESS_PRESET,
@@ -78,7 +88,9 @@ function PdfCompressPage() {
 	);
 
 	const [outcome, setOutcome] = useState<CompressOutcome | null>(null);
-	const [locked, setLocked] = useState(false);
+	// The password-protected file the person dropped, kept for "Send to Unlock".
+	const [locked, setLocked] = useState<File | null>(null);
+	const sendFiles = useSendFiles("pdf_compress");
 
 	// `seen` is false until the worker reports its first image count, so the
 	// bar can say it is getting ready instead of showing 0 of 0.
@@ -100,12 +112,15 @@ function PdfCompressPage() {
 	);
 
 	// Shows what went wrong. A locked PDF gets the panel, anything else a toast.
-	function report(error: Option.Option<{ readonly message: string }>) {
+	function report(
+		error: Option.Option<{ readonly message: string }>,
+		file: File,
+	) {
 		if (
 			Option.isSome(error) &&
 			Predicate.isTagged(error.value, "EncryptedPdfError")
 		) {
-			setLocked(true);
+			setLocked(file);
 
 			return;
 		}
@@ -120,7 +135,7 @@ function PdfCompressPage() {
 
 	async function loadFile(file: File) {
 		const id = crypto.randomUUID();
-		setLocked(false);
+		setLocked(null);
 		setOutcome(null);
 		setItem({ id, file, status: "loading", thumbnail: null, pageCount: 0 });
 
@@ -130,7 +145,7 @@ function PdfCompressPage() {
 
 		if (Exit.isFailure(exit)) {
 			setItem(null);
-			report(failureOf(exit));
+			report(failureOf(exit), file);
 
 			return;
 		}
@@ -178,8 +193,16 @@ function PdfCompressPage() {
 		// Cancel and leaving the page both interrupt the run. Neither is a failure.
 		if (Cause.hasInterruptsOnly(exit.cause)) return;
 
-		report(failureOf(exit));
+		report(failureOf(exit), item.file);
 	}
+
+	function onFiles(files: FileList | null) {
+		const picked = files?.[0];
+
+		if (picked) void loadFile(picked);
+	}
+
+	const handoff = useHandoff(onFiles, { hasFile: item !== null });
 
 	function choosePreset(next: CompressPresetId) {
 		setPreset(next);
@@ -237,6 +260,8 @@ function PdfCompressPage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{!item && (
 				<Dropzone
 					label={m.pdf_dropzone_label()}
@@ -247,11 +272,7 @@ function PdfCompressPage() {
 					})}
 					accept="application/pdf"
 					ariaLabel={m.pdfcomp_dropzone_aria()}
-					onFiles={(files) => {
-						const picked = files?.[0];
-
-						if (picked) void loadFile(picked);
-					}}
+					onFiles={onFiles}
 				/>
 			)}
 
@@ -261,16 +282,20 @@ function PdfCompressPage() {
 					className="animate-pop-in mt-4 flex items-start gap-3 rounded-lg border bg-card p-4 text-sm"
 				>
 					<Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-					<p>
-						{m.pdfcomp_encrypted()}{" "}
-						<Link
-							to="/pdf-password"
-							search={{ mode: "unlock" }}
-							className="font-semibold text-primary underline"
+					<div className="flex flex-1 flex-wrap items-center gap-3">
+						<p className="min-w-48 flex-1">{m.pdfcomp_encrypted()}</p>
+						<Button
+							size="sm"
+							onClick={() =>
+								sendFiles({ to: "/pdf-password" }, [locked], {
+									mode: "unlock",
+								})
+							}
 						>
-							{m.pdfcomp_unlock_link()}
-						</Link>
-					</p>
+							<Forward />
+							{m.pdfcomp_send_to_unlock()}
+						</Button>
+					</div>
 				</div>
 			)}
 

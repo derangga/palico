@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { Ban, Download, Film, Loader2, Minimize2 } from "lucide-react";
 import { type Dispatch, useId } from "react";
 
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import {
@@ -300,9 +301,9 @@ export function CompressPanel({
 
 			{output?.kind === "compressed" && (
 				<div className="flex flex-col gap-2 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
-					<div className="flex items-center gap-3">
+					<div className="flex flex-wrap items-center gap-3">
 						<Film className="size-4 shrink-0 text-muted-foreground" />
-						<div className="min-w-0 flex-1">
+						<div className="min-w-32 flex-1">
 							<p className="truncate text-sm font-medium">{output.name}</p>
 							<p className="text-xs text-muted-foreground tabular-nums">
 								{formatBytes(file.size)} → {formatBytes(output.size)} ·{" "}
@@ -311,10 +312,13 @@ export function CompressPanel({
 								})}
 							</p>
 						</div>
-						<Button onClick={() => downloadBlob(output.blob, output.name)}>
-							<Download />
-							{m.common_save()}
-						</Button>
+						<div className="ml-auto flex gap-2">
+							<SendTo from="video_compressor" outputs={[output]} />
+							<Button onClick={() => downloadBlob(output.blob, output.name)}>
+								<Download />
+								{m.common_save()}
+							</Button>
+						</div>
 					</div>
 					{output.overTargetMB !== null && (
 						<p className="text-xs text-muted-foreground">

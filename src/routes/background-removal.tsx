@@ -14,6 +14,8 @@ import {
 	EngineCheckingSkeleton,
 	EngineConsentCard,
 } from "#/components/engine-consent-gate.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -24,6 +26,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "#/components/ui/empty.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import {
 	isBackgroundModelCached,
 	isModelLoaded,
@@ -174,6 +177,8 @@ function BackgroundRemovalPage() {
 		fileInputRef.current?.click();
 	}
 
+	const handoff = useHandoff(selectFile, { hasFile: source !== null });
+
 	function selectFile(files: FileList | null) {
 		const file = files?.[0];
 
@@ -225,11 +230,17 @@ function BackgroundRemovalPage() {
 
 	const processing = status === "processing";
 
+	const resultName = source
+		? `${source.name.replace(/\.[^.]+$/, "")}-no-bg.png`
+		: "";
+
 	return (
 		<PageShell>
 			<PageHeader title={m.tool_background_removal_label()}>
 				{m.bgremoval_description({ size: MODEL_SIZE_LABEL })}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			{gate.kind !== "ready" ? (
 				<ModelGate gate={gate} onStart={startDownload} />
@@ -336,16 +347,20 @@ function BackgroundRemovalPage() {
 									</div>
 								</figure>
 							</div>
-							<div className="mt-4 flex items-center justify-end gap-2">
+							<div className="mt-4 flex flex-wrap items-center justify-end gap-2">
 								<Button variant="ghost" onClick={reset}>
 									<RotateCcw />
 									{m.common_start_over()}
 								</Button>
+								{result && (
+									<SendTo
+										from="background_removal"
+										outputs={[{ blob: result, name: resultName }]}
+									/>
+								)}
 								<Button
 									onClick={() => {
-										if (!result) return;
-										const base = source.name.replace(/\.[^.]+$/, "");
-										downloadBlob(result, `${base}-no-bg.png`);
+										if (result) downloadBlob(result, resultName);
 									}}
 								>
 									<Download />

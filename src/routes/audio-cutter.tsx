@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AudioClipStage } from "#/components/audio-clip-stage.tsx";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import {
 	cutterReducer,
@@ -16,6 +17,7 @@ import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useClipPlayer } from "#/hooks/use-clip-player.ts";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -63,6 +65,8 @@ function CutterShell() {
 
 	const [state, dispatch] = useReducer(cutterReducer, initialCutterState);
 	const { trimming, cancelling, output } = state;
+
+	const handoff = useHandoff(addFiles, { hasFile: file !== null });
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
@@ -188,6 +192,8 @@ function CutterShell() {
 		<PageShell width="wide">
 			<PageHeader title={m.tool_audio_cutter_label()}>{intro()}</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{!file ? (
 				<Dropzone
 					label={m.audiocut_dropzone_label()}
@@ -209,6 +215,7 @@ function CutterShell() {
 					/>
 
 					<TrimPanel
+						tool="audio_cutter"
 						file={file}
 						formatTitle={m.trim_current_audio_format()}
 						ResultIcon={AudioWaveform}

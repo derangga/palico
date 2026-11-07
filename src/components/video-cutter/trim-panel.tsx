@@ -7,6 +7,7 @@ import {
 	Scissors,
 } from "lucide-react";
 
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import type { TrimOutput } from "#/components/video-cutter/state.ts";
 import {
@@ -15,9 +16,12 @@ import {
 	formatLabelFor,
 	formatTime,
 } from "#/components/video-cutter/utils.ts";
+import type { ToolId } from "#/lib/tool-categories.ts";
 import { m } from "#/paraglide/messages.js";
 
 interface TrimPanelProps {
+	/** The tool this panel belongs to, for "Send to...". */
+	tool: ToolId;
 	file: File;
 	// Label of the format row and the icon of the result card. The audio cutter
 	// overrides both.
@@ -34,6 +38,7 @@ interface TrimPanelProps {
 }
 
 export function TrimPanel({
+	tool,
 	file,
 	formatTitle = m.trim_current_video_format(),
 	ResultIcon = Film,
@@ -85,18 +90,21 @@ export function TrimPanel({
 			</div>
 
 			{output && (
-				<div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
+				<div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
 					<ResultIcon className="size-4 shrink-0 text-muted-foreground" />
-					<div className="min-w-0 flex-1">
+					<div className="min-w-32 flex-1">
 						<p className="truncate text-sm font-medium">{output.name}</p>
 						<p className="text-xs text-muted-foreground">
 							{formatBytes(output.size)}
 						</p>
 					</div>
-					<Button onClick={() => downloadBlob(output.blob, output.name)}>
-						<Download />
-						{m.common_save()}
-					</Button>
+					<div className="ml-auto flex gap-2">
+						<SendTo from={tool} outputs={[output]} />
+						<Button onClick={() => downloadBlob(output.blob, output.name)}>
+							<Download />
+							{m.common_save()}
+						</Button>
+					</div>
 				</div>
 			)}
 		</div>

@@ -2,11 +2,13 @@ import { Cause, Effect, Exit, Option } from "effect";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import {
 	type ExtractView,
 	PaletteResult,
 } from "#/components/palette/palette-result.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import type { ColorFormat } from "#/lib/color/format.ts";
 import { readPaletteFromFile } from "#/lib/color/worker-client.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -95,6 +97,10 @@ export function PaletteExtractor() {
 		});
 	}
 
+	const handoff = useHandoff((files) => void readFile(files[0]), {
+		hasFile: state !== null,
+	});
+
 	function reset() {
 		cancelRead();
 		refocusIdle.current = true;
@@ -145,6 +151,8 @@ export function PaletteExtractor() {
 			<PageHeader title={m.tool_palette_extractor_label()}>
 				{m.palette_header_desc()}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			{state ? (
 				<PaletteResult

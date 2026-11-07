@@ -5,6 +5,11 @@ import { useState } from "react";
 
 import { downloadBlob } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import {
+	type SavedFile,
+	SavedResult,
+} from "#/components/handoff/saved-result.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CoverThumbnail } from "#/components/pdf-merge/cover-thumbnail.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
@@ -17,6 +22,7 @@ import {
 	SelectValue,
 } from "#/components/ui/select.tsx";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import {
 	MAX_PDF_BYTES,
@@ -25,6 +31,8 @@ import {
 	RasterFormat,
 } from "#/lib/file/pdf-types.ts";
 import { loadPdf, pdfToImages } from "#/lib/file/pdf.ts";
+import { formatBytes } from "#/lib/format-bytes.ts";
+import { zippedOutputs } from "#/lib/handoff/unzip.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -48,6 +56,13 @@ function PdfToImagesPage() {
 	const [item, setItem] = useState<MergeItem | null>(null);
 	const [format, setFormat] = useState<RasterFormat>("png");
 	const [dpi, setDpi] = useState<RasterDpi>(150);
+
+	// The last zip of images, shown while the same PDF is open. A new format or
+	// resolution clears it, since it no longer matches the settings on screen.
+	const [saved, setSaved] = useState<{
+		readonly from: File;
+		readonly file: SavedFile;
+	} | null>(null);
 
 	const [progress, setProgress] = useState<{
 		done: number;
@@ -98,11 +113,30 @@ function PdfToImagesPage() {
 
 		if (Option.isNone(result)) return;
 		recordToolUse("/pdf-to-images");
-		downloadBlob(
-			result.value,
-			`${item.file.name.replace(/\.pdf$/i, "")}_images.zip`,
-		);
+		const name = `${item.file.name.replace(/\.pdf$/i, "")}_images.zip`;
+		downloadBlob(result.value, name);
+		setSaved({
+			from: item.file,
+			file: {
+				blob: result.value,
+				name,
+				detail: `${pagesLabel(item.pageCount)} · ${formatBytes(result.value.size)}`,
+				outputs: zippedOutputs(
+					result.value,
+					format === "png" ? "image/png" : "image/jpeg",
+					item.pageCount,
+				),
+			},
+		});
 	}
+
+	function onFiles(files: FileList | null) {
+		const picked = files?.[0];
+
+		if (picked) void loadFile(picked);
+	}
+
+	const handoff = useHandoff(onFiles, { hasFile: item !== null });
 
 	const working = progress !== null;
 	const ready = item?.status === "ready";
@@ -137,6 +171,8 @@ function PdfToImagesPage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{!item && (
 				<Dropzone
 					label={m.pdf_dropzone_label()}
@@ -147,11 +183,7 @@ function PdfToImagesPage() {
 					})}
 					accept="application/pdf"
 					ariaLabel={m.pdfimg_dropzone_aria()}
-					onFiles={(files) => {
-						const picked = files?.[0];
-
-						if (picked) void loadFile(picked);
-					}}
+					onFiles={onFiles}
 				/>
 			)}
 
@@ -175,7 +207,10 @@ function PdfToImagesPage() {
 							<Tabs
 								value={format}
 								onValueChange={(value) => {
-									if (Schema.is(RasterFormat)(value)) setFormat(value);
+									if (!Schema.is(RasterFormat)(value)) return;
+
+									setFormat(value);
+									setSaved(null);
 								}}
 							>
 								<TabsList>
@@ -195,7 +230,10 @@ function PdfToImagesPage() {
 							<Select
 								value={dpi}
 								onValueChange={(value) => {
-									if (Schema.is(RasterDpi)(value)) setDpi(value);
+									if (!Schema.is(RasterDpi)(value)) return;
+
+									setDpi(value);
+									setSaved(null);
 								}}
 								disabled={working}
 							>
@@ -252,6 +290,12 @@ function PdfToImagesPage() {
 					)}
 
 					<p className="text-xs text-muted-foreground">{m.pdfimg_note()}</p>
+				</div>
+			)}
+
+			{item && saved?.from === item.file && (
+				<div className="mt-4">
+					<SavedResult from="pdf_to_images" saved={saved.file} />
 				</div>
 			)}
 		</PageShell>

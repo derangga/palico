@@ -2,6 +2,8 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { PickSurface } from "#/components/color/pick-surface.tsx";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import type { Rgb } from "#/lib/color/oklab.ts";
 import { m } from "#/paraglide/messages.js";
 
@@ -24,6 +26,15 @@ export function ImagePicker({
 	// An effect event always sees the latest handler, so the paste listener is
 	// added once instead of on every render.
 	const readPasted = useEffectEvent((pasted: File) => setFile(pasted));
+
+	const handoff = useHandoff(
+		(files) => {
+			const chosen = files[0];
+
+			if (chosen) setFile(chosen);
+		},
+		{ hasFile: file !== null },
+	);
 
 	useEffect(() => {
 		const onPaste = (event: ClipboardEvent) => {
@@ -51,17 +62,20 @@ export function ImagePicker({
 
 	if (file) {
 		return (
-			<PickSurface
-				// A new image is a new surface, so it loads, focuses and animates again.
-				key={`${file.name}-${file.lastModified}-${file.size}`}
-				file={file}
-				onPick={onPick}
-				onCommit={onCommit}
-				onReset={() => {
-					refocusIdle.current = true;
-					setFile(null);
-				}}
-			/>
+			<div className="flex flex-col">
+				<HandoffNotice handoff={handoff} />
+				<PickSurface
+					// A new image is a new surface, so it loads, focuses and animates again.
+					key={`${file.name}-${file.lastModified}-${file.size}`}
+					file={file}
+					onPick={onPick}
+					onCommit={onCommit}
+					onReset={() => {
+						refocusIdle.current = true;
+						setFile(null);
+					}}
+				/>
+			</div>
 		);
 	}
 
@@ -72,6 +86,8 @@ export function ImagePicker({
 			aria-label={m.color_image_aria()}
 			className="flex flex-col gap-4 outline-none"
 		>
+			{/* The section's gap already spaces it. */}
+			<HandoffNotice handoff={handoff} className="mb-0" />
 			<Dropzone
 				label={m.resizer_dropzone_label()}
 				actionLabel={m.common_choose_image()}

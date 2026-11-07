@@ -1,4 +1,5 @@
 import { Download } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { DoneBurst, DrawCheck } from "#/components/done-burst.tsx";
 import { formatBytes } from "#/components/resizer/utils.ts";
@@ -12,14 +13,17 @@ export function ResultCard({
 	previewUrl,
 	formatLabel,
 	onSave,
+	sendTo,
 }: {
 	result: ResizeOutput;
 	previewUrl: string | null;
 	formatLabel: string;
 	onSave: () => void;
+	/** "Send to..." beside Save. */
+	sendTo?: ReactNode;
 }) {
 	return (
-		<div className="animate-done-tint mt-4 flex items-center gap-3 rounded-lg border bg-card px-4 py-3">
+		<div className="animate-done-tint mt-4 flex flex-wrap items-center gap-3 rounded-lg border bg-card px-4 py-3">
 			{/* The card only mounts when a resize finishes, so mounting is the done moment. */}
 			<span className="relative shrink-0">
 				{previewUrl && (
@@ -41,7 +45,7 @@ export function ResultCard({
 					<DoneBurst />
 				</span>
 			</span>
-			<p className="min-w-0 flex-1 text-sm">
+			<p className="min-w-40 flex-1 text-sm">
 				{m.resizer_result_before()}{" "}
 				<span className="font-medium">
 					{result.width} × {result.height}px
@@ -50,10 +54,13 @@ export function ResultCard({
 					({formatBytes(result.size)}, {formatLabel})
 				</span>
 			</p>
-			<Button variant="outline" size="sm" onClick={onSave}>
-				<Download />
-				{m.common_save()}
-			</Button>
+			<div className="ml-auto flex gap-2">
+				{sendTo}
+				<Button variant="outline" size="sm" onClick={onSave}>
+					<Download />
+					{m.common_save()}
+				</Button>
+			</div>
 		</div>
 	);
 }

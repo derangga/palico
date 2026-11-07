@@ -1,6 +1,7 @@
 import { Ban, Download, ImagePlay, Loader2 } from "lucide-react";
 import { useId } from "react";
 
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Select,
@@ -182,17 +183,20 @@ function GifResultCard({ output }: { output: GifResult }) {
 					className="max-h-64 w-full rounded-md object-contain"
 				/>
 			) : null}
-			<div className="flex items-center gap-3">
-				<div className="min-w-0 flex-1">
+			<div className="flex flex-wrap items-center gap-3">
+				<div className="min-w-32 flex-1">
 					<p className="truncate text-sm font-medium">{output.name}</p>
 					<p className="text-xs text-muted-foreground">
 						{formatBytes(output.size)}
 					</p>
 				</div>
-				<Button onClick={() => downloadBlob(output.blob, output.name)}>
-					<Download />
-					{m.common_save()}
-				</Button>
+				<div className="ml-auto flex gap-2">
+					<SendTo from="video_to_gif" outputs={[output]} />
+					<Button onClick={() => downloadBlob(output.blob, output.name)}>
+						<Download />
+						{m.common_save()}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

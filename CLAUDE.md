@@ -35,6 +35,10 @@ Read the matching file before starting that kind of work.
   `docs/extract-audio.md`, `docs/audio-cutter.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
   `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`, `docs/json-converter.md`, `docs/jwt-decoder.md`, `docs/pdf-compressor.md`:
   how each tool works end to end and why it is built that way.
+- `docs/chain-tools.md`: "Send to..." on every result, the in-memory `Handoff`
+  service, `accepts` and `next` in the registry, and why files never go to
+  IndexedDB. Read it before adding a tool (it needs `accepts`, `useHandoff` on
+  its dropzone and `SendTo` on its result) or touching `src/lib/handoff/`.
 - `docs/bottom-sheets.md`: the swipeable bottom sheet (`ui/drawer.tsx`), where it
   replaces a popup below 768px, and the markdown preview sheet. Read it before
   adding a sheet or touching `src/components/markdown-preview-drawer.tsx`.
