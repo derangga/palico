@@ -458,6 +458,35 @@
   }
 }
 
+/*
+ * Offline pill state change (Off, Preparing, Ready). The new state fades in with a
+ * 2px blur so the swap reads as one thing changing, and its icon (check, dot or
+ * spinner) settles from scale 0.9. Opacity, filter and transform only. It runs
+ * only after the person turns offline on or off, never on page load.
+ */
+@keyframes palico-swap-in {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@keyframes palico-icon-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.offline-swap {
+  animation: palico-swap-in 200ms var(--ease-out) backwards;
+}
+
+/* The spinner keeps its own spin animation. */
+.offline-swap > span > :first-child:not(.animate-spin) {
+  animation: palico-icon-in 200ms var(--ease-out) backwards;
+}
+
 @utility animate-route-in {
   animation: palico-route-in 120ms var(--ease-out) backwards;
 }
@@ -529,6 +558,15 @@
 
   .animate-route-in {
     animation-name: palico-fade-in;
+  }
+
+  /* Opacity only: no blur, no scale. */
+  .offline-swap {
+    animation-name: palico-fade-in;
+  }
+
+  .offline-swap > span > :first-child:not(.animate-spin) {
+    animation: none;
   }
 
   .done-burst {

@@ -19,6 +19,7 @@ import {
 
 import { AppSidebar } from "#/components/app-sidebar.tsx";
 import { LanguageSwitcher } from "#/components/language-switcher.tsx";
+import { OfflineHint } from "#/components/offline/offline-hint.tsx";
 import { UpdatePrompt } from "#/components/offline/update-prompt.tsx";
 import { SearchButton } from "#/components/search/search-button.tsx";
 import { SearchPalette } from "#/components/search/search-palette.tsx";
@@ -172,6 +173,7 @@ function RootLayout() {
 	return (
 		<SidebarProvider>
 			<UpdatePrompt />
+			<OfflineHint />
 			<SearchPalette open={searchOpen} onOpenChange={setSearchOpen} />
 			<AppSidebar />
 			<SidebarInset>

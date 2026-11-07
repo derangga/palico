@@ -1,24 +1,25 @@
 # Offline and install (PWA)
 
-palico installs as an app and, after one online visit, runs every tool that does
-not need a big engine without a connection. The big engines stay opt-in downloads.
-This document explains how the pieces fit, why they are built this way, and how to
-test them.
+palico is a plain website until you turn offline on. After that, and after one
+online visit, it runs every tool that does not need a big engine without a
+connection. The big engines stay opt-in downloads. This document explains how the
+pieces fit, why they are built this way, and how to test them.
 
 ## Table of contents
 
 1. [What works offline](#what-works-offline)
 2. [Module map](#module-map)
 3. [Service worker](#service-worker)
-4. [Cross-origin isolation offline](#cross-origin-isolation-offline)
-5. [Engines and the status pill](#engines-and-the-status-pill)
-6. [Update flow](#update-flow)
-7. [Storage and iOS](#storage-and-ios)
-8. [Effect design](#effect-design)
-9. [Testing](#testing)
-10. [Problems we faced](#problems-we-faced)
-11. [Known limits](#known-limits)
-12. [File reference](#file-reference)
+4. [Turning offline on and off](#turning-offline-on-and-off)
+5. [Cross-origin isolation offline](#cross-origin-isolation-offline)
+6. [Engines and the status pill](#engines-and-the-status-pill)
+7. [Update flow](#update-flow)
+8. [Storage and iOS](#storage-and-ios)
+9. [Effect design](#effect-design)
+10. [Testing](#testing)
+11. [Problems we faced](#problems-we-faced)
+12. [Known limits](#known-limits)
+13. [File reference](#file-reference)
 
 ## What works offline
 
@@ -30,10 +31,11 @@ test them.
 | Opt-in, qpdf | `qpdf.wasm` (PDF password tool) | Cache API `palico-qpdf-v<version>`, filled after consent | 1.3 MB |
 | Opt-in, background removal | RMBG-1.4 weights and ONNX Runtime | Cache API `palico-model-v1` (weights) and `palico-ort-v1` (ORT), filled after consent | about 200 MB |
 
-Every route and the non-engine tools (image converter, resizer, compressor, PDF
-tools, markdown, diff, favicon generator) work after the first visit. The video
-tools, Word to PDF, Protect and Unlock PDF, and background removal also need their
-engine saved.
+Nothing is saved until you turn offline on (see [Turning offline on and
+off](#turning-offline-on-and-off)). Once it is on, every route and the non-engine
+tools (image converter, resizer, compressor, PDF tools, markdown, diff, favicon
+generator) work offline. The video tools, Word to PDF, Protect and Unlock PDF, and
+background removal also need their engine saved.
 
 ## Module map
 
@@ -42,7 +44,9 @@ src/sw.ts                          service worker (thin Workbox glue, no Effect)
 scripts/build-sw.ts                bundles sw.ts, injects the precache manifest
 src/lib/offline/
   isolation-headers.ts             COOP/COEP/CORP table + stampIsolationHeaders (pure)
-  register.ts                      startOffline: register, events, update poll, cleanup
+  register.ts                      startOffline: wait for consent, register, events,
+                                   update poll, cleanup
+  toggle.ts                        requestOffline (turn on) and stopOffline (turn off)
   update.ts                        applyUpdate (SKIP_WAITING, reload once)
   busy.ts                          withBusy: marks long jobs as running
   gate.ts                          guardedEngineLoad: quota check + busy + verify
@@ -53,7 +57,8 @@ src/lib/offline/
   state.ts / stores.ts             SubscriptionRefs and their React stores
   shapes.ts / errors.ts            Schema shapes and tagged errors
 src/hooks/use-offline-status.ts    React hook over the above
-src/components/offline/            OfflinePill, OfflineInfo (popover), UpdatePrompt
+src/components/offline/            OfflinePill, OfflineInfo (popover), OfflineHint,
+                                   UpdatePrompt, offline-actions
 src/lib/image/model-cache.ts       Cache API storage for the background removal model
 ```
 
@@ -61,9 +66,13 @@ src/lib/image/model-cache.ts       Cache API storage for the background removal 
 
 `bun run build` runs `vite build` and then `scripts/build-sw.ts`, which bundles
 `src/sw.ts` to `dist/client/sw.js` with Vite and injects the file list with
-`workbox-build`. The page registers it from `src/routes/__root.tsx` in production
-builds only, after the window `load` event, so the 5 MB precache never competes with
-first paint. Dev never registers a worker.
+`workbox-build`. The page starts `startOffline` from `src/routes/__root.tsx` in production
+builds only. It registers the worker only when offline use is on: a worker is
+already registered, the page runs as an installed app, or the person asked (see
+below). Registration waits for the window `load` event, so the 5 MB precache never
+competes with first paint. A plain visit registers nothing, so a deploy reaches
+those visitors on their next load with no worker in between. Dev never registers a
+worker.
 
 Why not `vite-plugin-pwa`: with TanStack Start and `@cloudflare/vite-plugin` it keeps
 the SSR build's config (`ssr: true`, `outDir: dist/server`) and skips generating the
@@ -104,6 +113,100 @@ Behavior:
 An active worker means the install, and therefore the precache, finished. There is
 no separate "precache complete" message.
 
+## Turning offline on and off
+
+`ShellState` has an `Off` case: no worker is registered because offline use was
+never turned on, or was turned off again. The status pill then reads "Save for
+offline", in the neutral style (sapphire is kept for "needs a download to work").
+Home tiles and the search palette show nothing for `Off`, because nothing there
+can act on it.
+
+At startup `startOffline` calls `getRegistration()`, `matchMedia("(display-mode:
+standalone)")` and reads the stored opt-out (all through `ServiceWorkerHost`, so
+tests fake them):
+
+- A registration exists (existing users, or the person turned offline on before):
+  register and run the normal flow, as before.
+- The page runs as an installed app and the person has not opted out: same, with
+  no prompt. Installing is consent.
+- Neither: the shell is `Off`, nothing is registered, and the fiber waits for an
+  enable request.
+
+### Turning on
+
+An enable request comes from one of these:
+
+| Trigger | Where |
+| --- | --- |
+| "Save for offline" in the pill popover | `offline-info.tsx` |
+| "Try again" in the popover after a failed registration | `offline-info.tsx` |
+| "Save when online" on the one-time offline toast | `offline-hint.tsx` |
+| A real engine download | `guardedEngineLoad` in `gate.ts` |
+| The window `appinstalled` event | `ServiceWorkerHost.appInstalled` |
+
+A real download means the engine was not saved before the load. `guardedEngineLoad`
+also wraps the already-saved path that runs on every visit to a tool, and that path
+must not switch offline back on after a Stop. The engine consent dialog adds "Also
+saves Palico for offline use (about 5 MB)." while the shell is `Off` or `Failed`.
+
+`requestOffline` (`toggle.ts`) has no requirements. It does nothing unless the
+shell is `Off` or `Failed`, so a second call while registering or active is a
+no-op and a failed registration can be tried again. Otherwise it sets the shell to
+`Registering` at once and signals the waiting fiber, which registers and goes
+`Registering`, `Installing`, `Active` as usual.
+
+### The stored opt-out
+
+Stop writes `palico-offline = off` to `localStorage` (every access is in a
+try/catch, in `ServiceWorkerHost`). Without it, the next launch of an installed
+app would register again through the standalone path. The fiber clears it when it
+takes an enable request or an `appinstalled` event, so any explicit consent, an
+engine download included, ends the opt-out. Only the standalone path reads it: an
+existing registration still registers, but Stop removes the registration.
+
+### Turning off
+
+`stopOffline` ("Stop saving offline", shown in the popover while the worker is on):
+
+1. Unregister the worker. If this fails nothing else has changed and the popover
+   shows an error toast (`SwDisableError`).
+2. Store the opt-out.
+3. Send the stop signal, but only when a session really runs (it holds a handle).
+   The `startOffline` loop ends the session, which removes its listeners and the
+   update poll, then clears the update and reload prompts and sets the shell to
+   `Off`. With no session, `stopOffline` cancels a pending enable request and
+   sets `Off` itself. A signal sent with no session would wait in the queue and end
+   the next session, so the queue is also emptied when each session starts.
+4. Delete every Cache API bucket whose name contains `-precache-`. Engine buckets
+   (ffmpeg, zetaoffice, qpdf, palico-model, palico-ort) stay: they are the
+   person's downloads, and turning offline on again reuses them. A failure here is
+   an `OfflineCacheError` toast, but the shell is already `Off`.
+
+The fiber then waits for the next enable request, so the person can switch offline
+on again in the same visit.
+
+### The old controller after Stop
+
+The page stays controlled by the old worker until it reloads, although the worker
+is unregistered. If the person turns offline on again in that visit, the new worker
+installs while `navigator.serviceWorker.controller` still points at the old one. A
+check on `controller` alone would read the fresh install as an update and show a
+false "new version is ready" toast, and the `controllerchange` when the new worker
+claims the page would show a false "Reload to continue". So an update is only
+recognised when the registration already had an active worker:
+`hadController` is `controlledAtRegistration(reg.active, sw.controller)`, and a
+worker that reaches `installed` is an update only if `reg.active` exists.
+
+### The offline hint
+
+The first time the connection drops while the shell is `Off`, `OfflineHint` shows
+one toast ("You're offline"), remembered in `localStorage` under
+`palico-offline-hint`. Saving the app needs a connection, so the action is
+"Save when online": it requests offline use at once if `navigator.onLine` is true,
+and otherwise on the next `online` event. A registration that then fails leaves the
+shell `Failed` (pill "Not available offline"). The popover explains that saving did
+not finish and offers "Try again".
+
 ## Cross-origin isolation offline
 
 `public/_headers` puts COOP and COEP on every route and CORP on `/assets/*` and
@@ -123,14 +226,16 @@ returns one of:
 
 | Status | Meaning | Pill |
 | --- | --- | --- |
+| Off | Offline use is not turned on | neutral, "Save for offline" |
 | Ready | Works with no connection now | green, "Works offline" |
 | Preparing | Worker installing or engine check running | working |
 | NeedsDownload | Engine not saved yet | sapphire, "Needs a ~31 MB download" |
 | NotSaved | Download finished but the browser did not keep it | yellow |
 | Unavailable | No service worker support or it failed | neutral |
 
-The status is recomputed from real cache contents after every download, so eviction
-shows up. The tool header shows the full pill (click for an explanation, whether the
+With the shell Off, a tool with an engine still reports its own engine: checking,
+missing (NeedsDownload or NotSaved) or saved (Off). The status is recomputed from
+real cache contents after every download, so eviction shows up. The tool header shows the full pill (click for an explanation, whether the
 browser agreed to keep storage, and the iOS Home Screen hint). Home tiles and the
 sidebar show a small dot and label for tools with an engine only, to keep tiles to one
 saturated colour (`DESIGN.md`).
@@ -142,6 +247,9 @@ the consented download, and the job worker reads that bucket itself, so it works
 without the service worker and falls back to the network when the bucket is empty.
 
 ## Update flow
+
+The update flow only runs for people who turned offline on. Everyone else has no
+worker, so there is nothing to wait for and no toast.
 
 1. A new `sw.js` installs and waits. `startOffline` sees the waiting worker and asks
    it for its build ID (2 second timeout).
@@ -188,12 +296,12 @@ file at a time, so the count briefly returns to zero between files.
 
 The offline logic follows the design pass in the plan. Shapes: `EngineId`,
 `OfflineStatus`, `ShellState`, `UpdateState`, `StorageReport`. Errors: `SwUnsupportedError`,
-`SwRegistrationError`, `SwUpdateError`, `UpdateBlockedError`, `StorageQuotaError`,
-`StorageUnavailableError`, `OfflineCacheError`, `ModelCacheError`.
+`SwRegistrationError`, `SwDisableError`, `SwUpdateError`, `UpdateBlockedError`,
+`StorageQuotaError`, `StorageUnavailableError`, `OfflineCacheError`, `ModelCacheError`.
 
-- Retry: none. The browser retries a failed install on the next load, and engine
-  downloads keep the user-driven "Try again" (31 to 200 MB should not retry silently on
-  mobile data).
+- Retry: none automatic. The browser retries a failed install on the next load, a
+  failed registration has a user-driven "Try again" in the popover, and engine
+  downloads keep theirs (31 to 200 MB should not retry silently on mobile data).
 - Escape: every failure of the world falls back to online-only behavior.
 - Die: only a busy counter that would go below zero (our own pairing bug).
 - R: `ServiceWorkerHost`, `CacheHost` and `StorageHost` are `Context.Service` services with
@@ -201,15 +309,22 @@ The offline logic follows the design pass in the plan. Shapes: `EngineId`,
   `background-removal.ts` said there is no Layer system on the client). It exists so the
   same graph runs in Vitest on the fakes in `fakes.ts`. The engine specs stay plain
   values and the existing `isEngineCached` code is untouched.
+- Enable and disable are two sliding queues in `state.ts` (`enableQueue`,
+  `disableQueue`), so `requestOffline` has no requirements and any caller can run it.
+  `startOffline` races each worker session against `disableQueue`, which is how a stop
+  ends the session and removes its listeners.
 - The service worker file is plain Workbox glue. It has no error channel, so its
   failures show up as registration state in the page.
 
 ## Testing
 
 - `bun run test`: unit tests for the header table and parity with `public/_headers`,
-  status table, busy counter, update flow, registration events, silent adoption of a
-  same-build worker (and the prompt when builds differ), hourly update poll,
-  storage pre-check, verify-after-download and stale bucket cleanup.
+  status table (including the Off rows), busy counter, update flow, registration
+  events, silent adoption of a same-build worker (and the prompt when builds differ),
+  hourly update poll, storage pre-check, verify-after-download, stale bucket cleanup,
+  startup with and without a registration, the enable request, installed-app startup,
+  the engine download enabling offline, and stop (unregister, only precache buckets
+  deleted, back to Off, enable again).
 Offline isolation is not covered by an automated browser test (we dropped Playwright
 to avoid a heavy dev dependency for one spec). It is a manual check, below. The unit
 tests still guard the part most likely to drift: the header table and its parity with
@@ -218,9 +333,11 @@ tests still guard the part most likely to drift: the header table and its parity
 Manual check of the shell, with the real `_headers` and SPA fallback:
 
 1. `bun run build`, then `bunx wrangler dev --config wrangler.deploy.jsonc`.
-2. Open `http://localhost:8787/` in Chrome. In DevTools, Application > Service
-   workers should show `sw.js` activated, and `crossOriginIsolated` should be `true` in
-   the console.
+2. Open `http://localhost:8787/` in a fresh Chrome profile. Application > Service
+   workers must be empty and the tool header pill must read "Save for offline". Open
+   the pill and press "Save for offline". The pill goes to "Getting ready for
+   offline" and then "Works offline", `sw.js` shows as activated, and
+   `crossOriginIsolated` is `true` in the console.
 3. Stop the wrangler process (do not use the DevTools Offline checkbox alone; stopping
    the server is unambiguous). Hard reload `/` and the `/converter` deep link. Both must
    render, `crossOriginIsolated` must stay `true`, and the image converter must convert
@@ -228,7 +345,27 @@ Manual check of the shell, with the real `_headers` and SPA fallback:
 4. The tool header pill should read "Works offline" on `/converter` and "Needs a ~31 MB
    download" on `/video-converter`.
 
-Manual check of the update path:
+Manual check of turning offline on and off:
+
+1. Fresh profile, reload: no worker is registered and no update toast ever appears.
+2. Start a video engine download on `/video-converter`. The consent dialog says it
+   also saves palico for offline use. After the download the worker registers by
+   itself.
+3. In the popover press "Stop saving offline". The worker disappears from
+   Application > Service workers, the `workbox-precache` bucket is gone, the ffmpeg
+   bucket stays, and the pill reads "Save for offline" or "Needs a download". Turn it
+   on again without reloading.
+4. Fresh profile, go offline in DevTools: the "You're offline" toast appears once.
+   Clear `palico-offline-hint` in localStorage to see it again. Press "Save when
+   online", go back online: the worker registers.
+5. Install the app (Chrome menu, Install). The worker registers without a click.
+   Press "Stop saving offline" in the installed app, close it and open it again:
+   no worker registers until you turn offline on.
+6. Press Stop, then "Save for offline" again without reloading: no "new version is
+   ready" or "Reload to continue" toast appears.
+
+Manual check of the update path (turn offline on first, otherwise there is no worker
+to update):
 
 1. With build A running in `wrangler dev`, make any visible change, `bun run build` and
    restart wrangler (build B).
@@ -271,6 +408,8 @@ in CI:
 - ZetaOffice is fetched from `zetaoffice_latest`. A cached engine can drift from the
   vendored, patched `zetaHelper.js` (1.2.0). Pinning a version is a separate issue.
 - Offline cross-origin isolation has no automated browser test; it is a manual check.
+- Stop does not reach other tabs. A tab that was open before keeps showing "Works
+  offline" until it reloads, and so does a tab opened before Stop on another one.
 - Unsaved converted files are lost when the page reloads for an update.
 - The background removal model cache on iOS Safari is untested on a device.
 - `maskable` was dropped from the manifest icons. A real maskable icon needs
@@ -285,8 +424,8 @@ in CI:
 | `vite.config.ts` (`palico-build-id`) | Build ID for the app and `dist/build-id` |
 | `public/_headers` | COOP/COEP/CORP, `immutable` `/assets/*`, `/sw.js` no-cache |
 | `public/sw-killswitch.json` | Emergency off switch |
-| `src/lib/offline/*` | Offline logic (see module map) |
+| `src/lib/offline/*` | Offline logic (see module map); `toggle.ts` turns it on and off |
 | `src/lib/image/model-cache.ts`, `ort-assets.ts` | Background removal storage and ORT URLs |
 | `src/hooks/use-offline-status.ts` | Status hook |
-| `src/components/offline/*` | Pill, info popover, update toast |
+| `src/components/offline/*` | Pill, popover (on and off), offline hint, update toast |
 | `src/lib/offline/*.test.ts` | Unit tests (hosts faked in `fakes.ts`) |

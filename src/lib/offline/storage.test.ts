@@ -5,6 +5,7 @@ import { makeFakeStorage } from "./fakes.ts";
 import { notSavedRef, refreshRef, resetOfflineState } from "./state.ts";
 import {
 	afterDownload,
+	precacheBuckets,
 	preflightDownload,
 	staleEngineBuckets,
 } from "./storage.ts";
@@ -27,6 +28,21 @@ describe("staleEngineBuckets", () => {
 		]);
 
 		expect(stale).toEqual(["ffmpeg-wasm-v0.12.9", "zetaoffice-wasm-business"]);
+	});
+});
+
+describe("precacheBuckets", () => {
+	it("selects the Workbox precache and never an engine bucket", () => {
+		expect(
+			precacheBuckets([
+				"workbox-precache-v2-https://palico.test/",
+				"ffmpeg-wasm-v0.12.10",
+				"zetaoffice-wasm-free",
+				"palico-qpdf-v0.3.1",
+				"palico-model-v1",
+				"palico-ort-v1",
+			]),
+		).toEqual(["workbox-precache-v2-https://palico.test/"]);
 	});
 });
 

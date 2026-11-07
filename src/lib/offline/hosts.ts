@@ -9,6 +9,7 @@ import { m } from "#/paraglide/messages.js";
 import {
 	OfflineCacheError,
 	StorageUnavailableError,
+	SwDisableError,
 	SwRegistrationError,
 	SwUpdateError,
 } from "./errors.ts";
@@ -31,14 +32,43 @@ export interface SwHandle {
 	readonly waitingBuild: Effect.Effect<Option.Option<string>>;
 }
 
+// True when a registration already had an active worker and a worker controls the
+// page, so a later controllerchange or installed worker means an update. After
+// "Stop saving offline" the old worker keeps controlling the page until reload;
+// without the active-worker check, switching offline on again in the same visit
+// would read that stale controller as "an update exists".
+export interface WorkerPresence {
+	readonly hasActiveWorker: boolean;
+	readonly hasController: boolean;
+}
+
+export const controlledAtRegistration = ({
+	hasActiveWorker,
+	hasController,
+}: WorkerPresence): boolean => hasActiveWorker && hasController;
+
 export interface ServiceWorkerHostApi {
 	readonly supported: boolean;
 	// The build ID compiled into this page (see vite.config.ts).
 	readonly pageBuild: string;
 	readonly windowLoaded: Effect.Effect<void>;
+	// True when this origin already has a worker registered (existing users, or the
+	// person turned offline on before). A failed lookup reads as false.
+	readonly hasRegistration: Effect.Effect<boolean>;
+	// True when the page runs as an installed app (display-mode: standalone).
+	readonly standalone: Effect.Effect<boolean>;
+	// The person pressed "Stop saving offline" and has not turned it on since. An
+	// installed app then stays off at launch. Stored in localStorage; unreadable
+	// storage reads as false.
+	readonly optedOut: Effect.Effect<boolean>;
+	readonly setOptedOut: (value: boolean) => Effect.Effect<void>;
+	// Emits when the browser reports the app was installed (window appinstalled).
+	readonly appInstalled: Stream.Stream<void>;
 	readonly register: (
 		url: string,
 	) => Effect.Effect<SwHandle, SwRegistrationError>;
+	// Removes the registration. Nothing to remove is success.
+	readonly unregister: Effect.Effect<void, SwDisableError>;
 	readonly awaitControllerChange: Effect.Effect<void>;
 	readonly pageVisible: Stream.Stream<void>;
 	readonly reload: Effect.Effect<void>;
@@ -60,7 +90,8 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 
 		const watch = (worker: ServiceWorker) => {
 			const onState = () => {
-				if (worker.state === "installed" && sw.controller) {
+				// An active worker exists, so this one is an update, not the first install.
+				if (worker.state === "installed" && reg.active) {
 					Queue.offerUnsafe(queue, "update-waiting");
 				}
 
@@ -94,7 +125,10 @@ const makeHandle = (reg: ServiceWorkerRegistration): SwHandle => {
 
 	return {
 		initial: reg.active ? "active" : "installing",
-		hadController: sw.controller !== null,
+		hadController: controlledAtRegistration({
+			hasActiveWorker: reg.active !== null,
+			hasController: sw.controller !== null,
+		}),
 		hasWaiting: reg.waiting !== null,
 		events,
 		update: Effect.tryPromise({
@@ -135,6 +169,8 @@ const askBuild = (reg: ServiceWorkerRegistration) =>
 		}),
 	);
 
+const OPT_OUT_KEY = "palico-offline";
+
 export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 	supported: typeof navigator !== "undefined" && "serviceWorker" in navigator,
 	pageBuild:
@@ -145,6 +181,55 @@ export const ServiceWorkerHostLive = Layer.succeed(ServiceWorkerHost, {
 		window.addEventListener("load", done, { once: true });
 
 		return Effect.sync(() => window.removeEventListener("load", done));
+	}),
+	hasRegistration: Effect.tryPromise(() =>
+		navigator.serviceWorker.getRegistration(),
+	).pipe(
+		Effect.map((reg) => reg !== undefined),
+		Effect.tapError((cause) =>
+			Effect.logWarning(
+				`Could not read the service worker registration: ${messageOf(cause)}`,
+			),
+		),
+		Effect.orElseSucceed(() => false),
+	),
+	standalone: Effect.sync(
+		() => window.matchMedia("(display-mode: standalone)").matches,
+	),
+	optedOut: Effect.sync(() => {
+		try {
+			return localStorage.getItem(OPT_OUT_KEY) === "off";
+		} catch {
+			return false;
+		}
+	}),
+	setOptedOut: (value) =>
+		Effect.sync(() => {
+			try {
+				if (value) localStorage.setItem(OPT_OUT_KEY, "off");
+				else localStorage.removeItem(OPT_OUT_KEY);
+			} catch {
+				// Not remembered: an installed app may switch itself on again.
+			}
+		}),
+	appInstalled: Stream.callback<void>((queue) => {
+		const onInstalled = () => Queue.offerUnsafe(queue, undefined);
+
+		window.addEventListener("appinstalled", onInstalled);
+
+		return Effect.addFinalizer(() =>
+			Effect.sync(() =>
+				window.removeEventListener("appinstalled", onInstalled),
+			),
+		);
+	}),
+	unregister: Effect.tryPromise({
+		try: async () => {
+			const reg = await navigator.serviceWorker.getRegistration();
+
+			await reg?.unregister();
+		},
+		catch: (cause) => new SwDisableError({ message: messageOf(cause) }),
 	}),
 	register: (url) =>
 		Effect.tryPromise({

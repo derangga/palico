@@ -1,7 +1,15 @@
 // Page-wide offline state. Module-level refs, like the engine singletons in
 // video/engine.ts. SubscriptionRef lets React subscribe through `toStore`.
 
-import { Effect, Fiber, Option, Ref, Stream, SubscriptionRef } from "effect";
+import {
+	Effect,
+	Fiber,
+	Option,
+	Queue,
+	Ref,
+	Stream,
+	SubscriptionRef,
+} from "effect";
 
 import type { SwHandle } from "./hosts.ts";
 import { type EngineId, ShellState, type UpdateState } from "./shapes.ts";
@@ -27,6 +35,14 @@ export const notSavedRef = make<ReadonlySet<EngineId>>(new Set());
 
 // Bumped after every engine download so status hooks re-check the caches.
 export const refreshRef = make(0);
+
+// "Turn offline on" requests, taken by the startOffline fiber. Sliding with room
+// for one, so a second request while one is waiting changes nothing.
+export const enableQueue = Effect.runSync(Queue.sliding<void>(1));
+
+// "Turn offline off" while a worker session runs: stops that session.
+export const disableQueue = Effect.runSync(Queue.sliding<void>(1));
+
 export const handleRef = Ref.makeUnsafe<Option.Option<SwHandle>>(Option.none());
 
 export const resetOfflineState = Effect.all([
@@ -38,6 +54,17 @@ export const resetOfflineState = Effect.all([
 	SubscriptionRef.set(notSavedRef, new Set()),
 	SubscriptionRef.set(refreshRef, 0),
 	Ref.set(handleRef, Option.none()),
+	Queue.clear(enableQueue),
+	Queue.clear(disableQueue),
+]).pipe(Effect.asVoid);
+
+// Back to "offline use is off": no worker session, no handle, no pending update.
+export const markOff = Effect.all([
+	Ref.set(handleRef, Option.none()),
+	Ref.set(adoptingRef, false),
+	SubscriptionRef.set(updateRef, "idle"),
+	SubscriptionRef.set(reloadNeededRef, false),
+	SubscriptionRef.set(shellRef, ShellState.cases.Off.make({})),
 ]).pipe(Effect.asVoid);
 
 // useSyncExternalStore adapter.

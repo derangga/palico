@@ -11,6 +11,8 @@ export type EngineId = Schema.Schema.Type<typeof EngineId>;
 
 // What a tool can promise about working offline right now.
 export const OfflineStatus = Schema.TaggedUnion({
+	// The person has not turned offline on. The site is a plain website.
+	Off: {},
 	Ready: {},
 	// The worker is still installing (first visit).
 	Preparing: {},
@@ -22,9 +24,12 @@ export const OfflineStatus = Schema.TaggedUnion({
 
 export type OfflineStatus = Schema.Schema.Type<typeof OfflineStatus>;
 
-// An active worker means the atomic precache install finished.
+// An active worker means the atomic precache install finished. Off means no
+// worker is registered because offline use was never turned on, or was turned
+// off again.
 export const ShellState = Schema.TaggedUnion({
 	Unsupported: {},
+	Off: {},
 	Registering: {},
 	Installing: {},
 	Active: {},

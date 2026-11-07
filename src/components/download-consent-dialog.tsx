@@ -12,6 +12,9 @@ import {
 	AlertDialogMedia,
 	AlertDialogTitle,
 } from "#/components/ui/alert-dialog.tsx";
+import { useStore } from "#/hooks/use-offline-status.ts";
+import { ShellState } from "#/lib/offline/shapes.ts";
+import { shellStore } from "#/lib/offline/stores.ts";
 import { m } from "#/paraglide/messages.js";
 
 export interface DownloadConsentDialogProps {
@@ -38,13 +41,26 @@ export function DownloadConsentDialog({
 	cancelLabel = m.consent_cancel(),
 	confirmLabel = m.consent_confirm(),
 }: DownloadConsentDialogProps) {
+	// A downloaded engine is useless offline without the app shell, and the download
+	// turns offline on (guardedEngineLoad). Say so while it is off or a failed
+	// attempt can be retried.
+	const shell = useStore(shellStore);
+
+	const shellOff =
+		ShellState.guards.Off(shell) || ShellState.guards.Failed(shell);
+
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogMedia>{icon}</AlertDialogMedia>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
-					<AlertDialogDescription>{description}</AlertDialogDescription>
+					<AlertDialogDescription>
+						{description}
+						{shellOff && (
+							<span className="mt-2 block">{m.consent_also_offline()}</span>
+						)}
+					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
 					<AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
