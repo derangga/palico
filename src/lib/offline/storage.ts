@@ -81,3 +81,8 @@ export const cleanupStaleCaches = Effect.gen(function* () {
 		discard: true,
 	});
 });
+
+// The Workbox precache that holds the app shell (the same rule as the kill
+// switch in sw.ts). Engine buckets never contain "-precache-".
+export const precacheBuckets = (names: readonly string[]): string[] =>
+	names.filter((n) => n.includes("-precache-"));

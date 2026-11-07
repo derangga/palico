@@ -1,9 +1,14 @@
 // Test doubles for the three host services. Not imported by app code.
 import { Effect, Layer, Option, Queue, Stream } from "effect";
 
-import { StorageUnavailableError } from "./errors.ts";
+import {
+	StorageUnavailableError,
+	SwDisableError,
+	SwRegistrationError,
+} from "./errors.ts";
 import {
 	CacheHost,
+	controlledAtRegistration,
 	ServiceWorkerHost,
 	StorageHost,
 	type SwEvent,
@@ -13,7 +18,18 @@ import {
 export const makeFakeSw = (
 	opts: {
 		supported?: boolean;
+		// A worker is already registered at startup. Defaults to true, so a test
+		// opts out to model a first-time visitor.
+		registered?: boolean;
+		standalone?: boolean;
+		// The stored "Stop saving offline" choice at startup.
+		optedOut?: boolean;
+		unregisterFails?: boolean;
+		// The first N register calls fail, to model a failed install.
+		registerFailures?: number;
 		initial?: "active" | "installing";
+		// A worker controls the page. It stays true after unregister, like a real
+		// page, whose old controller lives on until reload.
 		hadController?: boolean;
 		hasWaiting?: boolean;
 		controllerChangeOnActivate?: boolean;
@@ -22,14 +38,29 @@ export const makeFakeSw = (
 		waitingBuild?: string;
 	} = {},
 ) => {
-	const calls = { register: 0, update: 0, activate: 0, reload: 0 };
+	const calls = {
+		register: 0,
+		unregister: 0,
+		update: 0,
+		activate: 0,
+		reload: 0,
+	};
+	let registered = opts.registered ?? true;
+	let optedOut = opts.optedOut ?? false;
+	let failuresLeft = opts.registerFailures ?? 0;
 	const events = Effect.runSync(Queue.unbounded<SwEvent>());
 	const controllerChanges = Effect.runSync(Queue.unbounded<void>());
 	const visible = Effect.runSync(Queue.unbounded<void>());
+	const installed = Effect.runSync(Queue.unbounded<void>());
 
-	const handle: SwHandle = {
+	// Built per register call: hadController follows the same rule as the live
+	// host, so a stale controller without an active worker does not count.
+	const makeHandle = (activeWorker: boolean): SwHandle => ({
 		initial: opts.initial ?? "active",
-		hadController: opts.hadController ?? true,
+		hadController: controlledAtRegistration(
+			activeWorker ? {} : null,
+			(opts.hadController ?? true) ? {} : null,
+		),
 		hasWaiting: opts.hasWaiting ?? false,
 		events: Stream.fromQueue(events),
 		update: Effect.sync(() => {
@@ -43,17 +74,49 @@ export const makeFakeSw = (
 				? Effect.void
 				: Queue.offer(controllerChanges, undefined).pipe(Effect.asVoid);
 		}),
-	};
+	});
 
 	const layer = Layer.succeed(ServiceWorkerHost, {
 		supported: opts.supported ?? true,
 		pageBuild: opts.pageBuild ?? "build-a",
 		windowLoaded: Effect.void,
-		register: () =>
+		hasRegistration: Effect.sync(() => registered),
+		standalone: Effect.succeed(opts.standalone ?? false),
+		optedOut: Effect.sync(() => optedOut),
+		setOptedOut: (value) =>
 			Effect.sync(() => {
+				optedOut = value;
+			}),
+		appInstalled: Stream.fromQueue(installed),
+		unregister: Effect.suspend(() => {
+			calls.unregister++;
+
+			if (opts.unregisterFails) {
+				return Effect.fail(new SwDisableError({ message: "nope" }));
+			}
+
+			registered = false;
+
+			return Effect.void;
+		}),
+		register: () =>
+			Effect.suspend(() => {
 				calls.register++;
 
-				return handle;
+				if (failuresLeft > 0) {
+					failuresLeft--;
+
+					return Effect.fail(
+						new SwRegistrationError({ stage: "register", message: "boom" }),
+					);
+				}
+
+				// An active worker exists only if one was registered before this call.
+				const activeWorker =
+					registered && (opts.initial ?? "active") === "active";
+				registered = true;
+
+				return Effect.succeed(makeHandle(activeWorker));
 			}),
 		awaitControllerChange: Queue.take(controllerChanges),
 		pageVisible: Stream.fromQueue(visible),
@@ -67,6 +130,9 @@ export const makeFakeSw = (
 		calls,
 		emit: (e: SwEvent) => Effect.runSync(Queue.offer(events, e)),
 		becomeVisible: () => Effect.runSync(Queue.offer(visible, undefined)),
+		install: () => Effect.runSync(Queue.offer(installed, undefined)),
+		isRegistered: () => registered,
+		isOptedOut: () => optedOut,
 		controllerChange: () =>
 			Effect.runSync(Queue.offer(controllerChanges, undefined)),
 	};

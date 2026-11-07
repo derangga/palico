@@ -81,4 +81,40 @@ describe("computeStatus", () => {
 			})._tag,
 		).toBe("NotSaved");
 	});
+
+	describe("shell Off", () => {
+		const shell = ShellState.cases.Off.make({});
+
+		it("is Off for a tool without an engine", () => {
+			expect(computeStatus({ shell, notSaved: false })).toEqual(
+				OfflineStatus.cases.Off.make({}),
+			);
+		});
+
+		it("is Preparing until the engine check finishes", () => {
+			expect(computeStatus({ shell, engine, notSaved: false })._tag).toBe(
+				"Preparing",
+			);
+		});
+
+		it("asks for a download when the engine is missing", () => {
+			expect(
+				computeStatus({ shell, engine, cached: false, notSaved: false }),
+			).toEqual(
+				OfflineStatus.cases.NeedsDownload.make({ sizeLabel: "~31 MB" }),
+			);
+		});
+
+		it("reports NotSaved when a finished download did not stick", () => {
+			expect(
+				computeStatus({ shell, engine, cached: false, notSaved: true })._tag,
+			).toBe("NotSaved");
+		});
+
+		it("is Off when the engine is saved but the shell is not", () => {
+			expect(
+				computeStatus({ shell, engine, cached: true, notSaved: false })._tag,
+			).toBe("Off");
+		});
+	});
 });

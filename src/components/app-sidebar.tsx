@@ -71,6 +71,7 @@ function SidebarNavItem({
 				/>
 				<span>{item.label}</span>
 				{offline &&
+					!OfflineStatus.guards.Off(offline) &&
 					!OfflineStatus.guards.Unavailable(offline) &&
 					"engine" in item &&
 					item.engine && (

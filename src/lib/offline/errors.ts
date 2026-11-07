@@ -25,6 +25,14 @@ export class SwUpdateError extends Schema.TaggedError<SwUpdateError>()(
 	},
 ) {}
 
+// Turning offline off: the worker registration could not be removed.
+export class SwDisableError extends Schema.TaggedError<SwDisableError>()(
+	"SwDisableError",
+	{
+		message: Schema.String,
+	},
+) {}
+
 // A job is running, so the new version must wait.
 export class UpdateBlockedError extends Schema.TaggedError<UpdateBlockedError>()(
 	"UpdateBlockedError",
