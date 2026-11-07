@@ -5,13 +5,20 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import {
+	type SavedFile,
+	SavedResult,
+} from "#/components/handoff/saved-result.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { FileCard } from "#/components/pdf-merge/file-card.tsx";
 import type { MergeItem } from "#/components/pdf-merge/types.ts";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { loadPdf, mergePdfs } from "#/lib/file/pdf.ts";
+import { formatBytes } from "#/lib/format-bytes.ts";
 import { filesLabel, pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -43,6 +50,12 @@ function PdfMergePage() {
 	const [items, setItems] = useState<ReadonlyArray<MergeItem>>([]);
 	const [merging, setMerging] = useState(false);
 
+	// The last merged file, shown while the list it was made from is unchanged.
+	const [saved, setSaved] = useState<{
+		readonly from: ReadonlyArray<MergeItem>;
+		readonly file: SavedFile;
+	} | null>(null);
+
 	// Load one file's cover thumbnail + page count (applies the shared load
 	// guards). Updates the placeholder in place on success; drops it on failure.
 	async function loadCover(id: string, file: File) {
@@ -71,6 +84,11 @@ function PdfMergePage() {
 			),
 		);
 	}
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -146,6 +164,15 @@ function PdfMergePage() {
 		if (Option.isNone(result)) return;
 		recordToolUse("/pdf-merge");
 		downloadBlob(result.value, "merged.pdf");
+		setSaved({
+			from: items,
+			file: {
+				blob: result.value,
+				name: "merged.pdf",
+				detail: `${pagesLabel(totalPages)} · ${formatBytes(result.value.size)}`,
+				outputs: [{ blob: result.value, name: "merged.pdf" }],
+			},
+		});
 	}
 
 	const hasItems = items.length > 0;
@@ -171,6 +198,8 @@ function PdfMergePage() {
 					pages: MAX_PDF_PAGES,
 				})}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			<Dropzone
 				label={m.pdfmerge_dropzone_label()}
@@ -204,6 +233,12 @@ function PdfMergePage() {
 							{m.pdfmerge_action()}
 						</Button>
 					</div>
+
+					{saved?.from === items && (
+						<div className="mb-3">
+							<SavedResult from="pdf_merge" saved={saved.file} />
+						</div>
+					)}
 
 					<ul className="flex flex-col gap-2">
 						{items.map((item, index) => (

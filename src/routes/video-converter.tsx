@@ -5,6 +5,8 @@ import { useReducer, useRef } from "react";
 import { toast } from "sonner";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CancelDialog } from "#/components/video-converter/cancel-dialog.tsx";
 import { ConverterControls } from "#/components/video-converter/converter-controls.tsx";
@@ -21,6 +23,7 @@ import {
 } from "#/components/video-converter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -88,6 +91,11 @@ function ConverterShell() {
 		confirmCancel,
 		cancelling,
 	} = state;
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -291,6 +299,12 @@ function ConverterShell() {
 		(i) => i.status === "ready" || i.status === "error",
 	);
 
+	const finished = items.flatMap((item) =>
+		item.status === "done" && item.outBlob && item.outName
+			? [{ blob: item.outBlob, name: item.outName }]
+			: [],
+	);
+
 	const convertLabel = isRunning
 		? m.videoconv_converting({ done: batchDone, total: batchTotal })
 		: convertable.length <= 1
@@ -302,6 +316,8 @@ function ConverterShell() {
 			<PageHeader title={m.tool_video_converter_label()}>
 				{m.videoconv_description({ max: MAX_FILES })}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			<Dropzone
 				label={m.videoconv_dropzone_label()}
@@ -331,6 +347,12 @@ function ConverterShell() {
 						onClear={() => dispatch({ type: "reset" })}
 						onConvert={handleConvert}
 					/>
+
+					{finished.length > 0 && !isRunning && (
+						<div className="mt-4 flex justify-end">
+							<SendTo from="video_converter" outputs={finished} size="sm" />
+						</div>
+					)}
 
 					<ul className="mt-4 flex flex-col gap-2">
 						{items.map((item) => (

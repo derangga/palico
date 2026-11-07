@@ -3,6 +3,8 @@ import { FileArchive, Loader2, UploadCloud } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { FileRow } from "#/components/office-to-pdf/file-row.tsx";
 import type { OfficeItem } from "#/components/office-to-pdf/types.ts";
 import {
@@ -12,6 +14,7 @@ import {
 } from "#/components/office-to-pdf/utils.ts";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { toastOnExit } from "#/lib/exit-toast.ts";
 import { checkOfficeFile } from "#/lib/file/office-limits.ts";
 import {
@@ -39,6 +42,17 @@ export function OfficeShell() {
 	);
 
 	const doneItems = items.filter((i) => i.status === "done" && i.outBlob);
+
+	const finished = doneItems.flatMap((item) =>
+		item.outBlob
+			? [{ blob: item.outBlob, name: item.outName ?? pdfName(item.file.name) }]
+			: [],
+	);
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -221,6 +235,8 @@ export function OfficeShell() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			{/* The dropzone wraps a real file input. */}
 			<div
 				onDragOver={(e) => e.preventDefault()}
@@ -268,6 +284,9 @@ export function OfficeShell() {
 							<Button variant="ghost" onClick={reset} disabled={converting}>
 								{m.common_clear()}
 							</Button>
+							{!converting && (
+								<SendTo from="office_to_pdf" outputs={finished} />
+							)}
 							{doneItems.length > 1 && (
 								<Button
 									variant="outline"

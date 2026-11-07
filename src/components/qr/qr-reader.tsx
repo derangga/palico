@@ -3,6 +3,7 @@ import { Camera } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { CameraPanel } from "#/components/qr/camera-panel.tsx";
 import {
@@ -11,6 +12,7 @@ import {
 	type ResultView,
 } from "#/components/qr/reading-result.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { useQrCamera } from "#/hooks/use-qr-camera.ts";
 import type { QrReading } from "#/lib/qr/decode.ts";
 import { readQrFromFile } from "#/lib/qr/worker-client.ts";
@@ -97,6 +99,10 @@ export function QrReader() {
 		});
 	}
 
+	const handoff = useHandoff((files) => void readFile(files[0]), {
+		hasFile: state !== null,
+	});
+
 	function onCameraReading(result: QrReading) {
 		cancelRead();
 		setState({
@@ -168,6 +174,8 @@ export function QrReader() {
 			<PageHeader title={m.tool_qr_reader_label()}>
 				{m.qrread_description()}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			<div className="flex flex-col gap-4">
 				{camera.status !== "idle" && (

@@ -10,10 +10,12 @@ import {
 	extractReducer,
 	initialExtractState,
 } from "#/components/extract-audio/state.ts";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { deviceClass, formatBytes } from "#/components/video-cutter/utils.ts";
 import { VideoEnginePanel } from "#/components/video-engine-panel.tsx";
 import { useEngineGate } from "#/hooks/use-engine-gate.ts";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { withBusy } from "#/lib/offline/busy.ts";
 import { seoHead } from "#/lib/seo.ts";
 import { recordToolUse } from "#/lib/tool-history/store.ts";
@@ -56,6 +58,8 @@ function ExtractShell() {
 	const cancelTokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
 	const [state, dispatch] = useReducer(extractReducer, initialExtractState);
 	const { file, format, extracting, cancelling, percent, output } = state;
+
+	const handoff = useHandoff(addFiles, { hasFile: file !== null });
 
 	function addFiles(fileList: FileList | null) {
 		const f = fileList?.[0];
@@ -168,6 +172,8 @@ function ExtractShell() {
 	return (
 		<PageShell>
 			<PageHeader title={m.tool_extract_audio_label()}>{intro()}</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			{!file ? (
 				<Dropzone

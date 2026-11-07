@@ -8,7 +8,7 @@ import {
 	useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { Effect, Fiber } from "effect";
+import { Effect, Fiber, Option, Schema } from "effect";
 import {
 	Fragment,
 	useEffect,
@@ -41,7 +41,21 @@ import { m } from "#/paraglide/messages.js";
 
 import appCss from "../styles.css?url";
 
+// Every page can be opened with `?handoff=<id>` by "Send to..." (see
+// docs/chain-tools.md). It is kept as a string here; the target page decodes it
+// into a HandoffId, so a bad value still shows "Drop the file again".
+const decodeHandoffParam = Schema.decodeUnknownOption(Schema.String);
+
+interface RootSearch {
+	readonly handoff?: string;
+}
+
 export const Route = createRootRoute({
+	validateSearch: (search: RootSearch): RootSearch =>
+		Option.match(decodeHandoffParam(search.handoff), {
+			onNone: () => ({}),
+			onSome: (handoff) => ({ handoff }),
+		}),
 	// Title, description and social tags come from each route (src/lib/seo.ts):
 	// a root head runs once and is not re-run when the URL changes.
 	head: () => ({

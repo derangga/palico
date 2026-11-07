@@ -4,6 +4,8 @@ import { Download, ImageIcon, Loader2, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -14,6 +16,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "#/components/ui/empty.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import type { FaviconError, ZipError } from "#/lib/image/errors.ts";
 import {
 	bundleFaviconZip,
@@ -106,6 +109,10 @@ function FaviconGeneratorPage() {
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
+	const handoff = useHandoff((files) => void selectFile(files), {
+		hasFile: source !== null,
+	});
+
 	async function selectFile(files: FileList | null) {
 		const file = files?.[0];
 
@@ -165,6 +172,8 @@ function FaviconGeneratorPage() {
 				{m.favicon_description_before()} <code>{"<link>"}</code>{" "}
 				{m.favicon_description_after()}
 			</PageHeader>
+
+			<HandoffNotice handoff={handoff} />
 
 			<input
 				ref={fileInputRef}
@@ -292,12 +301,22 @@ function FaviconGeneratorPage() {
 								})}
 							</ul>
 
-							<div className="flex items-center justify-between gap-2 rounded-xl border bg-card p-3">
-								<p className="text-xs text-muted-foreground">
+							<div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card p-3">
+								<p className="min-w-48 flex-1 text-xs text-muted-foreground">
 									{m.favicon_zip_before()} <code>site.webmanifest</code>{" "}
 									{m.favicon_zip_middle()} <code>{"<head>"}</code>{" "}
 									{m.favicon_zip_after()}
 								</p>
+								{/* The PNG sizes only: the .ico is for browsers, not for other tools. */}
+								<SendTo
+									from="favicon_generator"
+									outputs={assets.flatMap((asset) =>
+										asset.mime === "image/png"
+											? [{ blob: asset.blob, name: asset.name }]
+											: [],
+									)}
+									className="ml-auto"
+								/>
 								<Button onClick={downloadAll} disabled={zipping}>
 									{zipping ? (
 										<Loader2 className="animate-spin" />

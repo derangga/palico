@@ -1,6 +1,7 @@
 import { Download, FileText } from "lucide-react";
 
 import { downloadBlob, formatBytes } from "#/components/converter/utils.ts";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	type CompressPresetId,
@@ -46,7 +47,7 @@ export function ResultCard({
 				$match(outcome, {
 					Compressed: ({ blob, originalSize, size, stats }) => (
 						<div className="animate-pop-in animate-done-tint flex flex-col gap-2 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
-							<div className="flex items-center gap-3">
+							<div className="flex flex-wrap items-center gap-3">
 								<FileText className="size-4 shrink-0 text-muted-foreground" />
 								<div className="min-w-0 flex-1">
 									<p className="truncate text-sm font-medium">
@@ -59,14 +60,25 @@ export function ResultCard({
 										})}
 									</p>
 								</div>
-								<Button
-									onClick={() =>
-										downloadBlob(blob, `${baseName(file.name)}_compressed.pdf`)
-									}
-								>
-									<Download />
-									{m.common_save()}
-								</Button>
+								<div className="ml-auto flex gap-2">
+									<SendTo
+										from="pdf_compress"
+										outputs={[
+											{ blob, name: `${baseName(file.name)}_compressed.pdf` },
+										]}
+									/>
+									<Button
+										onClick={() =>
+											downloadBlob(
+												blob,
+												`${baseName(file.name)}_compressed.pdf`,
+											)
+										}
+									>
+										<Download />
+										{m.common_save()}
+									</Button>
+								</div>
 							</div>
 							<p className="text-xs text-muted-foreground">
 								{summaryLine(stats)}

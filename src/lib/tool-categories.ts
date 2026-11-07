@@ -71,6 +71,15 @@ export type Tool = {
 	category: ToolCategory;
 	/** The opt-in download this tool needs, if any (drives the offline pill). */
 	engine?: EngineId;
+	id: ToolId;
+	/**
+	 * The file types this tool takes, as MIME types or patterns such as
+	 * `image/*`. Empty for a tool that takes no file. "Send to..." lists a tool
+	 * only when it accepts every output being sent (see docs/chain-tools.md).
+	 */
+	accepts: ReadonlyArray<string>;
+	/** The best next steps after this tool, listed first in "Send to...". */
+	next: ReadonlyArray<ToolId>;
 };
 
 export const CATEGORIES: ReadonlyArray<{
@@ -109,7 +118,7 @@ export const CATEGORIES: ReadonlyArray<{
 	},
 ];
 
-type ToolId =
+export type ToolId =
 	| "converter"
 	| "resizer"
 	| "compressor"
@@ -151,7 +160,9 @@ const callOptions = (locale: Locale | undefined) =>
 
 function defineTool(
 	id: ToolId,
-	spec: Pick<Tool, "to" | "icon" | "category" | "engine">,
+	spec: Pick<Tool, "to" | "icon" | "category" | "engine" | "accepts"> & {
+		readonly next?: ReadonlyArray<ToolId>;
+	},
 ): Tool {
 	const textIn = (locale?: Locale): ToolText => ({
 		label: m[`tool_${id}_label` as const]({}, callOptions(locale)),
@@ -163,6 +174,8 @@ function defineTool(
 
 	return {
 		...spec,
+		id,
+		next: spec.next ?? [],
 		get label() {
 			return textIn().label;
 		},
@@ -185,155 +198,225 @@ function defineTool(
 	};
 }
 
+// What each tool takes, for "Send to..." (docs/chain-tools.md). Keep these in
+// step with the tool's dropzone `accept`.
+const IMAGES = ["image/*"];
+const VIDEOS = ["video/*"];
+const AUDIO = ["audio/*"];
+const PDF = ["application/pdf"];
+const NO_FILE: Tool["accepts"] = [];
+// The Office tool's dropzone goes by extension. These are the MIME types a
+// browser gives the same files. No palico tool outputs them yet.
+const OFFICE_DOCS = [
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/msword",
+	"application/vnd.oasis.opendocument.text",
+	"application/rtf",
+	"text/rtf",
+];
+// The same list as ACCEPTED_MIME_TYPES in src/lib/metadata/types.ts.
+const METADATA_TYPES = [
+	"image/jpeg",
+	"image/png",
+	"image/webp",
+	"application/pdf",
+];
+
 export const TOOLS: ReadonlyArray<Tool> = [
 	defineTool("converter", {
 		to: "/converter",
 		icon: ImageIcon,
 		category: "image",
+		accepts: IMAGES,
+		next: ["strip_metadata", "compressor"],
 	}),
 	defineTool("resizer", {
 		to: "/resizer",
 		icon: Scaling,
 		category: "image",
+		accepts: IMAGES,
+		next: ["compressor", "strip_metadata", "favicon_generator"],
 	}),
 	defineTool("compressor", {
 		to: "/compressor",
 		icon: Shrink,
 		category: "image",
+		accepts: IMAGES,
+		next: ["strip_metadata", "resizer"],
 	}),
 	defineTool("background_removal", {
 		to: "/background-removal",
 		icon: Eraser,
 		category: "image",
 		engine: "bg-model",
+		accepts: IMAGES,
+		next: ["resizer", "favicon_generator"],
 	}),
 	defineTool("favicon_generator", {
 		to: "/favicon-generator",
 		icon: Star,
 		category: "image",
+		accepts: IMAGES,
 	}),
 	defineTool("video_converter", {
 		to: "/video-converter",
 		icon: Film,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: VIDEOS,
+		next: ["video_cutter", "video_compressor", "video_to_gif"],
 	}),
 	defineTool("video_cutter", {
 		to: "/video-cutter",
 		icon: Scissors,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: VIDEOS,
+		next: ["video_to_gif", "video_compressor", "extract_audio"],
 	}),
 	defineTool("video_compressor", {
 		to: "/video-compressor",
 		icon: Minimize2,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: VIDEOS,
+		next: ["video_cutter", "extract_audio"],
 	}),
 	defineTool("video_to_gif", {
 		to: "/video-to-gif",
 		icon: ImagePlay,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: VIDEOS,
+		next: ["converter"],
 	}),
 	defineTool("extract_audio", {
 		to: "/extract-audio",
 		icon: AudioLines,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: VIDEOS,
+		next: ["audio_cutter"],
 	}),
 	defineTool("audio_cutter", {
 		to: "/audio-cutter",
 		icon: AudioWaveform,
 		category: "video",
 		engine: "ffmpeg",
+		accepts: AUDIO,
 	}),
 	defineTool("markdown_preview", {
 		to: "/markdown-preview",
 		icon: ScrollText,
 		category: "developer",
+		accepts: NO_FILE,
 	}),
 	defineTool("diff_viewer", {
 		to: "/diff-viewer",
 		icon: FileDiff,
 		category: "developer",
+		accepts: NO_FILE,
 	}),
 	defineTool("pdf_split", {
 		to: "/pdf-split",
 		icon: FileStack,
 		category: "file",
+		accepts: PDF,
+		next: ["pdf_compress", "pdf_merge", "pdf_to_images"],
 	}),
 	defineTool("pdf_merge", {
 		to: "/pdf-merge",
 		icon: Combine,
 		category: "file",
+		accepts: PDF,
+		next: ["pdf_compress", "pdf_organize", "pdf_password"],
 	}),
 	defineTool("pdf_organize", {
 		to: "/pdf-organize",
 		icon: LayoutGrid,
 		category: "file",
+		accepts: PDF,
+		next: ["pdf_compress", "pdf_password", "pdf_split"],
 	}),
 	defineTool("pdf_compress", {
 		to: "/pdf-compress",
 		icon: FileDown,
 		category: "file",
+		accepts: PDF,
+		next: ["pdf_password", "pdf_merge", "pdf_split"],
 	}),
 	defineTool("pdf_to_images", {
 		to: "/pdf-to-images",
 		icon: Images,
 		category: "file",
+		accepts: PDF,
+		next: ["compressor", "strip_metadata"],
 	}),
 	defineTool("office_to_pdf", {
 		to: "/office-to-pdf",
 		icon: FileText,
 		category: "file",
 		engine: "office",
+		accepts: OFFICE_DOCS,
+		next: ["pdf_compress", "pdf_password", "pdf_merge"],
 	}),
 	defineTool("pdf_password", {
 		to: "/pdf-password",
 		icon: LockKeyhole,
 		category: "file",
 		engine: "qpdf",
+		accepts: PDF,
+		next: ["pdf_compress", "pdf_organize", "pdf_to_images"],
 	}),
 	defineTool("strip_metadata", {
 		to: "/strip-metadata",
 		icon: EyeOff,
 		category: "file",
+		accepts: METADATA_TYPES,
+		next: ["compressor", "pdf_compress", "converter"],
 	}),
 	defineTool("qr_generator", {
 		to: "/qr-generator",
 		icon: QrCode,
 		category: "file",
+		accepts: NO_FILE,
+		next: ["compressor", "converter"],
 	}),
 	defineTool("qr_reader", {
 		to: "/qr-reader",
 		icon: ScanQrCode,
 		category: "file",
+		accepts: IMAGES,
 	}),
 	defineTool("palette_extractor", {
 		to: "/palette-extractor",
 		icon: Palette,
 		category: "color",
+		accepts: IMAGES,
 	}),
 	defineTool("color_picker", {
 		to: "/color-picker",
 		icon: Pipette,
 		category: "color",
+		accepts: IMAGES,
 	}),
 	defineTool("cron_generator", {
 		to: "/cron-generator",
 		icon: CalendarClock,
 		category: "developer",
+		accepts: NO_FILE,
 	}),
 	defineTool("json_converter", {
 		to: "/json-converter",
 		icon: Braces,
 		category: "developer",
+		accepts: NO_FILE,
 	}),
 	defineTool("jwt_decoder", {
 		to: "/jwt-decoder",
 		icon: KeyRound,
 		category: "developer",
+		accepts: NO_FILE,
 	}),
 ];
 

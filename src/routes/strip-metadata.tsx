@@ -6,12 +6,15 @@ import { toast } from "sonner";
 
 import { downloadBlob, uniqueNames } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import {
 	type MetadataItem,
 	MetadataRow,
 } from "#/components/metadata/metadata-row.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { MAX_PDF_BYTES } from "#/lib/file/pdf-types.ts";
 import { filesLabel } from "#/lib/i18n/counts.ts";
 import { MAX_FILE_BYTES, MAX_FILES } from "#/lib/image/types.ts";
@@ -45,8 +48,17 @@ function StripMetadataPage() {
 	const strippable = items.filter(canStrip);
 	const cleanItems = items.filter((i) => i.status === "clean" && i.blob);
 
+	const cleanOutputs = cleanItems.flatMap((item) =>
+		item.blob ? [{ blob: item.blob, name: item.file.name }] : [],
+	);
+
 	const update = (id: string, patch: Partial<MetadataItem>) =>
 		setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -163,6 +175,8 @@ function StripMetadataPage() {
 				{m.metadata_description()}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			<Dropzone
 				label={m.metadata_dropzone_label()}
 				actionLabel={m.common_choose_files()}
@@ -191,6 +205,9 @@ function StripMetadataPage() {
 						>
 							{m.metadata_clear_all()}
 						</Button>
+						{!isRunning && (
+							<SendTo from="strip_metadata" outputs={cleanOutputs} />
+						)}
 						{cleanItems.length > 1 && (
 							<Button
 								variant="outline"

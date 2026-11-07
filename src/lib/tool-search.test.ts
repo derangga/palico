@@ -17,6 +17,9 @@ const fake = (label: string, over: Partial<Tool> = {}): Tool => {
 		crumb: "",
 		icon: Star,
 		category: "file",
+		id: "converter",
+		accepts: [],
+		next: [],
 		...over,
 	} satisfies Omit<Tool, "textIn">;
 

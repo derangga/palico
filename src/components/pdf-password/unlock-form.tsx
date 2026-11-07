@@ -91,6 +91,7 @@ export function UnlockForm({
 					blob={done.blob}
 					name={done.name}
 					play={justDone}
+					sendable
 				/>
 			)}
 		</>

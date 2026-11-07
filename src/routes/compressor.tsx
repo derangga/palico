@@ -13,6 +13,8 @@ import {
 	uniqueNames,
 } from "#/components/converter/utils.ts";
 import { Dropzone } from "#/components/dropzone.tsx";
+import { HandoffNotice } from "#/components/handoff/handoff-notice.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Checkbox } from "#/components/ui/checkbox.tsx";
@@ -24,6 +26,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select.tsx";
+import { useHandoff } from "#/hooks/use-handoff.ts";
 import { currentLocale } from "#/lib/i18n/state.ts";
 import {
 	CompressFormat,
@@ -86,9 +89,20 @@ function CompressorPage() {
 
 	const missedTarget = doneItems.some((i) => i.targetMissed);
 
+	const finished = doneItems.flatMap((item) =>
+		item.outBlob && item.outName
+			? [{ blob: item.outBlob, name: item.outName }]
+			: [],
+	);
+
 	const compareItem = items.find(
 		(i) => i.id === compareId && i.status === "done" && i.outBlob,
 	);
+
+	const handoff = useHandoff(addFiles, {
+		multiple: true,
+		hasFile: items.length > 0,
+	});
 
 	function addFiles(fileList: FileList | null) {
 		if (!fileList) return;
@@ -267,6 +281,8 @@ function CompressorPage() {
 				})}
 			</PageHeader>
 
+			<HandoffNotice handoff={handoff} />
+
 			<Dropzone
 				label={m.converter_dropzone_label()}
 				actionLabel={m.common_choose_files()}
@@ -394,6 +410,7 @@ function CompressorPage() {
 							>
 								{m.common_clear()}
 							</Button>
+							{!isRunning && <SendTo from="compressor" outputs={finished} />}
 							{doneItems.length > 1 && (
 								<Button
 									variant="outline"

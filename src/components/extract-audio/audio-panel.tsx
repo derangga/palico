@@ -3,6 +3,7 @@ import { AudioLines, Ban, Download, Film, Loader2 } from "lucide-react";
 import { useId } from "react";
 
 import type { AudioResult } from "#/components/extract-audio/state.ts";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Select,
@@ -127,18 +128,21 @@ export function AudioPanel({
 			</div>
 
 			{output && (
-				<div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
+				<div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-card px-3 py-2.5">
 					<AudioLines className="size-4 shrink-0 text-muted-foreground" />
-					<div className="min-w-0 flex-1">
+					<div className="min-w-32 flex-1">
 						<p className="truncate text-sm font-medium">{output.name}</p>
 						<p className="text-xs text-muted-foreground">
 							{formatBytes(output.size)}
 						</p>
 					</div>
-					<Button onClick={() => downloadBlob(output.blob, output.name)}>
-						<Download />
-						{m.common_save()}
-					</Button>
+					<div className="ml-auto flex gap-2">
+						<SendTo from="extract_audio" outputs={[output]} />
+						<Button onClick={() => downloadBlob(output.blob, output.name)}>
+							<Download />
+							{m.common_save()}
+						</Button>
+					</div>
 				</div>
 			)}
 		</div>

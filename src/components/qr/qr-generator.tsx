@@ -13,6 +13,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { ChoiceGroup } from "#/components/choice-group.tsx";
+import { SendTo } from "#/components/handoff/send-to.tsx";
 import { PageHeader, PageShell } from "#/components/page-shell.tsx";
 import { AdviceList, ScanTips } from "#/components/qr/guidance-panels.tsx";
 import { Button } from "#/components/ui/button.tsx";
@@ -415,6 +416,19 @@ export function QrGenerator() {
 									label={m.qrgen_save_svg()}
 									doneLabel={m.qrgen_saved()}
 									onClick={exportAs}
+								/>
+								{/* A PNG at the chosen size, drawn when a tool is picked. */}
+								<SendTo
+									from="qr_generator"
+									outputs={{
+										type: "image/png",
+										count: 1,
+										load: toPng(qr, style, Number(pngSize)).pipe(
+											Effect.map((blob) => [
+												new File([blob], "qr-code.png", { type: "image/png" }),
+											]),
+										),
+									}}
 								/>
 								<ExportButton
 									kind="copy"
