@@ -35,8 +35,7 @@ import type { EngineId } from "#/lib/offline/shapes.ts";
 import { m } from "#/paraglide/messages.js";
 
 /**
- * The one registry of tools. The home grid and the sidebar both read it, and
- * `categoryOfPath` lets any page find its category from the URL.
+ * The one registry of tools. The home grid and the sidebar both read it.
  * Grouping follows DESIGN.md: Image (Mauve + Pink), Video & Audio (Peach +
  * Yellow, id "video"), File (Teal + Green), Color (Blue + Sapphire), Developer
  * (Lavender + Flamingo).
@@ -347,10 +346,6 @@ export const toolGroups = CATEGORIES.map((category) => ({
 	},
 	tools: TOOLS.filter((tool) => tool.category === category.id),
 }));
-
-export function categoryOfPath(pathname: string): ToolCategory | undefined {
-	return TOOLS.find((tool) => pathname.startsWith(tool.to))?.category;
-}
 
 /**
  * Class maps per category. Latte rule: only Mauve, Red and large Blue carry

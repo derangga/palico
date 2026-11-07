@@ -97,7 +97,8 @@ tiles do. Status pills use tinted fill + coloured dot + `text` label.
   the logo's lavender-blue hat family and is the strongest AA-safe Latte accent.
   Alternative: Blue, to match the hat.
 - **One accent per tool category** (chip colour, tile, page-header chip, sidebar
-  icon, focus-adjacent details):
+  icon, focus-adjacent details). The page-header chip was later removed because
+  the breadcrumb already names the category:
   - Image: Mauve and Pink
   - Video: Peach and Yellow
   - File: Teal and Green

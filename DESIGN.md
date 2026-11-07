@@ -240,16 +240,17 @@ tile and icon fill; the second is the tint or secondary detail.
 Color tools read or help you choose colors. A tool that takes an image and
 returns a changed image (grayscale, make a color transparent) stays in Image.
 Blue is a fill and tint here like every other accent. Latte lets large Blue
-carry text, but the category chip keeps a `text` label for consistency.
+carry text, but category labels keep a `text` colour for consistency. Tool page
+headers show no category chip, because the breadcrumb already names the category.
 
 File tools take files you drop in. Developer tools take text you type or paste
 and are mostly used by people who write code. A new tool goes in whichever of
 the two matches its input. Flamingo is reserved for this pair, and Sky stays
 with status.
 
-Category colour appears on the home tile, the sidebar icon, the page-header
-chip, the progress fill and the dropzone drag-over state. It never appears on
-buttons; buttons are Mauve.
+Category colour appears on the home tile, the sidebar icon, the progress fill
+and the dropzone drag-over state. It never appears on buttons; buttons are
+Mauve.
 
 **Status.** Status keeps its real meaning everywhere.
 

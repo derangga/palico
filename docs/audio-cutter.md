@@ -72,7 +72,7 @@ styles and re-renders nothing in the waveform.
 ## Design decisions
 
 - Mauve (the primary, selection colour) for the bars. The Video & Audio accent
-  stays on the page chip and the sidebar icon, so the component has one
+  stays on the tool tile and the sidebar icon, so the component has one
   saturated colour.
 - The only motion is a 200 ms `opacity` fade when the peaks replace the dotted
   placeholder. Handle drags, the playhead and keyboard nudges do not animate
