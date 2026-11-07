@@ -97,6 +97,11 @@ interface Sink {
 	err: string[];
 }
 
+// The sink the capturing console functions write to; replaced before each command.
+interface SinkRef {
+	current: Sink;
+}
+
 const startFailure = (cause: unknown, said: ReadonlyArray<string>): string =>
 	[cause instanceof Error ? cause.message : String(cause), ...said]
 		.filter((part) => part !== "")
@@ -110,7 +115,7 @@ const startFailure = (cause: unknown, said: ReadonlyArray<string>): string =>
 // so two starts never overlap and the swap never nests.
 const instantiate = async (
 	wasm: ArrayBuffer,
-	sink: { current: Sink },
+	sink: SinkRef,
 	hooks: QpdfHooks,
 ): Promise<QpdfModule> => {
 	const log = console.log;
@@ -143,7 +148,7 @@ export const runQpdf = async (params: {
 	readonly outputs: ReadonlyArray<string>;
 	readonly hooks?: QpdfHooks;
 }): Promise<QpdfRunResult> => {
-	const sink: { current: Sink } = { current: { out: [], err: [] } };
+	const sink: SinkRef = { current: { out: [], err: [] } };
 	const qpdf = await instantiate(params.wasm, sink, params.hooks ?? {});
 
 	for (const input of params.inputs) qpdf.FS.writeFile(input.path, input.bytes);

@@ -31,10 +31,10 @@ describe("toCryptError", () => {
 	});
 
 	it("turns an unknown reason into a worker error instead of failing silently", () => {
-		expect(toCryptError("a.pdf", "something-new", "boom")).toMatchObject({
-			_tag: "PdfWorkerError",
-			message: "boom",
-		});
+		const error = toCryptError("a.pdf", "something-new", "boom");
+
+		expect(error._tag).toBe("PdfWorkerError");
+		expect(error.message).toBe("boom");
 	});
 
 	it("names the file on the errors that carry it", () => {

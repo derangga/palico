@@ -27,14 +27,14 @@ const WORKER_SCRIPT = "https://palico.test/assets/pdf-crypt.worker-abc123.js";
 
 type Factory = NonNullable<QpdfHooks["create"]>;
 
-type WithBinary = (options: { wasmBinary: ArrayBuffer }) => Promise<unknown>;
+type WithBinary = (options: { wasmBinary: ArrayBuffer }) => ReturnType<Factory>;
 
 // The glue, evaluated as a worker would see it. `answer` decides what a fetch of a
 // given URL returns; every URL asked for is recorded.
 const glueInFakeWorker = (answer: (url: string) => Promise<Response>) => {
 	const fetched: string[] = [];
 
-	const sandbox: Record<string, unknown> = {
+	const sandbox = {
 		module: { exports: {} },
 		exports: {},
 		console,
@@ -43,10 +43,12 @@ const glueInFakeWorker = (answer: (url: string) => Promise<Response>) => {
 		URL,
 		WorkerGlobalScope: class {},
 		self: { location: { href: WORKER_SCRIPT } },
-		fetch: (url: unknown) => {
-			fetched.push(String(url));
+		fetch: (url: URL | string) => {
+			const href = String(url);
 
-			return answer(String(url));
+			fetched.push(href);
+
+			return answer(href);
 		},
 		// The glue falls back to a synchronous request when fetch fails.
 		XMLHttpRequest: class {
@@ -63,7 +65,7 @@ const glueInFakeWorker = (answer: (url: string) => Promise<Response>) => {
 	createContext(sandbox);
 	runInContext(GLUE, sandbox);
 
-	const exported = (sandbox.module as { exports: unknown }).exports;
+	const exported = sandbox.module.exports;
 
 	// SAFETY: the glue assigns its factory to module.exports, and this is the shape
 	// the runner calls it with.
@@ -98,6 +100,7 @@ describe("the qpdf glue in a worker", () => {
 		const quiet = vi
 			.spyOn(console, "error")
 			.mockImplementation(() => undefined);
+
 		const { createWithBinary, fetched } = glueInFakeWorker(serveBlobs);
 
 		await createWithBinary({ wasmBinary: wasmBytes }).catch(() => undefined);
