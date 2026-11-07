@@ -233,7 +233,7 @@ tile and icon fill; the second is the tint or secondary detail.
 | --- | --- | --- |
 | Image | Mauve + Pink | Converter, resizer, background removal, favicon generator |
 | Video & Audio (`video`) | Peach + Yellow | Video converter, video cutter, video compressor, video to GIF, extract audio, audio cutter |
-| File | Teal + Green | PDF merge, PDF split, Office to PDF, Remove Metadata, QR code generator, QR code reader |
+| File | Teal + Green | PDF merge, PDF split, Protect PDF, Unlock PDF, Office to PDF, Remove Metadata, QR code generator, QR code reader |
 | Color | Blue + Sapphire | Palette extractor, color picker |
 | Developer | Lavender + Flamingo | Cron generator, Markdown preview, diff viewer, JSON converter, JWT decoder |
 

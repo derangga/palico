@@ -17,8 +17,10 @@ import { Route as StripMetadataRouteImport } from './routes/strip-metadata'
 import { Route as ResizerRouteImport } from './routes/resizer'
 import { Route as QrReaderRouteImport } from './routes/qr-reader'
 import { Route as QrGeneratorRouteImport } from './routes/qr-generator'
+import { Route as PdfUnlockRouteImport } from './routes/pdf-unlock'
 import { Route as PdfToImagesRouteImport } from './routes/pdf-to-images'
 import { Route as PdfSplitRouteImport } from './routes/pdf-split'
+import { Route as PdfProtectRouteImport } from './routes/pdf-protect'
 import { Route as PdfOrganizeRouteImport } from './routes/pdf-organize'
 import { Route as PdfMergeRouteImport } from './routes/pdf-merge'
 import { Route as PdfCompressRouteImport } from './routes/pdf-compress'
@@ -78,6 +80,11 @@ const QrGeneratorRoute = QrGeneratorRouteImport.update({
   path: '/qr-generator',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfUnlockRoute = PdfUnlockRouteImport.update({
+  id: '/pdf-unlock',
+  path: '/pdf-unlock',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PdfToImagesRoute = PdfToImagesRouteImport.update({
   id: '/pdf-to-images',
   path: '/pdf-to-images',
@@ -86,6 +93,11 @@ const PdfToImagesRoute = PdfToImagesRouteImport.update({
 const PdfSplitRoute = PdfSplitRouteImport.update({
   id: '/pdf-split',
   path: '/pdf-split',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdfProtectRoute = PdfProtectRouteImport.update({
+  id: '/pdf-protect',
+  path: '/pdf-protect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PdfOrganizeRoute = PdfOrganizeRouteImport.update({
@@ -198,8 +210,10 @@ export interface FileRoutesByFullPath {
   '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
+  '/pdf-protect': typeof PdfProtectRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/pdf-unlock': typeof PdfUnlockRoute
   '/qr-generator': typeof QrGeneratorRoute
   '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
@@ -228,8 +242,10 @@ export interface FileRoutesByTo {
   '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
+  '/pdf-protect': typeof PdfProtectRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/pdf-unlock': typeof PdfUnlockRoute
   '/qr-generator': typeof QrGeneratorRoute
   '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
@@ -259,8 +275,10 @@ export interface FileRoutesById {
   '/pdf-compress': typeof PdfCompressRoute
   '/pdf-merge': typeof PdfMergeRoute
   '/pdf-organize': typeof PdfOrganizeRoute
+  '/pdf-protect': typeof PdfProtectRoute
   '/pdf-split': typeof PdfSplitRoute
   '/pdf-to-images': typeof PdfToImagesRoute
+  '/pdf-unlock': typeof PdfUnlockRoute
   '/qr-generator': typeof QrGeneratorRoute
   '/qr-reader': typeof QrReaderRoute
   '/resizer': typeof ResizerRoute
@@ -291,8 +309,10 @@ export interface FileRouteTypes {
     | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
+    | '/pdf-protect'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/pdf-unlock'
     | '/qr-generator'
     | '/qr-reader'
     | '/resizer'
@@ -321,8 +341,10 @@ export interface FileRouteTypes {
     | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
+    | '/pdf-protect'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/pdf-unlock'
     | '/qr-generator'
     | '/qr-reader'
     | '/resizer'
@@ -351,8 +373,10 @@ export interface FileRouteTypes {
     | '/pdf-compress'
     | '/pdf-merge'
     | '/pdf-organize'
+    | '/pdf-protect'
     | '/pdf-split'
     | '/pdf-to-images'
+    | '/pdf-unlock'
     | '/qr-generator'
     | '/qr-reader'
     | '/resizer'
@@ -382,8 +406,10 @@ export interface RootRouteChildren {
   PdfCompressRoute: typeof PdfCompressRoute
   PdfMergeRoute: typeof PdfMergeRoute
   PdfOrganizeRoute: typeof PdfOrganizeRoute
+  PdfProtectRoute: typeof PdfProtectRoute
   PdfSplitRoute: typeof PdfSplitRoute
   PdfToImagesRoute: typeof PdfToImagesRoute
+  PdfUnlockRoute: typeof PdfUnlockRoute
   QrGeneratorRoute: typeof QrGeneratorRoute
   QrReaderRoute: typeof QrReaderRoute
   ResizerRoute: typeof ResizerRoute
@@ -452,6 +478,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QrGeneratorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf-unlock': {
+      id: '/pdf-unlock'
+      path: '/pdf-unlock'
+      fullPath: '/pdf-unlock'
+      preLoaderRoute: typeof PdfUnlockRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pdf-to-images': {
       id: '/pdf-to-images'
       path: '/pdf-to-images'
@@ -464,6 +497,13 @@ declare module '@tanstack/react-router' {
       path: '/pdf-split'
       fullPath: '/pdf-split'
       preLoaderRoute: typeof PdfSplitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdf-protect': {
+      id: '/pdf-protect'
+      path: '/pdf-protect'
+      fullPath: '/pdf-protect'
+      preLoaderRoute: typeof PdfProtectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pdf-organize': {
@@ -614,8 +654,10 @@ const rootRouteChildren: RootRouteChildren = {
   PdfCompressRoute: PdfCompressRoute,
   PdfMergeRoute: PdfMergeRoute,
   PdfOrganizeRoute: PdfOrganizeRoute,
+  PdfProtectRoute: PdfProtectRoute,
   PdfSplitRoute: PdfSplitRoute,
   PdfToImagesRoute: PdfToImagesRoute,
+  PdfUnlockRoute: PdfUnlockRoute,
   QrGeneratorRoute: QrGeneratorRoute,
   QrReaderRoute: QrReaderRoute,
   ResizerRoute: ResizerRoute,

@@ -12,6 +12,12 @@ import {
 import { isModelCached } from "#/lib/image/model-cache.ts";
 import { ORT_ASSET_URLS } from "#/lib/image/ort-assets.ts";
 import {
+	isQpdfCached,
+	QPDF_CACHE_NAME,
+	QPDF_SIZE_LABEL,
+	QPDF_WASM_BYTES,
+} from "#/lib/qpdf/assets.ts";
+import {
 	CACHE_NAME as FFMPEG_CACHE_NAME,
 	ENGINE_SIZE_LABEL as FFMPEG_SIZE_LABEL,
 	isEngineCached as isFfmpegCached,
@@ -48,7 +54,17 @@ export const ENGINES: Readonly<Record<EngineId, EngineSpec>> = {
 		sizeLabel: "~200 MB",
 		isCached: isModelCached(Object.values(ORT_ASSET_URLS)),
 	},
+	qpdf: {
+		id: "qpdf",
+		sizeBytes: QPDF_WASM_BYTES,
+		sizeLabel: QPDF_SIZE_LABEL,
+		isCached: isQpdfCached,
+	},
 };
 
 // Current engine bucket names; anything else with the same prefix is stale.
-export const CURRENT_ENGINE_BUCKETS = [FFMPEG_CACHE_NAME, OFFICE_CACHE_NAME];
+export const CURRENT_ENGINE_BUCKETS = [
+	FFMPEG_CACHE_NAME,
+	OFFICE_CACHE_NAME,
+	QPDF_CACHE_NAME,
+];

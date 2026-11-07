@@ -30,7 +30,7 @@ Read the matching file before starting that kind of work.
   any UI work.
 - `docs/background-removal.md`, `docs/image-compressor.md`,
   `docs/metadata-stripper.md`, `docs/office-to-pdf.md`,
-  `docs/pdf-organize.md`, `docs/pdf-to-images.md`,
+  `docs/pdf-organize.md`, `docs/pdf-to-images.md`, `docs/pdf-password.md`,
   `docs/video-converter.md`, `docs/video-cutter.md`, `docs/video-to-gif.md`,
   `docs/extract-audio.md`, `docs/audio-cutter.md`, `docs/video-compressor.md`, `docs/qr-code.md`,
   `docs/palette-extractor.md`, `docs/color-picker.md`, `docs/cron-generator.md`, `docs/json-converter.md`, `docs/jwt-decoder.md`, `docs/pdf-compressor.md`:
