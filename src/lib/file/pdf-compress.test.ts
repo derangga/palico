@@ -430,6 +430,7 @@ describe("recompressImages", () => {
 		it("turns a gray image into an RGB JPEG and says so in its colour space", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const ref = rawImage(doc, {
 				width: 150,
 				height: 150,
@@ -451,6 +452,7 @@ describe("recompressImages", () => {
 		it("skips a Flate stream that inflates to more than its dictionary says", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const ref = rawImage(doc, {
 				width: 150,
 				height: 150,
@@ -473,6 +475,7 @@ describe("recompressImages", () => {
 		it("leaves a Flate image alone when its data does not match its size", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const ref = rawImage(doc, {
 				width: 150,
 				height: 150,
@@ -496,12 +499,14 @@ describe("recompressImages", () => {
 		it("keeps the SMask as it was and shrinks only the colour image", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const mask = rawImage(doc, {
 				width: 1400,
 				height: 1400,
 				samples: noise(1400 * 1400, 21).fill(128, 0, 1400 * 1400),
 				colorSpace: "DeviceGray",
 			});
+
 			const color = rawImage(doc, {
 				width: 1400,
 				height: 1400,
@@ -533,6 +538,7 @@ describe("recompressImages", () => {
 		it("protects a mask whose owner no page reaches", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const mask = rawImage(doc, {
 				width: 150,
 				height: 150,
@@ -562,6 +568,7 @@ describe("recompressImages", () => {
 		it("skips an image whose soft mask has a Matte", async () => {
 			const doc = await PDFDocument.create();
 			const page = doc.addPage(LETTER);
+
 			const mask = doc.context.register(
 				doc.context.stream(noise(20_000, 1), {
 					Type: "XObject",
@@ -573,6 +580,7 @@ describe("recompressImages", () => {
 					Matte: [0, 0, 0],
 				}),
 			);
+
 			const color = rawImage(doc, {
 				width: 100,
 				height: 200,
@@ -597,6 +605,7 @@ describe("recompressImages", () => {
 		await addJpegPage(doc, fakeJpeg(800, 600, 4));
 
 		const page = doc.addPage(LETTER);
+
 		const stencil = doc.context.register(
 			doc.context.stream(noise(20_000, 4), {
 				Type: "XObject",
@@ -683,9 +692,11 @@ describe("pdfLibLosslessPass", () => {
 		const doc = await PDFDocument.create();
 		doc.addPage(LETTER);
 		doc.addPage(LETTER);
+
 		const orphan = doc.context.register(
 			doc.context.stream(noise(30_000, 8), { Type: "XObject" }),
 		);
+
 		const original = await doc.save({ useObjectStreams: false });
 
 		const loaded = await PDFDocument.load(original);
@@ -704,6 +715,7 @@ describe("pdfLibLosslessPass", () => {
 		const page = doc.addPage(LETTER);
 		const text = "BT /F1 12 Tf 72 720 Td (Hello) Tj ET\n".repeat(400);
 		const raw = doc.context.register(doc.context.stream(text));
+
 		const filtered = rawImage(doc, {
 			width: 100,
 			height: 100,
@@ -736,6 +748,7 @@ describe("pdfLibLosslessPass", () => {
 		// One is the catalog's /Metadata with no /Type; the other is typed only
 		// by its /Subtype.
 		const root = doc.context.register(doc.context.stream(xmp));
+
 		const xml = doc.context.register(
 			doc.context.stream(xmp, { Subtype: "XML" }),
 		);
@@ -747,6 +760,7 @@ describe("pdfLibLosslessPass", () => {
 			await doc.save({ useObjectStreams: false }),
 			{ updateMetadata: false },
 		);
+
 		const out = await PDFDocument.load(await pdfLibLosslessPass(loaded));
 
 		for (const ref of [root, xml]) {
@@ -757,6 +771,7 @@ describe("pdfLibLosslessPass", () => {
 
 	it("does not give an empty document a blank page", async () => {
 		const doc = await PDFDocument.create();
+
 		const out = await pdfLibLosslessPass(
 			await PDFDocument.load(await doc.save({ addDefaultPage: false })),
 		);
@@ -767,9 +782,11 @@ describe("pdfLibLosslessPass", () => {
 	it("keeps the page's resources reachable", async () => {
 		const doc = await PDFDocument.create();
 		const { ref } = await addJpegPage(doc, fakeJpeg(900, 700, 3));
+
 		const loaded = await PDFDocument.load(
 			await doc.save({ useObjectStreams: false }),
 		);
+
 		const out = await PDFDocument.load(await pdfLibLosslessPass(loaded));
 
 		expect(streamAt(out, ref).contents.length).toBeGreaterThan(0);

@@ -68,9 +68,11 @@ const failureOf = <A, E extends { readonly message: string }>(
 
 function PdfCompressPage() {
 	const [item, setItem] = useState<MergeItem | null>(null);
+
 	const [preset, setPreset] = useState<CompressPresetId>(
 		DEFAULT_COMPRESS_PRESET,
 	);
+
 	const [outcome, setOutcome] = useState<CompressOutcome | null>(null);
 	const [locked, setLocked] = useState(false);
 

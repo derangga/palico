@@ -110,6 +110,7 @@ const filtersOf = (dict: PDFDict): ReadonlyArray<string> => {
 // The /DecodeParms of the single filter: a dictionary, or an array holding one.
 const decodeParmsOf = (dict: PDFDict): PDFDict | undefined => {
 	const parms = dict.lookup(DECODE_PARMS) ?? dict.lookup(name("DP"));
+
 	const first =
 		parms instanceof PDFArray && parms.size() > 0
 			? dict.context.lookup(parms.get(0))
@@ -260,12 +261,14 @@ export const collectImages = (doc: PDFDocument, maxDpi: number): Collected => {
 
 	for (const page of doc.getPages()) {
 		const size = pageSize(page);
+
 		const budget = pixelBudget(
 			size.width,
 			size.height,
 			maxDpi,
 			userUnitOf(page),
 		);
+
 		// Forms are visited once per page. A form that draws itself, directly or
 		// through another form, would otherwise never finish.
 		const seenForms = new Set<string>();
@@ -503,12 +506,15 @@ export const dropUnreferencedObjects = (doc: PDFDocument): number => {
 
 const TYPE = name("Type");
 const FLATE = name("FlateDecode");
+
 // Streams a reader or a standard expects to find unfiltered or rewrites itself.
 const LEAVE_UNFILTERED = new Set(["Metadata", "XRef", "ObjStm"]);
+
 // XMP packets are XML, and some are written without a /Type. Tools that scan
 // a PDF for XMP read the bytes as they are, so any XML stream stays raw.
 const LEAVE_UNFILTERED_SUBTYPES = new Set(["XML"]);
 const METADATA = name("Metadata");
+
 // Below this, the zlib header and checksum eat the gain.
 const MIN_FLATE_BYTES = 256;
 
