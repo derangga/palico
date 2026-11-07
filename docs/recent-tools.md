@@ -22,9 +22,9 @@ anywhere, like the rest of the product.
    tools that are not starred. Each is a compact tile with its own star, so a tool
    is unstarred from where it is shown. Starring a tile in Recently used moves it
    into Favourites, because it is no longer a recent-only tool.
-   - **Hint tile.** With no favourite but at least one recent tool, Favourites
-     shows one dashed tile, "Star a tool to pin it here". It is not a link or a
-     button.
+   - **No favourites.** With recent tools only there is no Favourites section and
+     no empty state for it, so Home stays clear. The star on each tile is how a
+     tool gets pinned.
    - **No recent tools.** With favourites only there is no Recently used section.
    - **Neither.** Nothing renders.
 4. **Clear recent.** A button on the Recently used heading empties the recent list
@@ -119,8 +119,8 @@ so a storage that refuses the write cannot touch the tool the person is using.
   sections are 1.5rem apart, the note is 1.75rem with its gap, and the grid is two
   columns below 640px and three above. So the height is the headings, plus the
   section gap, plus the tile rows, plus the gaps between tile rows, plus the note.
-  The hint tile is one full-width tile row, so the script counts it as one
-  Favourites row. The script follows the model exactly: a value that does not match
+  A section that is not shown counts as 0 rows and is left out of `--yt-sections`.
+  The script follows the model exactly: a value that does not match
   the Schema reads as empty, favourites and recent are deduped, recent is cut to
   twelve before unknown and starred paths are left out, then six are shown.
   `prepaint.test.ts` runs the script against `yourToolsParts`. Once the history is
@@ -217,7 +217,7 @@ A new tool must record use, and its path must be in the registry.
   the `yourTools` list, six shown after starred tools are left out, and
   `isReturningVisitor`).
 - `prepaint.test.ts`: the inline script run against stand-ins for `localStorage`
-  and `<html>`: favourites only, recent only (the hint tile), both, neither, the
+  and `<html>`: favourites only, recent only (no Favourites section), both, neither, the
   cap at twelve then six, repeats, unknown paths, blocked storage and junk values,
   and a check that the row counts agree with `yourToolsParts`.
 - `wiring.test.ts`: every tool records use.
@@ -227,8 +227,8 @@ The row, the star and the palette have no component test. Drive them in a real
 browser: star from a tile and from a header, click the star on a tile (no
 navigation), reload (no jump), the first star on a fresh profile (the slot grows),
 clear recent and unstar from the row (focus moves, the live region speaks), star a
-Recently used tile from the keyboard (focus follows it into Favourites), the hint
-tile with only recent tools, a second tab, blocked storage (Tab reaches the star),
+Recently used tile from the keyboard (focus follows it into Favourites), only
+recent tools (no Favourites section), a second tab, blocked storage (Tab reaches the star),
 390px, dark mode, reduced motion.
 
 ## Not done

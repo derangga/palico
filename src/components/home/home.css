@@ -76,14 +76,14 @@
  *
  * Heights, in step with your-tools.tsx (change both together):
  *   --yt-head          2.75rem  heading row h-8 (2rem) + mb-3 (0.75rem)
- *   --yt-tile          3.5rem   one tile row, h-14 (the hint tile is one too)
+ *   --yt-tile          3.5rem   one tile row, h-14
  *   --yt-gap           0.75rem  gap between tile rows, gap-3
  *   --yt-section-gap   1.5rem   between the two sections, mt-6
  *   --yt-note          1.75rem  "Saved in this browser only.", mt-3 + 1rem line
  *
  * Script inputs, all set on <html>:
  *   --yt-sections      1 or 2, how many sections show
- *   --yt-fav-2/-3      Favourites rows at 2 and 3 columns (1 for the hint tile)
+ *   --yt-fav-2/-3      Favourites rows at 2 and 3 columns (0 when that section is absent)
  *   --yt-rec-2/-3      Recently used rows (0 when that section is absent)
  *
  * With S sections and R tile rows in all (favourites plus recent), the height is
@@ -96,13 +96,13 @@
 	--yt-gap: 0.75rem;
 	--yt-section-gap: 1.5rem;
 	--yt-note: 1.75rem;
-	--yt-fav: var(--yt-fav-2, 1);
+	--yt-fav: var(--yt-fav-2, 0);
 	--yt-rec: var(--yt-rec-2, 0);
 }
 
 @media (min-width: 640px) {
 	.your-tools-slot {
-		--yt-fav: var(--yt-fav-3, 1);
+		--yt-fav: var(--yt-fav-3, 0);
 		--yt-rec: var(--yt-rec-3, 0);
 	}
 }
@@ -216,34 +216,56 @@ html[data-your-tools] .your-tools-slot {
  * below are unlayered on purpose: they override the Tailwind utilities on the
  * same elements in hero.tsx.
  *
- * Full (default): copy on the left, the mascot on a Crust panel, tool lanes
- * behind the mascot. Compact: a Crust band about 150px tall (170px from 560px of
- * container width) with the copy on the left and the lanes on the right; no
- * mascot, no button. The band is the container, so sizes follow its width.
+ * Full (default): one Crust card. On a phone the mascot sits on top in a box
+ * about 230px wide, with the copy below; from lg the copy is on the left and the
+ * mascot (up to 330px) on the right. The lanes fill that box, not the card, so
+ * they stay close behind the mascot. Compact: a Crust band about 150px tall
+ * (170px from 560px of container width) with the copy on the left and the lanes
+ * on the right; no mascot, no button. The card is the container, so sizes
+ * follow its width.
  */
 .home-hero {
 	container: hero / inline-size;
+	position: relative;
+	isolation: isolate;
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	align-items: center;
-	gap: 1.5rem;
+	gap: 0.5rem;
+	overflow: hidden;
+	padding: 1.375rem 1.25rem 1.625rem;
+	border-radius: var(--radius-xl);
+	background: var(--catppuccin-color-crust);
+}
+
+.hero-art {
+	position: relative;
+	isolation: isolate;
+	order: -1;
+	justify-self: center;
+	width: 100%;
+	max-width: 14.375rem;
+	aspect-ratio: 1.15;
 }
 
 @media (min-width: 1024px) {
 	.home-hero {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 4rem;
+		gap: 2rem;
+		padding: 2.125rem 2.5rem;
+	}
+
+	.hero-art {
+		order: 0;
+		justify-self: end;
+		max-width: 20.625rem;
 	}
 }
 
 html[data-returning] .home-hero {
-	position: relative;
-	isolation: isolate;
 	display: block;
 	min-height: 9.375rem;
-	overflow: hidden;
-	border-radius: var(--radius-xl);
-	background: var(--catppuccin-color-crust);
+	padding: 0;
 }
 
 html[data-returning] .hero-copy {
@@ -287,10 +309,8 @@ html[data-returning] .hero-art {
 	position: absolute;
 	inset: 0 0 0 auto;
 	width: 42%;
-	padding: 0;
-	overflow: visible;
-	border-radius: 0;
-	background: none;
+	max-width: none;
+	aspect-ratio: auto;
 	pointer-events: none;
 }
 
@@ -302,21 +322,21 @@ html[data-returning] .hero-art {
  * Only transform moves. No filter, no blur, no hover effect. The band fades out
  * at both ends with a fixed mask.
  *
- * In the full hero the band fills the mascot panel and the lanes spread to its
- * sides; the compact hero gives it a fixed size on the right of the band.
+ * In the full hero the band is a little bigger than the mascot box (112% by
+ * 120%), so the three lanes show around and between the mascot. The compact
+ * hero gives it a fixed size on the right of the band.
  */
 .hero-lanes {
-	--lanes-w: 100%;
+	--lanes-w: 112%;
 	--lanes-h: 120%;
 	position: absolute;
 	top: 50%;
 	left: 50%;
 	display: flex;
-	justify-content: space-between;
+	justify-content: space-around;
 	gap: 0.75rem;
 	width: var(--lanes-w);
 	height: var(--lanes-h);
-	padding-inline: 0.75rem;
 	overflow: hidden;
 	transform: translate(-50%, -50%) rotate(10deg);
 	-webkit-mask-image: linear-gradient(
@@ -332,7 +352,6 @@ html[data-returning] .hero-lanes {
 	--lanes-w: 9.5rem;
 	--lanes-h: 12.25rem;
 	justify-content: center;
-	padding-inline: 0;
 }
 
 .hero-lane {

@@ -31,9 +31,13 @@ full list one click away.
 The page is prerendered, so there is one markup for everyone, and CSS picks the
 variant from `html[data-returning]`:
 
-- **Full hero (first visit, the default).** The headline, the tagline, the "Convert an
-  image" button, and the mascot on a Crust panel with the tool lanes behind it. The
-  mascot has the slow idle bob (about 6px over 5.5s).
+- **Full hero (first visit, the default).** One Crust card with the headline, the
+  tagline, the "Convert an image" button, and the mascot with the tool lanes behind
+  it. On a phone the mascot sits on top in a box up to 230px wide and the copy
+  follows; from `lg` the copy is on the left and the mascot, up to 330px, on the
+  right. The lanes fill a band 112% by 120% of the mascot box, not the whole card,
+  so all three lanes stay close around the mascot instead of spreading to the card
+  edges. The mascot has the slow idle bob (about 6px over 5.5s).
 - **Compact hero (a favourite or recent tool exists).** A Crust band about 150px tall
   on a phone and 170px from 560px of band width. The headline and tagline sit in the
   left 54 to 64 percent and the lanes in the right 42 to 46 percent. There is no mascot

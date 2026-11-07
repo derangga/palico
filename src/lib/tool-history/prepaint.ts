@@ -12,8 +12,7 @@ import { MAX_RECENT, SHOWN_RECENT, STORAGE_KEY } from "./shapes.ts";
  * - `data-returning="1"`: the same condition, read by home.css to pick the compact
  *   hero and hide "Start here" (see docs/home-page.md).
  * - `--yt-fav-2` and `--yt-fav-3`: rows in the Favourites section at two and three
- *   columns. With no favourites but a recent tool the section holds the hint tile,
- *   which is one full-width row, so the count is 1.
+ *   columns, 0 when there is no favourite (the section is not shown).
  * - `--yt-rec-2` and `--yt-rec-3`: rows in the Recently used section, 0 when it is
  *   not shown.
  * - `--yt-sections`: 1 or 2, the sections shown.
@@ -36,6 +35,6 @@ export const yourToolsScript = (known: ReadonlyArray<string>): string =>
 	`s.slice(0,${MAX_RECENT}).forEach(function(p){if(k.indexOf(p)>=0&&f.indexOf(p)<0)r.push(p)});` +
 	`r=r.slice(0,${SHOWN_RECENT});` +
 	`if(f.length+r.length>0){var e=document.documentElement,c=function(n,w){return Math.ceil(n/w)};` +
-	`e.style.setProperty("--yt-fav-2",f.length?c(f.length,2):1);e.style.setProperty("--yt-fav-3",f.length?c(f.length,3):1);` +
+	`e.style.setProperty("--yt-fav-2",c(f.length,2));e.style.setProperty("--yt-fav-3",c(f.length,3));` +
 	`e.style.setProperty("--yt-rec-2",c(r.length,2));e.style.setProperty("--yt-rec-3",c(r.length,3));` +
-	`e.style.setProperty("--yt-sections",r.length?2:1);e.dataset.yourTools="1";e.dataset.returning="1"}}}catch(e){}`;
+	`e.style.setProperty("--yt-sections",(f.length?1:0)+(r.length?1:0));e.dataset.yourTools="1";e.dataset.returning="1"}}}catch(e){}`;

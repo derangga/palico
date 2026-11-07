@@ -117,24 +117,24 @@ describe("yourToolsScript", () => {
 		});
 	});
 
-	it("counts the hint tile as one full-width favourites row", () => {
-		// No favourites but recent tools: the Favourites section holds the hint.
+	it("shows one section when there are recent tools but no favourites", () => {
+		// No favourites: the Favourites section is not shown at all.
 		const stored = value([], ["/a", "/b", "/c", "/d", "/e"]);
 
 		expect(run(stored).dataset).toEqual({ yourTools: "1", returning: "1" });
 		expect(rows(stored)).toEqual({
-			fav: ["1", "1"],
+			fav: ["0", "0"],
 			rec: ["3", "2"],
-			sections: "2",
+			sections: "1",
 		});
 	});
 
 	it("ignores paths that are not tools", () => {
-		// The unknown favourite is dropped, so only /a (recent) shows, with the hint.
+		// The unknown favourite is dropped, so only /a (recent) shows.
 		expect(rows(value(["/gone"], ["/a"]))).toEqual({
-			fav: ["1", "1"],
+			fav: ["0", "0"],
 			rec: ["1", "1"],
-			sections: "2",
+			sections: "1",
 		});
 
 		// Nothing known at all: nothing is reserved.
@@ -146,10 +146,10 @@ describe("yourToolsScript", () => {
 			value([], ["/a", "/b", "/c", "/d", "/e", "/f", "/g", "/h"]),
 		);
 
-		// 8 recent in storage, 6 shown, plus the hint
-		expect(fav).toEqual(["1", "1"]);
+		// 8 recent in storage, 6 shown, no favourites
+		expect(fav).toEqual(["0", "0"]);
 		expect(rec).toEqual(["3", "2"]);
-		expect(sections).toBe("2");
+		expect(sections).toBe("1");
 	});
 
 	it("counts the six recent tools that are not starred", () => {
@@ -174,9 +174,9 @@ describe("yourToolsScript", () => {
 		];
 
 		expect(rows(value([], recent))).toEqual({
-			fav: ["1", "1"],
+			fav: ["0", "0"],
 			rec: ["2", "1"],
-			sections: "2",
+			sections: "1",
 		});
 	});
 
@@ -241,15 +241,16 @@ describe("yourToolsScript", () => {
 
 			for (const columns of [2, 3]) {
 				expect(Number(props.get(`--yt-fav-${columns}`))).toBe(
-					Math.max(1, Math.ceil(parts.favourites.length / columns)),
+					Math.ceil(parts.favourites.length / columns),
 				);
 				expect(Number(props.get(`--yt-rec-${columns}`))).toBe(
 					Math.ceil(parts.recent.length / columns),
 				);
 			}
 
-			expect(props.get("--yt-sections")).toBe(
-				parts.recent.length > 0 ? "2" : "1",
+			expect(Number(props.get("--yt-sections"))).toBe(
+				(parts.favourites.length > 0 ? 1 : 0) +
+					(parts.recent.length > 0 ? 1 : 0),
 			);
 		}
 	});

@@ -12,8 +12,8 @@ import { m } from "#/paraglide/messages.js";
  * is the same for everyone and home.css picks the variant from
  * `html[data-returning]` before first paint:
  *
- * - Full (first visit, the default): headline, tagline, the "Convert an image"
- *   button, and the mascot on a Crust panel with the tool lanes behind it.
+ * - Full (first visit, the default): one Crust card with the headline, tagline,
+ *   the "Convert an image" button, and the mascot with the tool lanes behind it.
  * - Compact (a favourite or recent tool exists): a short Crust band with the
  *   headline on the left and the tool lanes on the right. No mascot and no button.
  *
@@ -50,7 +50,7 @@ export function Hero() {
 				</Link>
 			</div>
 
-			<div className="hero-art relative isolate order-first overflow-hidden rounded-xl bg-ctp-crust px-6 py-4 lg:order-last lg:py-6">
+			<div className="hero-art">
 				<div
 					aria-hidden
 					className="hero-glow absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_65%,color-mix(in_oklab,var(--cat-image)_22%,transparent),transparent_70%)]"
@@ -63,7 +63,7 @@ export function Hero() {
 					height={492}
 					fetchPriority="high"
 					alt={m.home_hero_alt()}
-					className="hero-mascot relative mx-auto h-auto w-full max-w-36 lg:max-w-80"
+					className="hero-mascot relative block h-auto w-full"
 				/>
 			</div>
 		</section>

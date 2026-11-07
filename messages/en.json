@@ -307,7 +307,6 @@
 	"your_tools_removed": "Removed {tool} from favourites",
 	"your_tools_favourites": "Favourites",
 	"your_tools_recent": "Recently used",
-	"your_tools_favourites_hint": "Star a tool to pin it here",
 	"home_start_here": "Start here",
 	"home_browse_title": "Browse by type",
 	"home_category_count": "{count} tools",

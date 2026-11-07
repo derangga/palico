@@ -52,9 +52,6 @@ export function YourTools() {
 
 	const filled = favourites.length + recent.length > 0;
 
-	// Recent tools but no favourites: Favourites holds one dashed hint tile.
-	const showHint = favourites.length === 0 && recent.length > 0;
-
 	// The two lists are separate in the key: a tool that moves from one to the
 	// other keeps the same flat order but must still count as a change.
 	const listKey = `${favourites.map((tool) => tool.to).join("|")}||${recent
@@ -175,57 +172,49 @@ export function YourTools() {
 						entering && "your-tools-in",
 					)}
 				>
-					{/* Shown whenever the row is: favourites, or the hint above recent tools. */}
-					<section aria-labelledby="your-tools-favourites-title">
-						<div className="mb-3 flex h-8 items-center justify-between gap-2">
-							<h2
-								id="your-tools-favourites-title"
-								ref={favouritesHeadingRef}
-								tabIndex={-1}
-								className="flex items-center gap-2 text-sm font-semibold text-muted-foreground outline-none"
+					{favourites.length > 0 && (
+						<section aria-labelledby="your-tools-favourites-title">
+							<div className="mb-3 flex h-8 items-center justify-between gap-2">
+								<h2
+									id="your-tools-favourites-title"
+									ref={favouritesHeadingRef}
+									tabIndex={-1}
+									className="flex items-center gap-2 text-sm font-semibold text-muted-foreground outline-none"
+								>
+									<Star aria-hidden className="size-3.5 fill-current" />
+									{m.your_tools_favourites()}
+									<span className="font-normal tabular-nums">
+										{favourites.length}
+									</span>
+								</h2>
+							</div>
+							<ul
+								ref={favouritesListRef}
+								className="grid grid-cols-2 gap-3 sm:grid-cols-3"
 							>
-								<Star aria-hidden className="size-3.5 fill-current" />
-								{m.your_tools_favourites()}
-								<span className="font-normal tabular-nums">
-									{favourites.length}
-								</span>
-							</h2>
-						</div>
-						<ul
-							ref={favouritesListRef}
-							className="grid grid-cols-2 gap-3 sm:grid-cols-3"
-						>
-							{showHint && (
-								// Not a link or a button: it only says what the star does.
-								<li className="col-span-full">
-									<div className="flex h-14 items-center gap-3 rounded-xl border-[1.5px] border-dashed border-border px-4 text-sm text-muted-foreground">
-										<Star aria-hidden className="size-4 shrink-0" />
-										{m.your_tools_favourites_hint()}
-									</div>
-								</li>
-							)}
-							{favourites.map((tool, index) => (
-								<li key={tool.to} data-tool={tool.to} className="grid">
-									<ToolTile
-										tool={tool}
-										compact
-										onStarToggle={(nowFavourite) => {
-											if (nowFavourite) return;
+								{favourites.map((tool, index) => (
+									<li key={tool.to} data-tool={tool.to} className="grid">
+										<ToolTile
+											tool={tool}
+											compact
+											onStarToggle={(nowFavourite) => {
+												if (nowFavourite) return;
 
-											handoff.current = {
-												at: Date.now(),
-												target: "star",
-												index,
-											};
-											setAnnouncement(
-												m.your_tools_removed({ tool: tool.label }),
-											);
-										}}
-									/>
-								</li>
-							))}
-						</ul>
-					</section>
+												handoff.current = {
+													at: Date.now(),
+													target: "star",
+													index,
+												};
+												setAnnouncement(
+													m.your_tools_removed({ tool: tool.label }),
+												);
+											}}
+										/>
+									</li>
+								))}
+							</ul>
+						</section>
+					)}
 					{recent.length > 0 && (
 						<section aria-labelledby="your-tools-recent-title">
 							<div className="mb-3 flex h-8 items-center justify-between gap-2">
