@@ -27,11 +27,13 @@ test them.
 | Precache | `index.html`, every hashed `/assets/**` except `*.wasm`, `/vendor/**`, home images, favicons, `site.webmanifest` | Workbox precache, written at install | about 19 MB on disk, about 5 MB over the wire |
 | Opt-in, ffmpeg | core, wasm, worker | Cache API `ffmpeg-wasm-v<version>`, filled after consent | 31 MB |
 | Opt-in, ZetaOffice | `soffice.js/.wasm/.data` | Cache API `zetaoffice-wasm-free`, filled after consent | 53 MB |
+| Opt-in, qpdf | `qpdf.wasm` (PDF password tool) | Cache API `palico-qpdf-v<version>`, filled after consent | 1.3 MB |
 | Opt-in, background removal | RMBG-1.4 weights and ONNX Runtime | Cache API `palico-model-v1` (weights) and `palico-ort-v1` (ORT), filled after consent | about 200 MB |
 
 Every route and the non-engine tools (image converter, resizer, compressor, PDF
 tools, markdown, diff, favicon generator) work after the first visit. The video
-tools, Word to PDF and background removal also need their engine saved.
+tools, Word to PDF, Protect and Unlock PDF, and background removal also need their
+engine saved.
 
 ## Module map
 
@@ -114,7 +116,7 @@ repeat COEP on the `/assets/*` rule: Cloudflare combines matching rules and
 
 ## Engines and the status pill
 
-`ENGINES` in `engines.ts` gives the three `isCached` Effects one shape. A tool lists
+`ENGINES` in `engines.ts` gives the four `isCached` Effects one shape. A tool lists
 its engine in `TOOLS` (`engine?: EngineId` in `src/lib/tool-categories.ts`).
 `useOfflineStatus(engine)` combines the worker state with the engine check and
 returns one of:
@@ -132,6 +134,12 @@ shows up. The tool header shows the full pill (click for an explanation, whether
 browser agreed to keep storage, and the iOS Home Screen hint). Home tiles and the
 sidebar show a small dot and label for tools with an engine only, to keep tiles to one
 saturated colour (`DESIGN.md`).
+
+The qpdf engine (`src/lib/qpdf/`, see `docs/pdf-password.md`) differs from the others
+in one way: it is a single self-hosted 1.3 MB wasm, hashed under `/assets/`, and the
+service worker does not serve it. The page stores it in `palico-qpdf-v<version>` on
+the consented download, and the job worker reads that bucket itself, so it works
+without the service worker and falls back to the network when the bucket is empty.
 
 ## Update flow
 
@@ -167,8 +175,8 @@ file at a time, so the count briefly returns to zero between files.
   shows NotSaved. Otherwise it calls `navigator.storage.persist()` once; a denial is
   just a value.
 - On startup `cleanupStaleCaches` deletes engine buckets with an old name (a version
-  bump used to leave 31 MB orphaned). It only touches the `ffmpeg-wasm-*` and
-  `zetaoffice-*` prefixes.
+  bump used to leave 31 MB orphaned). It only touches the `ffmpeg-wasm-*`,
+  `zetaoffice-*` and `palico-qpdf-*` prefixes.
 - Safari 17+ sizes the origin quota from disk size and evicts whole origins least
   recently used first. In a Safari tab, script-writable storage (including the Cache API
   and service worker registrations) is deleted after 7 days without a visit. Home

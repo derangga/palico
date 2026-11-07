@@ -26,6 +26,7 @@
     "@ffmpeg/ffmpeg": "0.12.15",
     "@fontsource-variable/nunito": "5.2.7",
     "@huggingface/transformers": "3.8.1",
+    "@neslinesli93/qpdf-wasm": "0.3.1",
     "@pierre/diffs": "1.2.12",
     "@tailwindcss/vite": "4.3.1",
     "@tanstack/react-devtools": "0.10.8",

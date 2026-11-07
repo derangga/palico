@@ -1,6 +1,11 @@
 import { Schema } from "effect";
 
-export const EngineId = Schema.Literals(["ffmpeg", "office", "bg-model"]);
+export const EngineId = Schema.Literals([
+	"ffmpeg",
+	"office",
+	"bg-model",
+	"qpdf",
+]);
 
 export type EngineId = Schema.Schema.Type<typeof EngineId>;
 

@@ -68,7 +68,9 @@ export const afterDownload = (
 export const staleEngineBuckets = (names: readonly string[]): string[] =>
 	names.filter(
 		(n) =>
-			(n.startsWith("ffmpeg-wasm-") || n.startsWith("zetaoffice-")) &&
+			(n.startsWith("ffmpeg-wasm-") ||
+				n.startsWith("zetaoffice-") ||
+				n.startsWith("palico-qpdf-")) &&
 			!CURRENT_ENGINE_BUCKETS.includes(n),
 	);
 
