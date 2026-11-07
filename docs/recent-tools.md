@@ -165,7 +165,7 @@ moment is the person taking the result.
 | Remove Background, Favicon Generator | The result is ready |
 | Video Converter | At least one file in the batch converted |
 | Video Cutter, Audio Cutter, Video to GIF, Extract Audio | The output is ready |
-| Compress Video | A compressed file was produced (not when the original was kept) |
+| Compress Video, Compress PDF | A compressed file was produced (not when the original was kept) |
 | Merge PDFs, Split PDF, Organize PDF, PDF to Images | The file is built, just before the download starts |
 | Office to PDF | At least one document converted |
 | Lock or unlock PDF | The file is built, just before the download starts |

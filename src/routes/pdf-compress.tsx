@@ -21,6 +21,7 @@ import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { compressPdf, loadPdf } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-compress")({
@@ -161,6 +162,9 @@ function PdfCompressPage() {
 
 		if (Exit.isSuccess(exit)) {
 			setOutcome(exit.value);
+
+			// A smaller file was made. Keeping the original is not a result.
+			if (exit.value._tag === "Compressed") recordToolUse("/pdf-compress");
 
 			return;
 		}
