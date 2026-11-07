@@ -253,7 +253,7 @@ function PdfCompressPage() {
 						{m.pdfcomp_encrypted()}{" "}
 						{/* A plain link: the unlock tool is its own route, and this one is not typed yet. */}
 						<a
-							href="/pdf-password?mode=unlock"
+							href="/pdf-unlock"
 							className="font-semibold text-primary underline"
 						>
 							{m.pdfcomp_unlock_link()}
