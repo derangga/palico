@@ -44,20 +44,27 @@ export const detectEncryption = (file: Blob): Effect.Effect<EncryptionStatus> =>
 		Effect.catchDefect(() => Effect.succeed<EncryptionStatus>("plain")),
 	);
 
-// What a page says about the file that was dropped on it, when the file looks like it
-// belongs on the other page.
-//   "locked"  a locked file on Protect. It may need a password to open (Unlock first)
-//             or only limit printing and copying (Protect replaces the limits).
-//   "plain"   a file with no password on Unlock: nothing to unlock.
-export type ModeNotice = "locked" | "plain";
+// The mode a file most likely wants: a file with a password wants Unlock, any other
+// wants Protect. Only a guess: a locked file may merely limit printing and copying, in
+// which case Protect is right. So the page uses it to pick a starting mode and to
+// offer a switch, and never to refuse.
+export const suggestMode = (status: EncryptionStatus): PasswordMode =>
+	status === "encrypted" ? "unlock" : "protect";
 
-export const modeNotice = (
+// The mode to offer a switch to, when the file looks like it belongs in the other one.
+export const modeHint = (
 	mode: PasswordMode,
 	status: EncryptionStatus,
-): ModeNotice | undefined => {
-	if (mode === "protect" && status === "encrypted") return "locked";
+): PasswordMode | undefined => {
+	const suggested = suggestMode(status);
 
-	if (mode === "unlock" && status === "plain") return "plain";
-
-	return undefined;
+	return suggested === mode ? undefined : suggested;
 };
+
+// The mode once a file has been read. An untouched switch follows the file; one the
+// person has used (or a link has set) stays where it is.
+export const modeAfterDetect = (
+	current: PasswordMode,
+	chosen: boolean,
+	status: EncryptionStatus,
+): PasswordMode => (chosen ? current : suggestMode(status));

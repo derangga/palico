@@ -1,7 +1,12 @@
 import { Effect } from "effect";
 import { describe, expect, it } from "vitest";
 
-import { detectEncryption, modeNotice } from "./detect.ts";
+import {
+	detectEncryption,
+	modeAfterDetect,
+	modeHint,
+	suggestMode,
+} from "./detect.ts";
 
 const latin1 = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
 
@@ -58,17 +63,39 @@ describe("detectEncryption", () => {
 	});
 });
 
-describe("modeNotice", () => {
-	it("points a locked file on Protect at Unlock", () => {
-		expect(modeNotice("protect", "encrypted")).toBe("locked");
+describe("suggestMode", () => {
+	it("suggests Unlock for a file with a password", () => {
+		expect(suggestMode("encrypted")).toBe("unlock");
 	});
 
-	it("tells Unlock that a file with no password has nothing to unlock", () => {
-		expect(modeNotice("unlock", "plain")).toBe("plain");
+	it("suggests Protect for a file without one", () => {
+		expect(suggestMode("plain")).toBe("protect");
+	});
+});
+
+describe("modeHint", () => {
+	it("offers Unlock to a locked file on Protect", () => {
+		expect(modeHint("protect", "encrypted")).toBe("unlock");
 	});
 
-	it("says nothing when the file belongs on the page", () => {
-		expect(modeNotice("protect", "plain")).toBeUndefined();
-		expect(modeNotice("unlock", "encrypted")).toBeUndefined();
+	it("offers Protect to a file with no password on Unlock", () => {
+		expect(modeHint("unlock", "plain")).toBe("protect");
+	});
+
+	it("says nothing when the file belongs in the mode", () => {
+		expect(modeHint("protect", "plain")).toBeUndefined();
+		expect(modeHint("unlock", "encrypted")).toBeUndefined();
+	});
+});
+
+describe("modeAfterDetect", () => {
+	it("moves an untouched switch to the file's mode", () => {
+		expect(modeAfterDetect("protect", false, "encrypted")).toBe("unlock");
+		expect(modeAfterDetect("unlock", false, "plain")).toBe("protect");
+	});
+
+	it("never moves a switch the person has chosen", () => {
+		expect(modeAfterDetect("protect", true, "encrypted")).toBe("protect");
+		expect(modeAfterDetect("unlock", true, "plain")).toBe("unlock");
 	});
 });

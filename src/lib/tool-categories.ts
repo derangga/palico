@@ -16,8 +16,7 @@ import {
 	Images,
 	KeyRound,
 	LayoutGrid,
-	Lock,
-	LockOpen,
+	LockKeyhole,
 	type LucideIcon,
 	Minimize2,
 	Palette,
@@ -139,8 +138,7 @@ type ToolId =
 	| "cron_generator"
 	| "json_converter"
 	| "jwt_decoder"
-	| "pdf_protect"
-	| "pdf_unlock";
+	| "pdf_password";
 
 const splitKeywords = (text: string) =>
 	text
@@ -292,15 +290,9 @@ export const TOOLS: ReadonlyArray<Tool> = [
 		category: "file",
 		engine: "office",
 	}),
-	defineTool("pdf_protect", {
-		to: "/pdf-protect",
-		icon: Lock,
-		category: "file",
-		engine: "qpdf",
-	}),
-	defineTool("pdf_unlock", {
-		to: "/pdf-unlock",
-		icon: LockOpen,
+	defineTool("pdf_password", {
+		to: "/pdf-password",
+		icon: LockKeyhole,
 		category: "file",
 		engine: "qpdf",
 	}),

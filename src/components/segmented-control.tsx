@@ -19,6 +19,7 @@ export function SegmentedControl<T extends string>({
 	value,
 	onChange,
 	className,
+	disabled = false,
 }: {
 	/** The name a screen reader reads for the group. It is not drawn. */
 	readonly legend: string;
@@ -27,6 +28,8 @@ export function SegmentedControl<T extends string>({
 	readonly value: T | undefined;
 	readonly onChange: (value: T) => void;
 	readonly className?: string;
+	/** Turns every segment off, for a job that must not be interrupted. */
+	readonly disabled?: boolean;
 }) {
 	const index = segments.findIndex((segment) => segment.value === value);
 
@@ -38,10 +41,13 @@ export function SegmentedControl<T extends string>({
 	} as CSSProperties;
 
 	return (
-		<fieldset className={className}>
+		<fieldset className={className} disabled={disabled}>
 			<legend className="sr-only">{legend}</legend>
 			<div
-				className="relative grid grid-cols-[repeat(var(--n),minmax(0,1fr))] rounded-lg border border-input bg-background p-[3px]"
+				className={cn(
+					"relative grid grid-cols-[repeat(var(--n),minmax(0,1fr))] rounded-lg border border-input bg-background p-[3px]",
+					disabled && "pointer-events-none opacity-60",
+				)}
 				style={style}
 			>
 				{/* Transform only, and hidden when no segment is chosen. */}
@@ -56,7 +62,7 @@ export function SegmentedControl<T extends string>({
 					<label
 						key={segment.value}
 						className={cn(
-							"relative z-10 flex min-h-11 cursor-pointer items-center justify-center rounded-md px-1.5 text-[0.8125rem] font-semibold transition-colors duration-150 select-none has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:min-h-8 sm:text-sm",
+							"relative z-10 flex min-h-11 cursor-pointer items-center justify-center rounded-md px-1.5 text-[0.8125rem] font-semibold transition-[color,transform] duration-150 ease-out select-none active:scale-[0.97] has-[input:focus-visible]:ring-3 has-[input:focus-visible]:ring-ring/50 sm:min-h-8 sm:text-sm",
 							segment.value === value
 								? "text-primary-foreground"
 								: "text-foreground",
