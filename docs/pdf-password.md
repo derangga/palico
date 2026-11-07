@@ -1,26 +1,65 @@
-# Protect and Unlock PDF
+# Lock or unlock PDF
 
-Two pages over one component. `/pdf-protect` adds a password to a PDF and
-`/pdf-unlock` removes it. Each is its own route (`src/routes/pdf-protect.tsx`,
-`src/routes/pdf-unlock.tsx`, a few lines each) and its own registry entry
-("Protect PDF", "Unlock PDF") with its own tile, sidebar entry, search keywords, page
-title and sitemap line. Both render `PdfPasswordTool`
-(`src/components/pdf-password/pdf-password-tool.tsx`) with a fixed `mode`. Both are
-in the File category and both need the qpdf engine. There is no mode switch and no
-`?mode=`.
+One page, one registry entry, one switch. `/pdf-password` adds a password to a PDF
+(Lock) or removes it (Unlock). The route is `src/routes/pdf-password.tsx`, the
+registry entry is `pdf_password` ("Lock or unlock PDF", File category, qpdf engine),
+and there is one tile, sidebar entry, search result, page title and sitemap line. It
+began as two pages (`/pdf-protect`, `/pdf-unlock`) over one component; they were merged
+before release, so no old URL needs to keep working.
+
+The page is `PdfPasswordTool` (`src/components/pdf-password/pdf-password-tool.tsx`). It
+owns the engine gate, the file, what `detectEncryption` said about it, and the mode.
+Each mode is its own form: `lock-form.tsx` and `unlock-form.tsx`. They share
+`use-password-job.ts` (run the job, keep its outcome), `done-card.tsx` and
+`blocked-note.tsx`. Inside the code the modes are still named `protect` and `unlock`
+(`PasswordMode`); the screen says Lock and Unlock.
+
+## The mode switch
+
+A `SegmentedControl` (Lock | Unlock) sits above the dropzone, so the person says what
+they want before they drop anything.
+
+- **Starting mode.** `?mode=protect` or `?mode=unlock` opens the page on that mode, for
+  a link from another tool (anything else in `mode` is ignored). With no link it starts
+  on Lock.
+- **It follows the file, once.** When a file has been read, an untouched switch moves
+  to `suggestMode(status)`: a file with a password starts on Unlock, any other on Lock.
+- **The person's choice always wins.** After the switch has been used (or the link set
+  a mode), the page never moves it again. If the file looks like it belongs in the
+  other mode (`modeHint`), a note says so and has a "Switch to ..." button. The guess
+  can be wrong (a locked file may only limit printing, which Lock replaces), so it
+  never blocks and qpdf makes the real decision.
+- **No form until the file is read.** The form mounts once `detectEncryption` has
+  answered (a quick read), because the mode may still move to match the file, and a
+  form that mounted first would be replaced while the person types or a job runs.
+- **Clicking the segment that is already on counts** as choosing (the radio fires no
+  change event, so the wrapper marks it on click).
+- **The file stays** when the mode changes. Nothing is dropped twice. After the note's
+  button is used, focus moves to the switch, since the button leaves with the note.
+- **A link to `?mode=` while on the page** opens that mode: the route keys the page by
+  the link's mode.
+- **Passwords do not.** Each form owns its typed passwords and is remounted (new `key`)
+  per mode and per file, so switching mode, or choosing another file, discards them.
+  The same goes for an engine failure: the engine card replaces the page body, and the
+  form comes back empty when the engine is ready.
+- **Off while a job runs.** `working` lives in the page. The switch, "Choose another"
+  and the note's button are disabled until the job ends, because switching would unmount
+  the form that is waiting for the result.
+
+Motion: the switch's highlight slides on `translate`, and a segment scales to 0.97 on
+press, off under reduced motion (both are in the shared component, so the JSON
+converter's switch gets them too). The form below fades in over 150 ms with a
+4 px rise, `ease-out`, opacity only under reduced motion. It is a CSS transition from
+`starting:` styles on the remounted form, so it can be interrupted. It only plays when
+the last input on the switch was a pointer: arrow keys switch with no animation.
 
 ## Flow
 
 1. The user drops one PDF (50 MB). `detectEncryption` (`src/lib/pdf-password/detect.ts`)
    reads it in 1 MB slices and looks for the trailer's `/Encrypt` key. It needs no
    engine. A result for a file that was replaced while it was being read is dropped.
-2. If the file looks like it belongs on the other page, a short notice links there
-   (`modeNotice`): a locked file on Protect ("if it needs a password to open, unlock it
-   first; if it only limits printing or copying, protecting it replaces those limits"),
-   a file with no password on Unlock ("nothing to unlock"). The form stays usable, since
-   the guess can be wrong and qpdf makes the real decision. The file is not carried to
-   the other page, which asks for it again.
-3. Protect asks for the password twice. A hint says how strong it is, and never
+2. The mode follows the file, or a note offers a switch (see above).
+3. Lock asks for the password twice. A hint says how strong it is, and never
    blocks. "Advanced" adds an owner password and three permissions (print, copy,
    edit); clearing the owner password puts the permissions back on. The output is
    `<name>_protected.pdf`, AES-256.
@@ -162,7 +201,7 @@ words it on the page.
 | `EmptyPasswordError` | Protect with no password | Inline under the first field, before any work |
 | `PdfEngineLoadError` | Wasm cannot be downloaded, stored or started | The engine card with Try again |
 | `NotEncryptedError` | Unlock on a file with no password | Inline message |
-| `AlreadyEncryptedError` | Protect on a file that needs a password to open | Inline message (the link to Unlock is the page notice above) |
+| `AlreadyEncryptedError` | Protect on a file that needs a password to open | Inline message (the switch to Unlock is the page note above) |
 | `OutputVerificationError` | The re-read failed | A toast |
 | `InvalidPdfError`, `PdfTooLargeError`, `PdfWorkerError` | The existing PDF errors | A toast |
 
@@ -199,7 +238,7 @@ own or may open, and that it cannot guess or crack a password.
 
 ## Tests
 
-- `args.test.ts`, `classify.test.ts`, `detect.test.ts` (detection and `modeNotice`),
+- `args.test.ts`, `classify.test.ts`, `detect.test.ts` (detection, `suggestMode` and `modeHint`),
   `form.test.ts` (validation, normalising, strength, file names), `map-error.test.ts`:
   the pure parts.
 - `crypt.test.ts`: the real qpdf wasm in node (the pdf.js re-open is faked). Protect

@@ -211,9 +211,8 @@ All are tagged errors on the Effect error channel (`src/lib/file/errors.ts`).
   with its own message.
 - `EncryptedPdfError` for a password-protected PDF. The page shows a panel, not
   a toast, with the message "This PDF is password-protected. Unlock it first,
-  then compress it." and a link to `/pdf-unlock`. The link is a
-  plain `<a>` because that route is built separately and is not in the typed
-  route tree yet. Switch it to `<Link>` once the route exists.
+  then compress it." and a link to `/pdf-password?mode=unlock`, which
+  opens the Lock or unlock PDF page on Unlock (see `docs/pdf-password.md`).
 - `PdfTooLargeError`, `PdfTooManyPagesError`, `InvalidPdfError` and
   `PdfWorkerError` come from the shared worker runner, as in the other PDF
   tools.

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Cause, Effect, Exit, Option, Predicate } from "effect";
 import { Ban, Loader2, Lock, Minimize2, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -16,11 +16,15 @@ import {
 	type CompressPresetId,
 	DEFAULT_COMPRESS_PRESET,
 } from "#/lib/file/pdf-compress-presets.ts";
-import type { CompressOutcome } from "#/lib/file/pdf-compress-result.ts";
+import {
+	$match,
+	type CompressOutcome,
+} from "#/lib/file/pdf-compress-result.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { compressPdf, loadPdf } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
 import { seoHead } from "#/lib/seo.ts";
+import { recordToolUse } from "#/lib/tool-history/store.ts";
 import { m } from "#/paraglide/messages.js";
 
 export const Route = createFileRoute("/pdf-compress")({
@@ -162,6 +166,12 @@ function PdfCompressPage() {
 		if (Exit.isSuccess(exit)) {
 			setOutcome(exit.value);
 
+			// A smaller file was made. Keeping the original is not a result.
+			$match(exit.value, {
+				Compressed: () => recordToolUse("/pdf-compress"),
+				NotSmallerResult: () => undefined,
+			});
+
 			return;
 		}
 
@@ -253,13 +263,13 @@ function PdfCompressPage() {
 					<Lock className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
 					<p>
 						{m.pdfcomp_encrypted()}{" "}
-						{/* A plain link: the unlock tool is its own route, and this one is not typed yet. */}
-						<a
-							href="/pdf-unlock"
+						<Link
+							to="/pdf-password"
+							search={{ mode: "unlock" }}
 							className="font-semibold text-primary underline"
 						>
 							{m.pdfcomp_unlock_link()}
-						</a>
+						</Link>
 					</p>
 				</div>
 			)}
