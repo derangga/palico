@@ -2,6 +2,8 @@ import { Schema } from "effect";
 
 import { MetadataReport } from "#/lib/metadata/types.ts";
 
+import { COMPRESS_PRESET_IDS } from "./pdf-compress-presets.ts";
+
 // Shared schemas + guards for the PDF tools (Merge / Split). Heavy work runs in
 // src/workers/pdf.worker.ts; typed orchestration + errors live in
 // src/lib/file/pdf.ts and pdf-worker-client.ts. Following src/lib/image/types.ts,
@@ -134,6 +136,29 @@ export const RasterizeRequest = Schema.Struct({
 
 export type RasterizeRequest = Schema.Schema.Type<typeof RasterizeRequest>;
 
+// Compress PDF: shrink the images (per the preset), then rewrite losslessly.
+export const CompressPreset = Schema.Literals(COMPRESS_PRESET_IDS);
+
+export const CompressRequest = Schema.Struct({
+	type: Schema.Literal("compress"),
+	id: Schema.String,
+	buffer: Schema.instanceOf(ArrayBuffer),
+	maxPages: Schema.Number,
+	preset: CompressPreset,
+});
+
+export type CompressRequest = Schema.Schema.Type<typeof CompressRequest>;
+
+// What the worker reports about the image pass.
+export const CompressStats = Schema.Struct({
+	// False for Light, which leaves every image alone.
+	imagesPass: Schema.Boolean,
+	imagesRecompressed: Schema.Number,
+	imagesSkipped: Schema.Number,
+});
+
+export type CompressStats = Schema.Schema.Type<typeof CompressStats>;
+
 export const PdfWorkerRequest = Schema.Union([
 	RenderRequest,
 	ExtractRequest,
@@ -142,6 +167,7 @@ export const PdfWorkerRequest = Schema.Union([
 	ReadMetadataRequest,
 	StripMetadataRequest,
 	RasterizeRequest,
+	CompressRequest,
 ]);
 
 export type PdfWorkerRequest = Schema.Schema.Type<typeof PdfWorkerRequest>;
@@ -152,6 +178,11 @@ export const PdfWorkerErrorReason = Schema.Literals([
 	"too-many-pages",
 	// Rasterize: the whole job would exceed MAX_RASTER_TOTAL_PIXELS.
 	"too-large",
+	// Compress: the image pass or the lossless pass failed as a whole.
+	"compress-images",
+	// Compress: this browser cannot decode or encode JPEG in a worker.
+	"compress-codec",
+	"compress-lossless",
 	"worker",
 ]);
 
@@ -212,6 +243,19 @@ export const PdfWorkerResponse = Schema.Union([
 		bytes: Schema.instanceOf(ArrayBuffer),
 		pagesDone: Schema.Number,
 		pageCount: Schema.Number,
+	}),
+	// Compress sends one "compress-progress" per image, then "compressed".
+	Schema.Struct({
+		type: Schema.Literal("compress-progress"),
+		id: Schema.String,
+		done: Schema.Number,
+		total: Schema.Number,
+	}),
+	Schema.Struct({
+		type: Schema.Literal("compressed"),
+		id: Schema.String,
+		bytes: Schema.instanceOf(ArrayBuffer),
+		stats: CompressStats,
 	}),
 	Schema.Struct({
 		type: Schema.Literal("error"),

@@ -7,6 +7,7 @@ import {
 	Eraser,
 	EyeOff,
 	FileDiff,
+	FileDown,
 	FileStack,
 	FileText,
 	Film,
@@ -125,6 +126,7 @@ type ToolId =
 	| "pdf_split"
 	| "pdf_merge"
 	| "pdf_organize"
+	| "pdf_compress"
 	| "pdf_to_images"
 	| "office_to_pdf"
 	| "strip_metadata"
@@ -268,6 +270,11 @@ export const TOOLS: ReadonlyArray<Tool> = [
 	defineTool("pdf_organize", {
 		to: "/pdf-organize",
 		icon: LayoutGrid,
+		category: "file",
+	}),
+	defineTool("pdf_compress", {
+		to: "/pdf-compress",
+		icon: FileDown,
 		category: "file",
 	}),
 	defineTool("pdf_to_images", {

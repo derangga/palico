@@ -79,13 +79,27 @@ export class PdfRasterBudgetError extends Schema.TaggedError<PdfRasterBudgetErro
 	},
 ) {}
 
+// Compress PDF: one of the two passes failed as a whole. A single image that
+// will not decode is not this error; the pass skips it and counts it.
+export class PdfCompressError extends Schema.TaggedError<PdfCompressError>()(
+	"PdfCompressError",
+	{
+		fileName: Schema.String,
+		stage: Schema.Literals(["images", "lossless"]),
+		message: Schema.String,
+	},
+) {}
+
+// Also lists PdfCompressError: the shared worker runner can raise it, and
+// listing it here keeps every worker job's error type one name.
 export type PdfLoadError =
 	| PdfTooLargeError
 	| PdfTooManyPagesError
 	| InvalidPdfError
 	| EncryptedPdfError
 	| PdfRasterBudgetError
-	| PdfWorkerError;
+	| PdfWorkerError
+	| PdfCompressError;
 
 // Raised when copying/saving pages into a new PDF fails (pdf-lib).
 export class PdfExtractError extends Schema.TaggedError<PdfExtractError>()(
