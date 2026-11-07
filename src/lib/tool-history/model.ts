@@ -80,6 +80,11 @@ export const clearRecent = (data: ToolHistoryData): ToolHistoryData => ({
 	recent: [],
 });
 
+export interface YourToolsParts {
+	readonly favourites: ReadonlyArray<string>;
+	readonly recent: ReadonlyArray<string>;
+}
+
 /**
  * The two parts of the home row. Favourites are in the order they were starred.
  * Recent is the first SHOWN_RECENT recent tools that are known and not starred,
@@ -89,7 +94,7 @@ export const clearRecent = (data: ToolHistoryData): ToolHistoryData => ({
 export const yourToolsParts = (
 	data: ToolHistoryData,
 	known: ReadonlySet<string>,
-): { favourites: ReadonlyArray<string>; recent: ReadonlyArray<string> } => {
+): YourToolsParts => {
 	const favourites = data.favourites.filter((to) => known.has(to));
 	const starred = new Set(favourites);
 
