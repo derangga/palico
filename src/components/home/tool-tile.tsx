@@ -14,9 +14,9 @@ import { cn } from "#/lib/utils.ts";
 // an anchor. The link stretches over the whole card with ::after, and the star
 // sits above it, so a click on the star never navigates.
 //
-// `compact` is the "Your tools" row: one line, no blurb, fixed height. The row
-// reserves its height before hydration (see home.css), so the height is a
-// constant here.
+// `compact` is the "Your tools" row and "Start here": no blurb, no offline dot,
+// a fixed height, and the name wraps to two lines. The row reserves its height
+// before hydration (see home.css), so the height is a constant here.
 export function ToolTile({
 	tool,
 	compact = false,
@@ -34,18 +34,21 @@ export function ToolTile({
 		<div
 			className={cn(
 				"tool-tile relative flex items-center gap-1 rounded-xl border border-border bg-card has-[a:focus-visible]:border-ring",
-				compact ? "h-14 pr-1 pl-3" : "py-4 pr-2 pl-4",
+				compact ? "h-14 pr-1 pl-2.5 sm:pl-3" : "py-4 pr-2 pl-4",
 				style.vars,
 			)}
 		>
 			<Link
 				to={tool.to}
-				className="flex min-w-0 flex-1 items-center gap-3 outline-none after:absolute after:inset-0 after:rounded-xl"
+				className={cn(
+					"flex min-w-0 flex-1 items-center outline-none after:absolute after:inset-0 after:rounded-xl",
+					compact ? "gap-2.5 sm:gap-3" : "gap-3",
+				)}
 			>
 				<span
 					className={cn(
 						"tool-chip flex shrink-0 items-center justify-center rounded-lg",
-						compact ? "size-9" : "size-11",
+						compact ? "size-8 sm:size-9" : "size-11",
 						style.chip,
 						style.ink,
 					)}
@@ -56,7 +59,10 @@ export function ToolTile({
 					<span
 						className={cn(
 							"text-sm font-bold text-foreground",
-							compact && "truncate",
+							// Two columns at 390px leave about 60px for the name. A smaller size
+							// and a break inside a long word keep "Background" from being cut off.
+							compact &&
+								"line-clamp-2 text-[0.8125rem] leading-tight hyphens-auto [overflow-wrap:anywhere] sm:text-sm",
 						)}
 					>
 						{tool.label}

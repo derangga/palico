@@ -1,9 +1,10 @@
 # Your tools: favourites and recently used
 
-The home page has a "Your tools" row above the category groups. It holds the tools
-a person starred, then up to six they used recently. A first-time visitor sees
-no row at all. Everything is stored in the browser and never sent anywhere, like
-the rest of the product.
+The home page has a "Your tools" row above "Browse by type". It is two sections:
+**Favourites** (the tools a person starred) and **Recently used** (up to six they
+used lately). A first-time visitor sees no row at all, and sees "Start here"
+instead (`docs/home-page.md`). Everything is stored in the browser and never sent
+anywhere, like the rest of the product.
 
 ## Flow
 
@@ -15,18 +16,26 @@ the rest of the product.
 2. **Use.** When a job finishes and the result is ready to download or copy, the
    tool calls `recordToolUse("/path")` (`src/lib/tool-history/store.ts`). The
    path goes to the front of the recent list. Visiting a page does not count.
-3. **Show.** The home page renders `YourTools` after hydration. Favourites come
-   first in the order they were starred, then the recent tools that are not
-   starred. Each is a compact tile with its own star, so a tool is unstarred from
-   where it is shown.
-4. **Clear recent.** A button on the row header empties the recent list and keeps
-   the favourites. It only shows while there is a recent tool to clear.
+3. **Show.** The home page renders `YourTools` after hydration, as two sections
+   with their own h2 headings (a star icon and a count, a clock icon and a count).
+   Favourites are in the order they were starred. Recently used holds the recent
+   tools that are not starred. Each is a compact tile with its own star, so a tool
+   is unstarred from where it is shown. Starring a tile in Recently used moves it
+   into Favourites, because it is no longer a recent-only tool.
+   - **Hint tile.** With no favourite but at least one recent tool, Favourites
+     shows one dashed tile, "Star a tool to pin it here". It is not a link or a
+     button.
+   - **No recent tools.** With favourites only there is no Recently used section.
+   - **Neither.** Nothing renders.
+4. **Clear recent.** A button on the Recently used heading empties the recent list
+   and keeps the favourites. It only exists while that section does, so it only
+   shows while there is a recent tool to clear.
 5. **Search.** With an empty query the Cmd/Ctrl+K palette lists the same tools in
    a "Your tools" group at the top (see `docs/search.md`).
 6. **Other tabs.** A change in one tab reaches the others through the `storage`
    event, so a star in one tab shows in the other without a reload.
 
-A note under the row says "Saved in this browser only."
+One note at the end of the row says "Saved in this browser only."
 
 ## What is stored
 
@@ -62,7 +71,7 @@ src/lib/tool-history/
   model.ts      pure changes: parseHistory, toggleFavourite, recordUse, clearRecent, yourTools
   service.ts    ToolHistory: load, toggleFavourite, recordUse, clearRecent
   store.ts      the React-facing store and recordToolUse
-  prepaint.ts   the inline script that reserves the row's height
+  prepaint.ts   the inline script that reserves the row's height and flags a returning visitor
   fakes.ts      ToolHistoryHost fake for tests
 src/hooks/use-tool-history.ts           the hook components read
 src/hooks/use-record-tool-use-once.ts   for tools that show a result live
@@ -98,17 +107,30 @@ so a storage that refuses the write cannot touch the tool the person is using.
   render, which keeps hydration matching, and the first `useToolHistory` effect
   loads it. `useSyncExternalStore` gets a server snapshot of `idle` for the same
   reason.
-- **No jump.** Filling the row after hydration would push every group down. A tiny
-  inline script in the home `<head>` (`prepaint.ts`, the same idea as
-  `SEEN_SCRIPT` in `src/routes/index.tsx`) reads the storage key before first
-  paint, counts the tools the row will show with the same rules as `yourTools`,
-  and sets `data-your-tools` on `<html>` plus `--yt-rows-2` and `--yt-rows-3`.
-  `home.css` turns that into a `min-height` on the slot that is always in the
-  page. The row's height is fixed by design: the header is 2rem, tiles are 3.5rem
-  with 0.75rem gaps, the note is one line, and the grid is two columns below 640px
-  and three above. Once the history is read the attribute is removed and the row
-  sizes itself. If the script finds nothing, nothing is reserved. If storage is
-  unreadable the slot collapses, which is a shift on load.
+- **No jump.** Filling the row after hydration would push everything below it
+  down. A tiny inline script in the home `<head>` (`prepaint.ts`) reads the storage
+  key before first paint and works out what the row will show with the same rules
+  as `parseHistory` and `yourToolsParts`. It sets `data-your-tools` on `<html>`,
+  the rows of each section at two and three columns (`--yt-fav-2`, `--yt-fav-3`,
+  `--yt-rec-2`, `--yt-rec-3`) and `--yt-sections` (1 or 2). `home.css` turns that
+  into a `min-height` on the slot that is always in the page. The row's height is
+  fixed by design, and the constants are documented next to the CSS: each heading
+  row is 2rem plus a 0.75rem gap, tile rows are 3.5rem with 0.75rem gaps, the two
+  sections are 1.5rem apart, the note is 1.75rem with its gap, and the grid is two
+  columns below 640px and three above. So the height is the headings, plus the
+  section gap, plus the tile rows, plus the gaps between tile rows, plus the note.
+  The hint tile is one full-width tile row, so the script counts it as one
+  Favourites row. The script follows the model exactly: a value that does not match
+  the Schema reads as empty, favourites and recent are deduped, recent is cut to
+  twelve before unknown and starred paths are left out, then six are shown.
+  `prepaint.test.ts` runs the script against `yourToolsParts`. Once the history is
+  read the attribute is removed and the row sizes itself. If the script finds
+  nothing, nothing is reserved. If storage is unreadable the slot collapses, which
+  is a shift on load.
+- **The returning flag.** The same script sets `data-returning="1"` on `<html>`
+  when the row will show at least one tool. The home hero and "Start here" read it
+  from CSS, and `useReturningFlag` keeps it right on client-side navigation. See
+  `docs/home-page.md`.
 - **The one shift that stays.** A visitor with no history who stars their first
   tool, or who unstars the last one, changes the page while looking at it. The row
   cannot be reserved for a change nobody has made yet, and hiding it until the next
@@ -122,10 +144,13 @@ so a storage that refuses the write cannot touch the tool the person is using.
   animated. The content is unmounted and the groups move up in one frame, because
   keeping it mounted to animate out would need a second copy of the row state.
 - **Focus and speech.** A click that removes the focused element leaves focus on
-  the page body, so the row hands focus on. After "Clear recent", focus goes to the
-  row heading (`tabIndex={-1}`). After unstarring a tile in the row, it goes to the
-  star now at that position, else the row heading. If the row is gone, it goes to
-  the first category heading (also `tabIndex={-1}`). A live region (`output`, always
+  the page body, so the row hands focus on. The two section headings are
+  `tabIndex={-1}`. After "Clear recent", focus goes to the Favourites heading, else
+  the next heading in the row. After unstarring a tile in Favourites, it goes to the
+  star now at that position, else the Favourites heading. After starring a tile in
+  Recently used, it goes to that tool's star, which now sits in Favourites. If the
+  row is gone, it goes to the first category summary on the page (`#tools-image`, a
+  `<details>` summary, focusable already). A live region (`output`, always
   mounted) says "Recent tools cleared" or "Removed {tool} from favourites" and
   empties after four seconds. Stars outside the row rely on `aria-pressed` alone.
 - **Blocked storage.** The stars are `aria-disabled` with a no-op click, not
@@ -135,9 +160,10 @@ so a storage that refuses the write cannot touch the tool the person is using.
   so a defect becomes the `unavailable` state like a storage error, and the
   promise never rejects. The state is a `SubscriptionRef` read through `toStore`
   from `src/lib/offline/state.ts`.
-- **Compact tiles in the row.** The row reuses `ToolTile` with `compact`: one line,
-  no blurb, no offline dot. A row of full tiles would be four or five rows tall
-  with eight tools.
+- **Compact tiles in the row.** The row reuses `ToolTile` with `compact`: no blurb,
+  no offline dot, 3.5rem tall, and the name wraps to two lines instead of
+  truncating. The chip is 32px below `sm` and 36px from `sm`. A row of full tiles
+  would be four or five rows tall with eight tools. "Start here" uses the same tile.
 - **The tile is a div.** A button cannot sit inside an anchor. The card is a `div`
   with the card styles, the link stretches over it with `::after`, and the star
   sits above with `z-10`. The press squish in `home.css` follows `a:active`, so
@@ -188,18 +214,22 @@ A new tool must record use, and its path must be in the registry.
 - `tool-history.test.ts`: the service against a fake host (empty and corrupt
   values, recording with the clock, building on stored data, clearing, stored
   shape, read and write failures) and the pure model (dedupe, cap at twelve, order,
-  the `yourTools` list, six shown after starred tools are left out).
+  the `yourTools` list, six shown after starred tools are left out, and
+  `isReturningVisitor`).
 - `prepaint.test.ts`: the inline script run against stand-ins for `localStorage`
-  and `<html>`, including blocked storage and junk values.
+  and `<html>`: favourites only, recent only (the hint tile), both, neither, the
+  cap at twelve then six, repeats, unknown paths, blocked storage and junk values,
+  and a check that the row counts agree with `yourToolsParts`.
 - `wiring.test.ts`: every tool records use.
 - `src/lib/tool-search.test.ts`: the empty-query ranking with history.
 
 The row, the star and the palette have no component test. Drive them in a real
 browser: star from a tile and from a header, click the star on a tile (no
 navigation), reload (no jump), the first star on a fresh profile (the slot grows),
-clear recent and unstar from the row (focus moves, the live region speaks), a
-second tab, blocked storage (Tab reaches the star), 390px, dark mode, reduced
-motion.
+clear recent and unstar from the row (focus moves, the live region speaks), star a
+Recently used tile from the keyboard (focus follows it into Favourites), the hint
+tile with only recent tools, a second tab, blocked storage (Tab reaches the star),
+390px, dark mode, reduced motion.
 
 ## Not done
 

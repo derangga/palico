@@ -265,7 +265,7 @@ Mauve.
 
 **The Quiet Surfaces Rule.** Large areas (page, sidebar, cards, panels) use Base, Mantle, Crust and Surface0 only. Accent colour on a large surface is a bug.
 
-**The One Saturated Colour Rule.** A component carries at most one saturated colour. A tile with a Peach chip does not also get a Yellow border and a green badge; the second colour of a pair appears only as a tint or small detail.
+**The One Saturated Colour Rule.** A component carries at most one saturated colour. A tile with a Peach chip does not also get a Yellow border and a green badge; the second colour of a pair appears only as a tint or small detail. One exception: the home hero's tool lanes show all five category colours in one component. They are 24% tints over Crust with a 32% border and a coloured icon, never solid fills, and they are decoration (`aria-hidden`).
 
 **The Status Keeps Its Meaning Rule.** Green means done, Red means error or destruction, Yellow or Peach means warning, Sapphire or Sky means info. Do not use these colours for decoration, and do not reuse a category accent to signal status.
 
@@ -379,7 +379,7 @@ Built on Base UI primitives with a shadcn-derived structure. The feel across all
 - 14px radius tiles linking to each tool. A tile has a Mantle or Surface0 background, an icon chip filled with the category's first accent and a tinted detail from the second, and a `text`-coloured label.
 - Hover lifts the tile 2px and shows the accent edge (`0 4px 0` in the category accent); press squishes the edge to 1px. The icon chip does one small tilt. 160 to 200ms, `--ease-out`.
 - Tiles use token colours only. Do not hardcode `orange-*` or `emerald-*`, and do not put text over a background image.
-- Each tile has a star toggle for favourites (also in every tool page header). Unstarred it is a muted outline; starred it is filled in the category ink, never yellow, because yellow means warning. The "Your tools" row above the groups reuses the tile in a compact one-line form. See `docs/recent-tools.md`.
+- Each tile has a star toggle for favourites (also in every tool page header). Unstarred it is a muted outline; starred it is filled in the category ink, never yellow, because yellow means warning. The full tile (with blurb and offline dot) sits inside the home page's collapsed "Browse by type" rows, one native `<details>` per category (52px summary with a category dot, tool count and a chevron that turns 200ms). Opening a row just shows its tiles; the height does not animate. The rows are transparent with a Surface1 border, so the tiles inside are not a card in a card. "Start here" (first visit) and the "Your tools" sections above reuse the tile in a compact form: 56px tall, a 32px chip below `sm` and 36px from `sm`, and a name that wraps to two lines. See `docs/home-page.md` and `docs/recent-tools.md`.
 
 ### Status pills and chips
 Tinted fill (`color-mix` of the status colour into the card colour), a coloured dot, and a `text` label. Never coloured text in Latte except Red.
@@ -398,7 +398,7 @@ hundreds of times a day moves much.
 
 | Frequency | Where | Treatment |
 | --- | --- | --- |
-| Rare, first look | Home hero, empty states, "all done" | Can delight |
+| Rare, first look | Home hero (mascot bob, tool lanes), empty states, "all done" | Can delight. The loops run on Home only and pause when unseen |
 | Occasional | Dialogs, toasts, file added, job finished, theme toggle | Standard, under 300ms |
 | Constant | Sidebar nav, buttons, inputs, keyboard actions | Minimal: press scale and colour only |
 
@@ -407,7 +407,7 @@ All are CSS transitions or keyframes. No motion library is installed and none is
 
 1. Mascot idle on the home hero: slow bob (about 6px, 5 to 6s) with a very small tilt, whole image only.
 2. Tile hover: lift, accent edge, one icon tilt.
-3. Home grid first load: 40ms stagger, opacity plus 8px rise, once per session, never blocks clicks.
+3. Hero tool lanes: three lanes of category-tinted tool icons in a band tilted 10 degrees, sliding up, down, up at constant speed (`linear`, 20, 24 and 22s), faded at both ends by a fixed mask. `transform` only, no blur. Present in both hero variants, paused while the tab is hidden or the hero is off screen, static under reduced motion. There is no hover effect to gate. (The tile entrance stagger that used to be here is gone with the grid it staggered.)
 4. Chunky primary buttons: edge drops on `:active` plus `scale(0.97)`.
 5. Dropzone drag-over: solid accent border, icon hop, faint glow. Dropped file rows arrive with a short pop (scale 0.96 to 1 plus fade), not a long list animation.
 6. Progress: candy-stripe fill.
@@ -421,7 +421,7 @@ All are CSS transitions or keyframes. No motion library is installed and none is
 - **Curves:** `--ease-out` `cubic-bezier(0.23, 1, 0.32, 1)` for enter and press feedback; `--ease-drawer` `cubic-bezier(0.32, 0.72, 0, 1)` for the sidebar and sheets. Never `ease-linear` for UI movement; linear is only for constant-speed progress.
 - **Duration:** UI animations stay under 300ms; press feedback 100 to 160ms. The only things over 300ms are the home idle loop and the one-time celebration moments.
 - **Properties:** Animate only `transform` and `opacity` (colour and shadow transitions are fine for state). Keep `backdrop-filter` blur on small areas such as the sticky header. No layout properties, with one exception: the "Your tools" row grows open (`grid-template-rows`, 220ms) when a first star is added in a visit, because that shift cannot be avoided (see `docs/recent-tools.md`).
-- **Loops:** Looping animation runs only on the home page, and pauses when `document.hidden`.
+- **Loops:** Looping animation runs only on the home page (the mascot bob and the hero tool lanes), and pauses when `document.hidden` or when the hero is off screen (`IntersectionObserver`, `animation-play-state: paused`).
 - **Keyboard:** Do not animate keyboard-driven actions.
 - **Reduced motion:** Every animation has a `prefers-reduced-motion: reduce` version. It keeps opacity, colour and shadow transitions and drops movement (translate, scale, tilt, bob, hop, burst, clip-path reveal, width and slide or zoom enters). The mascot is static, the theme swap is instant, the done check appears without drawing, and spinners become a slow opacity pulse. Handled globally in `src/styles.css`.
 
@@ -432,7 +432,7 @@ a clean cutout with its own Catppuccin-family colours (blue hat, lavender scarf,
 pink-mauve hammer, green plants, yellow coat). It sits on Base, Mantle or Crust
 in both themes without a halo.
 
-- **Hero:** Home only, as the cropped art (content box 1131x992, nearly square) in WebP with 1x and 2x variants, optionally AVIF. Never serve the uncropped 2 MB PNG. The idle bob applies here.
+- **Hero:** Home only, as the cropped art (content box 1131x992, nearly square) in WebP with 1x and 2x variants, optionally AVIF. Never serve the uncropped 2 MB PNG. The idle bob applies here. The mascot is in the full hero only, the first-visit layout. The compact hero for returning visitors (a favourite or recent tool exists) shows no mascot and no button, because the sidebar logo already shows the face and Home is no longer a one-tool landing page. The image is in the prerendered HTML and hidden by CSS for them. See `docs/home-page.md`.
 - **Sidebar:** A separate face-only crop. Not the full body at small sizes. Tilt or wink on hover.
 - **Favicons and app icons:** The same face crop: 16, 32, 64, ico, apple-touch, android 192 and 512. `site.webmanifest` `theme_color` and `background_color` use the Base colour, not pure white.
 - **No extra poses.** There is one image. Empty and error states reuse it; loading states use whole-image motion (bob, tilt), not a hammer swing or new art.

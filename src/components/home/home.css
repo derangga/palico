@@ -57,29 +57,6 @@
 	transition-duration: 0s;
 }
 
-/*
- * First-load stagger: 40ms steps, opacity plus an 8px rise. The marker on
- * <html> is set by a tiny inline script (reloads) and by the grid after the
- * first run (client navigation), so it plays once per session.
- */
-@keyframes tool-in {
-	from {
-		opacity: 0;
-		transform: translateY(8px);
-	}
-}
-
-@keyframes tool-fade {
-	from {
-		opacity: 0;
-	}
-}
-
-html:not([data-home-seen]) .tool-in {
-	animation: tool-in 360ms var(--ease-out) backwards;
-	animation-delay: calc(var(--i, 0) * 40ms);
-}
-
 @media (prefers-reduced-motion: reduce) {
 	.tool-tile:has(a:active),
 	.tool-tile:hover,
@@ -87,30 +64,46 @@ html:not([data-home-seen]) .tool-in {
 	.tool-tile:hover .tool-chip {
 		transform: none;
 	}
-
-	html:not([data-home-seen]) .tool-in {
-		animation: tool-fade 200ms ease-out backwards;
-		animation-delay: calc(var(--i, 0) * 40ms);
-	}
 }
 
 /*
- * "Your tools" row.
+ * "Your tools" row: a Favourites section, then a Recently used section.
  *
  * The page is prerendered without it. A pre-paint script (tool-history/
- * prepaint.ts) sets data-your-tools on <html> and the row counts for two and
- * three columns when storage holds tools, so the slot reserves the row's exact
- * height and the groups below do not move when it fills in. Heights are the
- * fixed sizes used by the row: header 2rem + 0.75rem, tiles 3.5rem with 0.75rem
- * gaps, note 0.75rem + 1rem. Two columns below 640px, three from there.
+ * prepaint.ts) sets data-your-tools on <html> when storage holds tools, plus the
+ * row counts of each section at two and three columns, so the slot reserves the
+ * row's exact height and what is below does not move when it fills in.
+ *
+ * Heights, in step with your-tools.tsx (change both together):
+ *   --yt-head          2.75rem  heading row h-8 (2rem) + mb-3 (0.75rem)
+ *   --yt-tile          3.5rem   one tile row, h-14 (the hint tile is one too)
+ *   --yt-gap           0.75rem  gap between tile rows, gap-3
+ *   --yt-section-gap   1.5rem   between the two sections, mt-6
+ *   --yt-note          1.75rem  "Saved in this browser only.", mt-3 + 1rem line
+ *
+ * Script inputs, all set on <html>:
+ *   --yt-sections      1 or 2, how many sections show
+ *   --yt-fav-2/-3      Favourites rows at 2 and 3 columns (1 for the hint tile)
+ *   --yt-rec-2/-3      Recently used rows (0 when that section is absent)
+ *
+ * With S sections and R tile rows in all (favourites plus recent), the height is
+ *   S heads + (S - 1) section gaps + R tiles + (R - S) row gaps + the note.
+ * Two columns below 640px, three from there.
  */
 .your-tools-slot {
-	--yt-rows: var(--yt-rows-2, 1);
+	--yt-head: 2.75rem;
+	--yt-tile: 3.5rem;
+	--yt-gap: 0.75rem;
+	--yt-section-gap: 1.5rem;
+	--yt-note: 1.75rem;
+	--yt-fav: var(--yt-fav-2, 1);
+	--yt-rec: var(--yt-rec-2, 0);
 }
 
 @media (min-width: 640px) {
 	.your-tools-slot {
-		--yt-rows: var(--yt-rows-3, 1);
+		--yt-fav: var(--yt-fav-3, 1);
+		--yt-rec: var(--yt-rec-3, 0);
 	}
 }
 
@@ -128,7 +121,10 @@ html[data-your-tools] .your-tools-slot {
 
 html[data-your-tools] .your-tools-slot {
 	min-height: calc(
-		2.75rem + var(--yt-rows) * 3.5rem + (var(--yt-rows) - 1) * 0.75rem + 1.75rem
+		var(--yt-sections, 1) * var(--yt-head) + (var(--yt-sections, 1) - 1) *
+			var(--yt-section-gap) + (var(--yt-fav) + var(--yt-rec)) * var(--yt-tile) +
+			(var(--yt-fav) + var(--yt-rec) - var(--yt-sections, 1)) * var(--yt-gap) +
+			var(--yt-note)
 	);
 }
 
@@ -176,14 +172,14 @@ html[data-your-tools] .your-tools-slot {
 	animation: your-tools-grow 220ms var(--ease-out);
 }
 
-.your-tools-slot.is-growing > section {
+.your-tools-slot.is-growing > .your-tools-row {
 	min-height: 0;
 	overflow: hidden;
 	padding-bottom: 2rem;
 }
 
 @media (min-width: 1024px) {
-	.your-tools-slot.is-growing > section {
+	.your-tools-slot.is-growing > .your-tools-row {
 		padding-bottom: 2.5rem;
 	}
 }
@@ -201,7 +197,7 @@ html[data-your-tools] .your-tools-slot {
 		animation: none;
 	}
 
-	.your-tools-slot.is-growing > section {
+	.your-tools-slot.is-growing > .your-tools-row {
 		overflow: visible;
 		padding-bottom: 0;
 	}
@@ -210,5 +206,313 @@ html[data-your-tools] .your-tools-slot {
 @media (prefers-reduced-motion: reduce) and (min-width: 1024px) {
 	.your-tools-slot.is-growing {
 		margin-bottom: 2.5rem;
+	}
+}
+
+/*
+ * Hero. One h1 in two variants; the page is prerendered the same for everyone and
+ * html[data-returning] (set before first paint by tool-history/prepaint.ts, and
+ * by Home on mount, see use-returning-flag.ts) picks the compact one. The rules
+ * below are unlayered on purpose: they override the Tailwind utilities on the
+ * same elements in hero.tsx.
+ *
+ * Full (default): copy on the left, the mascot on a Crust panel, tool lanes
+ * behind the mascot. Compact: a Crust band about 150px tall (170px from 560px of
+ * container width) with the copy on the left and the lanes on the right; no
+ * mascot, no button. The band is the container, so sizes follow its width.
+ */
+.home-hero {
+	container: hero / inline-size;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: center;
+	gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+	.home-hero {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 4rem;
+	}
+}
+
+html[data-returning] .home-hero {
+	position: relative;
+	isolation: isolate;
+	display: block;
+	min-height: 9.375rem;
+	overflow: hidden;
+	border-radius: var(--radius-xl);
+	background: var(--catppuccin-color-crust);
+}
+
+html[data-returning] .hero-copy {
+	position: relative;
+	z-index: 1;
+	justify-content: center;
+	max-width: 64%;
+	min-height: 9.375rem;
+	padding: 1.375rem 1.25rem;
+}
+
+html[data-returning] .hero-copy h1 {
+	font-size: 1.375rem;
+}
+
+/* The hard breaks only make sense in the big headline. */
+html[data-returning] .hero-copy br {
+	display: none;
+}
+
+/* Two lines on a phone so the band stays about 150px; the full sentence from 560px. */
+html[data-returning] .hero-tagline {
+	display: -webkit-box;
+	max-width: none;
+	margin-top: 0.5rem;
+	overflow: hidden;
+	font-size: 0.8125rem;
+	line-height: 1.4;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+}
+
+html[data-returning] .hero-cta,
+html[data-returning] .hero-glow,
+html[data-returning] .hero-mascot {
+	display: none;
+}
+
+html[data-returning] .hero-art {
+	position: absolute;
+	inset: 0 0 0 auto;
+	width: 42%;
+	padding: 0;
+	overflow: visible;
+	border-radius: 0;
+	background: none;
+	pointer-events: none;
+}
+
+/*
+ * Tool lanes: three lanes in a band tilted 10 degrees, like a slash. Lane 1 and 3
+ * slide up, lane 2 slides down. Each lane holds its five icons twice, so a
+ * translateY(-50%) loop ends where it began (every chip carries its own bottom
+ * margin, so half the lane is exactly one set). Constant speed, so linear.
+ * Only transform moves. No filter, no blur, no hover effect. The band fades out
+ * at both ends with a fixed mask.
+ *
+ * In the full hero the band fills the mascot panel and the lanes spread to its
+ * sides; the compact hero gives it a fixed size on the right of the band.
+ */
+.hero-lanes {
+	--lanes-w: 100%;
+	--lanes-h: 120%;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	width: var(--lanes-w);
+	height: var(--lanes-h);
+	padding-inline: 0.75rem;
+	overflow: hidden;
+	transform: translate(-50%, -50%) rotate(10deg);
+	-webkit-mask-image: linear-gradient(
+		transparent,
+		#000 9%,
+		#000 91%,
+		transparent
+	);
+	mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent);
+}
+
+html[data-returning] .hero-lanes {
+	--lanes-w: 9.5rem;
+	--lanes-h: 12.25rem;
+	justify-content: center;
+	padding-inline: 0;
+}
+
+.hero-lane {
+	display: flex;
+	flex: none;
+	flex-direction: column;
+	/* The resting spot under reduced motion; the animation replaces it. */
+	transform: translate3d(0, var(--rest, 0%), 0);
+	animation: hero-lane-up 20s linear infinite;
+}
+
+.hero-lane[data-dir="down"] {
+	animation-name: hero-lane-down;
+}
+
+.hero-lane:nth-child(2) {
+	--rest: -5%;
+}
+
+.hero-lane:nth-child(3) {
+	--rest: -2%;
+}
+
+@keyframes hero-lane-up {
+	from {
+		transform: translate3d(0, 0, 0);
+	}
+
+	to {
+		transform: translate3d(0, -50%, 0);
+	}
+}
+
+@keyframes hero-lane-down {
+	from {
+		transform: translate3d(0, -50%, 0);
+	}
+
+	to {
+		transform: translate3d(0, 0, 0);
+	}
+}
+
+/*
+ * A chip is a tint of its category colour over Crust. The colour comes from
+ * data-cat alone; there is no default --a for a rule to fall back on, so nothing
+ * can override a per-icon colour. Latte accents are used for tints and icons
+ * only (DESIGN.md).
+ */
+.hero-chip {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 2.25rem;
+	height: 2.25rem;
+	margin-bottom: 0.875rem;
+	border: 1px solid color-mix(in oklab, var(--a) 32%, transparent);
+	border-radius: 0.75rem;
+	background: color-mix(in oklab, var(--a) 24%, var(--catppuccin-color-crust));
+	color: var(--a);
+}
+
+.hero-chip svg {
+	width: 1.0625rem;
+	height: 1.0625rem;
+}
+
+.hero-chip[data-cat="image"] {
+	--a: var(--cat-image);
+}
+
+.hero-chip[data-cat="video"] {
+	--a: var(--cat-video);
+}
+
+.hero-chip[data-cat="file"] {
+	--a: var(--cat-file);
+}
+
+.hero-chip[data-cat="color"] {
+	--a: var(--cat-color);
+}
+
+.hero-chip[data-cat="developer"] {
+	--a: var(--cat-developer);
+}
+
+@container hero (min-width: 560px) {
+	.hero-chip {
+		width: 2.75rem;
+		height: 2.75rem;
+		margin-bottom: 1rem;
+		border-radius: 0.875rem;
+	}
+
+	.hero-chip svg {
+		width: 1.25rem;
+		height: 1.25rem;
+	}
+
+	html[data-returning] .hero-copy {
+		max-width: 54%;
+		min-height: 10.625rem;
+		padding: 1.625rem 2rem;
+	}
+
+	html[data-returning] .hero-copy h1 {
+		font-size: 1.875rem;
+	}
+
+	html[data-returning] .hero-tagline {
+		display: block;
+		font-size: 0.9375rem;
+	}
+
+	html[data-returning] .hero-art {
+		width: 46%;
+	}
+
+	html[data-returning] .hero-lanes {
+		--lanes-w: 12.25rem;
+		--lanes-h: 15.625rem;
+		gap: 1rem;
+	}
+}
+
+/* The mascot: the slow idle bob, the whole image only. */
+.hero-mascot {
+	animation: hero-bob 5.5s ease-in-out infinite;
+}
+
+@keyframes hero-bob {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0) rotate(-0.6deg);
+	}
+
+	50% {
+		transform: translate3d(0, -6px, 0) rotate(0.6deg);
+	}
+}
+
+/* Paused while the tab is hidden or the hero is off screen (use-hero-pause.ts). */
+.home-hero[data-paused] .hero-lane,
+.home-hero[data-paused] .hero-mascot {
+	animation-play-state: paused;
+}
+
+/* Reduced motion: the lanes rest where they are and the mascot is still. The
+ * data-dir selector is listed too: it sets animation-name with a higher
+ * specificity than a bare .hero-lane, so without it lane 2 would keep sliding. */
+@media (prefers-reduced-motion: reduce) {
+	.hero-lane,
+	.hero-lane[data-dir="down"],
+	.hero-mascot {
+		animation: none;
+	}
+}
+
+/* "Start here" is for first-time visitors; the returning flag hides it before first paint. */
+html[data-returning] .start-here {
+	display: none;
+}
+
+/*
+ * Browse by type: one native <details> per category. The chevron turns when the
+ * row is open (transform, 200ms). The panel itself just opens, no height
+ * animation. Reduced motion drops the transition and keeps the turned chevron,
+ * which still says whether the row is open.
+ */
+.category-chevron {
+	transition: transform 200ms var(--ease-out);
+}
+
+.category-row[open] > summary .category-chevron {
+	transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.category-chevron {
+		transition: none;
 	}
 }

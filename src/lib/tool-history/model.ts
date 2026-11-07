@@ -116,3 +116,11 @@ export const yourTools = (
 
 	return [...favourites, ...recent];
 };
+
+/**
+ * Whether the visitor has history the home page can show: at least one starred or
+ * recent tool in the row. The home page uses it once per visit to pick the
+ * compact hero and hide "Start here". The prepaint script applies the same rule.
+ */
+export const isReturningVisitor = (parts: YourToolsParts): boolean =>
+	parts.favourites.length + parts.recent.length > 0;

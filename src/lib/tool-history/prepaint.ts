@@ -1,24 +1,41 @@
-import { SHOWN_RECENT, STORAGE_KEY } from "./shapes.ts";
+import { MAX_RECENT, SHOWN_RECENT, STORAGE_KEY } from "./shapes.ts";
 
 /**
  * An inline script for the home page <head>. The page is prerendered without the
  * "Your tools" row, because only the browser knows the history. Without this the
- * row would appear after hydration and push the category groups down.
+ * row would appear after hydration and push the groups below it down.
  *
- * Before first paint it counts the tools the row will show and sets
- * `data-your-tools` on <html> plus `--yt-rows-2` and `--yt-rows-3` (the row
- * count at two and three columns). home.css turns those into a reserved height.
- * The count follows the same rules as `yourTools` in model.ts: starred tools,
- * then recent tools that are not starred, only for paths in `known`. Storage
- * can be blocked or hold junk, in which case the script does nothing and the row
- * simply appears after hydration.
+ * Before first paint it works out what the row will show and writes it on <html>:
+ *
+ * - `data-your-tools="1"`: the row will show at least one tool, so the slot
+ *   reserves its height.
+ * - `data-returning="1"`: the same condition, read by home.css to pick the compact
+ *   hero and hide "Start here" (see docs/home-page.md).
+ * - `--yt-fav-2` and `--yt-fav-3`: rows in the Favourites section at two and three
+ *   columns. With no favourites but a recent tool the section holds the hint tile,
+ *   which is one full-width row, so the count is 1.
+ * - `--yt-rec-2` and `--yt-rec-3`: rows in the Recently used section, 0 when it is
+ *   not shown.
+ * - `--yt-sections`: 1 or 2, the sections shown.
+ *
+ * The counts follow `parseHistory` and `yourToolsParts` in model.ts exactly: a
+ * value that does not match the Schema reads as empty, favourites are deduped,
+ * recent is deduped and cut to MAX_RECENT before unknown and starred paths are
+ * left out, and only SHOWN_RECENT of what is left is shown. Storage can be
+ * blocked or hold junk, in which case the script does nothing and the row simply
+ * appears after hydration.
  */
 export const yourToolsScript = (known: ReadonlyArray<string>): string =>
 	`try{var k=${JSON.stringify(known)},d=JSON.parse(localStorage.getItem(${JSON.stringify(STORAGE_KEY)}));` +
-	`if(d&&d.version===1&&Array.isArray(d.favourites)&&Array.isArray(d.recent)){` +
-	`var f=[],r=[];` +
-	`d.favourites.forEach(function(p){if(k.indexOf(p)>=0&&f.indexOf(p)<0)f.push(p)});` +
-	`d.recent.forEach(function(u){var p=u&&u.to;if(k.indexOf(p)>=0&&f.indexOf(p)<0&&r.indexOf(p)<0)r.push(p)});` +
-	`var n=f.length+Math.min(r.length,${SHOWN_RECENT});` +
-	`if(n>0){var e=document.documentElement;e.style.setProperty("--yt-rows-2",Math.ceil(n/2));` +
-	`e.style.setProperty("--yt-rows-3",Math.ceil(n/3));e.dataset.yourTools="1"}}}catch(e){}`;
+	`if(d&&d.version===1&&Array.isArray(d.favourites)&&Array.isArray(d.recent)` +
+	`&&d.favourites.every(function(p){return typeof p==="string"})` +
+	`&&d.recent.every(function(u){return u&&typeof u.to==="string"&&typeof u.at==="number"})){` +
+	`var f=[],s=[],r=[];` +
+	`d.favourites.forEach(function(p){if(f.indexOf(p)<0&&k.indexOf(p)>=0)f.push(p)});` +
+	`d.recent.forEach(function(u){if(s.indexOf(u.to)<0)s.push(u.to)});` +
+	`s.slice(0,${MAX_RECENT}).forEach(function(p){if(k.indexOf(p)>=0&&f.indexOf(p)<0)r.push(p)});` +
+	`r=r.slice(0,${SHOWN_RECENT});` +
+	`if(f.length+r.length>0){var e=document.documentElement,c=function(n,w){return Math.ceil(n/w)};` +
+	`e.style.setProperty("--yt-fav-2",f.length?c(f.length,2):1);e.style.setProperty("--yt-fav-3",f.length?c(f.length,3):1);` +
+	`e.style.setProperty("--yt-rec-2",c(r.length,2));e.style.setProperty("--yt-rec-3",c(r.length,3));` +
+	`e.style.setProperty("--yt-sections",r.length?2:1);e.dataset.yourTools="1";e.dataset.returning="1"}}}catch(e){}`;
