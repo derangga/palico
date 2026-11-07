@@ -210,65 +210,24 @@ html[data-your-tools] .your-tools-slot {
 }
 
 /*
- * Hero. One h1 in two variants; the page is prerendered the same for everyone and
- * html[data-returning] (set before first paint by tool-history/prepaint.ts, and
- * by Home on mount, see use-returning-flag.ts) picks the compact one. The rules
- * below are unlayered on purpose: they override the Tailwind utilities on the
- * same elements in hero.tsx.
- *
- * Full (default): one Crust card. On a phone the mascot sits on top in a box
- * about 230px wide, with the copy below; from lg the copy is on the left and the
- * mascot (up to 330px) on the right. The lanes fill that box, not the card, so
- * they stay close behind the mascot. Compact: a Crust band about 150px tall
- * (170px from 560px of container width) with the copy on the left and the lanes
- * on the right; no mascot, no button. The card is the container, so sizes
- * follow its width.
+ * Hero: one Crust band for every visitor, about 150px tall on a phone and 170px
+ * from 560px of band width. The headline and tagline sit on the left, the tool
+ * lanes on the right. No mascot and no button: the sidebar logo already shows
+ * the face, and Search and the tool rows below are the way in. The band is the
+ * container, so sizes follow its width. The rules below are unlayered on
+ * purpose: they override the Tailwind utilities on the same elements in hero.tsx.
  */
 .home-hero {
 	container: hero / inline-size;
 	position: relative;
 	isolation: isolate;
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	align-items: center;
-	gap: 0.5rem;
+	min-height: 9.375rem;
 	overflow: hidden;
-	padding: 1.375rem 1.25rem 1.625rem;
 	border-radius: var(--radius-xl);
 	background: var(--catppuccin-color-crust);
 }
 
-.hero-art {
-	position: relative;
-	isolation: isolate;
-	order: -1;
-	justify-self: center;
-	width: 100%;
-	max-width: 14.375rem;
-	aspect-ratio: 1.15;
-}
-
-@media (min-width: 1024px) {
-	.home-hero {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 2rem;
-		padding: 2.125rem 2.5rem;
-	}
-
-	.hero-art {
-		order: 0;
-		justify-self: end;
-		max-width: 20.625rem;
-	}
-}
-
-html[data-returning] .home-hero {
-	display: block;
-	min-height: 9.375rem;
-	padding: 0;
-}
-
-html[data-returning] .hero-copy {
+.hero-copy {
 	position: relative;
 	z-index: 1;
 	justify-content: center;
@@ -277,19 +236,13 @@ html[data-returning] .hero-copy {
 	padding: 1.375rem 1.25rem;
 }
 
-html[data-returning] .hero-copy h1 {
+.hero-copy h1 {
 	font-size: 1.375rem;
 }
 
-/* The hard breaks only make sense in the big headline. */
-html[data-returning] .hero-copy br {
-	display: none;
-}
-
 /* Two lines on a phone so the band stays about 150px; the full sentence from 560px. */
-html[data-returning] .hero-tagline {
+.hero-tagline {
 	display: -webkit-box;
-	max-width: none;
 	margin-top: 0.5rem;
 	overflow: hidden;
 	font-size: 0.8125rem;
@@ -299,18 +252,10 @@ html[data-returning] .hero-tagline {
 	line-clamp: 2;
 }
 
-html[data-returning] .hero-cta,
-html[data-returning] .hero-glow,
-html[data-returning] .hero-mascot {
-	display: none;
-}
-
-html[data-returning] .hero-art {
+.hero-art {
 	position: absolute;
 	inset: 0 0 0 auto;
 	width: 42%;
-	max-width: none;
-	aspect-ratio: auto;
 	pointer-events: none;
 }
 
@@ -321,22 +266,16 @@ html[data-returning] .hero-art {
  * margin, so half the lane is exactly one set). Constant speed, so linear.
  * Only transform moves. No filter, no blur, no hover effect. The band fades out
  * at both ends with a fixed mask.
- *
- * In the full hero the band is a little bigger than the mascot box (112% by
- * 120%), so the three lanes show around and between the mascot. The compact
- * hero gives it a fixed size on the right of the band.
  */
 .hero-lanes {
-	--lanes-w: 112%;
-	--lanes-h: 120%;
 	position: absolute;
 	top: 50%;
 	left: 50%;
 	display: flex;
-	justify-content: space-around;
+	justify-content: center;
 	gap: 0.75rem;
-	width: var(--lanes-w);
-	height: var(--lanes-h);
+	width: 9.5rem;
+	height: 12.25rem;
 	overflow: hidden;
 	transform: translate(-50%, -50%) rotate(10deg);
 	-webkit-mask-image: linear-gradient(
@@ -346,12 +285,6 @@ html[data-returning] .hero-art {
 		transparent
 	);
 	mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent);
-}
-
-html[data-returning] .hero-lanes {
-	--lanes-w: 9.5rem;
-	--lanes-h: 12.25rem;
-	justify-content: center;
 }
 
 .hero-lane {
@@ -452,61 +385,43 @@ html[data-returning] .hero-lanes {
 		height: 1.25rem;
 	}
 
-	html[data-returning] .hero-copy {
+	.hero-copy {
 		max-width: 54%;
 		min-height: 10.625rem;
 		padding: 1.625rem 2rem;
 	}
 
-	html[data-returning] .hero-copy h1 {
+	.hero-copy h1 {
 		font-size: 1.875rem;
 	}
 
-	html[data-returning] .hero-tagline {
+	.hero-tagline {
 		display: block;
 		font-size: 0.9375rem;
 	}
 
-	html[data-returning] .hero-art {
+	.hero-art {
 		width: 46%;
 	}
 
-	html[data-returning] .hero-lanes {
-		--lanes-w: 12.25rem;
-		--lanes-h: 15.625rem;
+	.hero-lanes {
+		width: 12.25rem;
+		height: 15.625rem;
 		gap: 1rem;
 	}
 }
 
-/* The mascot: the slow idle bob, the whole image only. */
-.hero-mascot {
-	animation: hero-bob 5.5s ease-in-out infinite;
-}
-
-@keyframes hero-bob {
-	0%,
-	100% {
-		transform: translate3d(0, 0, 0) rotate(-0.6deg);
-	}
-
-	50% {
-		transform: translate3d(0, -6px, 0) rotate(0.6deg);
-	}
-}
-
 /* Paused while the tab is hidden or the hero is off screen (use-hero-pause.ts). */
-.home-hero[data-paused] .hero-lane,
-.home-hero[data-paused] .hero-mascot {
+.home-hero[data-paused] .hero-lane {
 	animation-play-state: paused;
 }
 
-/* Reduced motion: the lanes rest where they are and the mascot is still. The
+/* Reduced motion: the lanes rest where they are. The
  * data-dir selector is listed too: it sets animation-name with a higher
  * specificity than a bare .hero-lane, so without it lane 2 would keep sliding. */
 @media (prefers-reduced-motion: reduce) {
 	.hero-lane,
-	.hero-lane[data-dir="down"],
-	.hero-mascot {
+	.hero-lane[data-dir="down"] {
 		animation: none;
 	}
 }

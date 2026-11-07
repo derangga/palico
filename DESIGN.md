@@ -398,30 +398,29 @@ hundreds of times a day moves much.
 
 | Frequency | Where | Treatment |
 | --- | --- | --- |
-| Rare, first look | Home hero (mascot bob, tool lanes), empty states, "all done" | Can delight. The loops run on Home only and pause when unseen |
+| Rare, first look | Home hero (tool lanes), empty states, "all done" | Can delight. The loops run on Home only and pause when unseen |
 | Occasional | Dialogs, toasts, file added, job finished, theme toggle | Standard, under 300ms |
 | Constant | Sidebar nav, buttons, inputs, keyboard actions | Minimal: press scale and colour only |
 
 ### Playful moments
 All are CSS transitions or keyframes. No motion library is installed and none is needed.
 
-1. Mascot idle on the home hero: slow bob (about 6px, 5 to 6s) with a very small tilt, whole image only.
-2. Tile hover: lift, accent edge, one icon tilt.
-3. Hero tool lanes: three lanes of category-tinted tool icons in a band tilted 10 degrees, sliding up, down, up at constant speed (`linear`, 20, 24 and 22s), faded at both ends by a fixed mask. `transform` only, no blur. Present in both hero variants, paused while the tab is hidden or the hero is off screen, static under reduced motion. There is no hover effect to gate. (The tile entrance stagger that used to be here is gone with the grid it staggered.)
-4. Chunky primary buttons: edge drops on `:active` plus `scale(0.97)`.
-5. Dropzone drag-over: solid accent border, icon hop, faint glow. Dropped file rows arrive with a short pop (scale 0.96 to 1 plus fade), not a long list animation.
-6. Progress: candy-stripe fill.
-7. Done moment: self-drawing check, green tint, dot burst, friendlier toast voice. Completion of a user job only.
-8. Theme toggle: sun and moon swap with a circular clip-path reveal from the button via the View Transitions API where supported, instant elsewhere.
-9. Sidebar active pill: slides between items, transform only, 200ms.
-10. Route change: 120ms crossfade of page content only. No slides.
-11. Sidebar logo: the face crop tilts or winks on hover, on hover-capable devices only.
+1. Tile hover: lift, accent edge, one icon tilt.
+2. Hero tool lanes: three lanes of category-tinted tool icons in a band tilted 10 degrees, sliding up, down, up at constant speed (`linear`, 20, 24 and 22s), faded at both ends by a fixed mask. `transform` only, no blur. Paused while the tab is hidden or the hero is off screen, static under reduced motion. There is no hover effect to gate. (The tile entrance stagger that used to be here is gone with the grid it staggered.)
+3. Chunky primary buttons: edge drops on `:active` plus `scale(0.97)`.
+4. Dropzone drag-over: solid accent border, icon hop, faint glow. Dropped file rows arrive with a short pop (scale 0.96 to 1 plus fade), not a long list animation.
+5. Progress: candy-stripe fill.
+6. Done moment: self-drawing check, green tint, dot burst, friendlier toast voice. Completion of a user job only.
+7. Theme toggle: sun and moon swap with a circular clip-path reveal from the button via the View Transitions API where supported, instant elsewhere.
+8. Sidebar active pill: slides between items, transform only, 200ms.
+9. Route change: 120ms crossfade of page content only. No slides.
+10. Sidebar logo: the face crop tilts or winks on hover, on hover-capable devices only.
 
 ### Rules
 - **Curves:** `--ease-out` `cubic-bezier(0.23, 1, 0.32, 1)` for enter and press feedback; `--ease-drawer` `cubic-bezier(0.32, 0.72, 0, 1)` for the sidebar and sheets. Never `ease-linear` for UI movement; linear is only for constant-speed progress.
 - **Duration:** UI animations stay under 300ms; press feedback 100 to 160ms. The only things over 300ms are the home idle loop and the one-time celebration moments.
 - **Properties:** Animate only `transform` and `opacity` (colour and shadow transitions are fine for state). Keep `backdrop-filter` blur on small areas such as the sticky header. No layout properties, with one exception: the "Your tools" row grows open (`grid-template-rows`, 220ms) when a first star is added in a visit, because that shift cannot be avoided (see `docs/recent-tools.md`).
-- **Loops:** Looping animation runs only on the home page (the mascot bob and the hero tool lanes), and pauses when `document.hidden` or when the hero is off screen (`IntersectionObserver`, `animation-play-state: paused`).
+- **Loops:** Looping animation runs only on the home page (the hero tool lanes), and pauses when `document.hidden` or when the hero is off screen (`IntersectionObserver`, `animation-play-state: paused`).
 - **Keyboard:** Do not animate keyboard-driven actions.
 - **Reduced motion:** Every animation has a `prefers-reduced-motion: reduce` version. It keeps opacity, colour and shadow transitions and drops movement (translate, scale, tilt, bob, hop, burst, clip-path reveal, width and slide or zoom enters). The mascot is static, the theme swap is instant, the done check appears without drawing, and spinners become a slow opacity pulse. Handled globally in `src/styles.css`.
 
@@ -432,7 +431,7 @@ a clean cutout with its own Catppuccin-family colours (blue hat, lavender scarf,
 pink-mauve hammer, green plants, yellow coat). It sits on Base, Mantle or Crust
 in both themes without a halo.
 
-- **Hero:** Home only, as the cropped art (content box 1131x992, nearly square) in WebP with 1x and 2x variants, optionally AVIF. Never serve the uncropped 2 MB PNG. The idle bob applies here. The mascot is in the full hero only, the first-visit layout. The compact hero for returning visitors (a favourite or recent tool exists) shows no mascot and no button, because the sidebar logo already shows the face and Home is no longer a one-tool landing page. The image is in the prerendered HTML and hidden by CSS for them. See `docs/home-page.md`.
+- **Hero:** Not used. The home hero is a short band with the tool lanes and no mascot, because the sidebar logo already shows the face. See `docs/home-page.md`.
 - **Sidebar:** A separate face-only crop. Not the full body at small sizes. Tilt or wink on hover.
 - **Favicons and app icons:** The same face crop: 16, 32, 64, ico, apple-touch, android 192 and 512. `site.webmanifest` `theme_color` and `background_color` use the Base colour, not pure white.
 - **No extra poses.** There is one image. Empty and error states reuse it; loading states use whole-image motion (bob, tilt), not a hammer swing or new art.

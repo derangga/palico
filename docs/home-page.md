@@ -2,7 +2,7 @@
 
 Home is a launchpad, not a catalogue. From top to bottom:
 
-1. The hero, in one of two variants.
+1. The hero: a short band with the tool lanes.
 2. **Start here**: four common jobs, for a first-time visitor.
 3. **Your tools**: Favourites and Recently used, for anyone with history
    (`docs/recent-tools.md`).
@@ -26,31 +26,18 @@ and gave every tool the same weight. The sidebar and the search palette already 
 every tool, so Home now leads with what a person is likely to want next and keeps the
 full list one click away.
 
-## Two heroes
+## The hero
 
-The page is prerendered, so there is one markup for everyone, and CSS picks the
-variant from `html[data-returning]`:
+One Crust band for every visitor, about 150px tall on a phone and 170px from 560px
+of band width. The headline and tagline sit in the left 54 to 64 percent and the tool
+lanes in the right 42 to 46 percent. On a phone the tagline clips to two lines to
+hold the height. There is exactly one `h1`.
 
-- **Full hero (first visit, the default).** One Crust card with the headline, the
-  tagline, the "Convert an image" button, and the mascot with the tool lanes behind
-  it. On a phone the mascot sits on top in a box up to 230px wide and the copy
-  follows; from `lg` the copy is on the left and the mascot, up to 330px, on the
-  right. The lanes fill a band 112% by 120% of the mascot box, not the whole card,
-  so all three lanes stay close around the mascot instead of spreading to the card
-  edges. The mascot has the slow idle bob (about 6px over 5.5s).
-- **Compact hero (a favourite or recent tool exists).** A Crust band about 150px tall
-  on a phone and 170px from 560px of band width. The headline and tagline sit in the
-  left 54 to 64 percent and the lanes in the right 42 to 46 percent. There is no mascot
-  and no button: the sidebar logo already shows the face, and Home is no longer a
-  one-tool landing page. On a phone the tagline clips to two lines to hold the height.
-
-There is exactly one `h1`. The mascot image is in the prerendered HTML for both
-variants and `display: none` for returning visitors, because the markup has to be the
-same before anyone's history is known. The browser still downloads a hidden image
-(about 100 KB at 1x, 290 KB at 2x), so a returning visitor pays for a mascot they do
-not see. Only the first visit needs it up front; mounting it from JavaScript instead
-would put a hole in the prerendered LCP and is the thing to revisit if this shows up
-in a measurement.
+There is no mascot and no button. The sidebar logo already shows the face, Home is no
+longer a one-tool landing page, and the band keeps the tools close to the top of the
+page. An earlier version showed first-time visitors a bigger hero with the mascot and
+a "Convert an image" button; the owner chose the band for everyone, so new visitors
+get Start here below it instead.
 
 Sizes follow the hero's width, not the screen's: the hero is a CSS container
 (`container: hero / inline-size`) and the chip size, band sizes and headline size
@@ -76,7 +63,7 @@ component" in DESIGN.md: they are tints, they are decoration, and the whole bloc
 
 Motion rules:
 
-- Only `transform` animates (the lanes and the mascot bob). No blur or backdrop
+- Only `transform` animates (the lanes). No blur or backdrop
   filter anywhere in the hero, no `will-change`, no layout property. The loops are CSS
   keyframes, so they stay smooth while the page hydrates.
 - The loops run on Home only. They pause (`animation-play-state: paused`) when the
@@ -84,30 +71,28 @@ Motion rules:
   `data-paused` on the hero from `visibilitychange` and an `IntersectionObserver`,
   straight on the DOM node, so nothing re-renders.
 - Under `prefers-reduced-motion: reduce` the lanes stay at their resting positions
-  (a small offset per lane so they do not line up) and the mascot is still.
+  (a small offset per lane so they do not line up).
 - There is no hover effect, so nothing is gated to hover devices.
 
 ## Returning or first-time: no flash, no mid-visit swap
 
-The hero variant and the Start here group depend on history, which only the browser
+The Start here group depends on history, which only the browser
 knows. The rule has three parts:
 
 1. **Before first paint.** The inline script in `<head>` (`yourToolsScript`, see
    `docs/recent-tools.md`) sets `data-returning="1"` on `<html>` when the row will show
-   at least one tool. CSS reads `html[data-returning]` to pick the compact hero and hide
-   Start here. With no attribute (the prerendered default) the full hero and Start here
-   show.
+   at least one tool. CSS reads `html[data-returning]` to hide Start here. With no
+   attribute (the prerendered default) Start here shows.
 2. **Client navigation.** The script does not run again when Home is reached from
    another page. `useReturningFlag` sets or removes the attribute once the history has
    first been read (`phase` leaves `idle`), in a layout effect so it lands before paint.
 3. **Frozen for the visit.** After that first decision the attribute does not change
    while the person stays on Home. Starring a starter tile shows the Your tools row but
-   keeps the full hero and Start here until the next visit, so the page does not change
+   keeps Start here until the next visit, so the page does not change
    character under the cursor. The attribute is removed when Home unmounts, so other
    pages and the next Home visit start clean.
 
-Blocked storage (`unavailable`) counts as a first-time visitor: the full hero and Start
-here, and no row. "Returning" is decided by the pure `isReturningVisitor` in
+Blocked storage (`unavailable`) counts as a first-time visitor: Start here and no row. "Returning" is decided by the pure `isReturningVisitor` in
 `src/lib/tool-history/model.ts`: at least one favourite or recent tool the registry
 still knows. A removed route in storage does not count.
 

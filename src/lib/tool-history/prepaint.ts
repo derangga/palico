@@ -9,8 +9,7 @@ import { MAX_RECENT, SHOWN_RECENT, STORAGE_KEY } from "./shapes.ts";
  *
  * - `data-your-tools="1"`: the row will show at least one tool, so the slot
  *   reserves its height.
- * - `data-returning="1"`: the same condition, read by home.css to pick the compact
- *   hero and hide "Start here" (see docs/home-page.md).
+ * - `data-returning="1"`: the same condition, read by home.css to hide "Start here" (see docs/home-page.md).
  * - `--yt-fav-2` and `--yt-fav-3`: rows in the Favourites section at two and three
  *   columns, 0 when there is no favourite (the section is not shown).
  * - `--yt-rec-2` and `--yt-rec-3`: rows in the Recently used section, 0 when it is
