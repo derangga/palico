@@ -16,7 +16,10 @@ import {
 	type CompressPresetId,
 	DEFAULT_COMPRESS_PRESET,
 } from "#/lib/file/pdf-compress-presets.ts";
-import type { CompressOutcome } from "#/lib/file/pdf-compress-result.ts";
+import {
+	$match,
+	type CompressOutcome,
+} from "#/lib/file/pdf-compress-result.ts";
 import { MAX_PDF_BYTES, MAX_PDF_PAGES } from "#/lib/file/pdf-types.ts";
 import { compressPdf, loadPdf } from "#/lib/file/pdf.ts";
 import { pagesLabel } from "#/lib/i18n/counts.ts";
@@ -164,7 +167,10 @@ function PdfCompressPage() {
 			setOutcome(exit.value);
 
 			// A smaller file was made. Keeping the original is not a result.
-			if (exit.value._tag === "Compressed") recordToolUse("/pdf-compress");
+			$match(exit.value, {
+				Compressed: () => recordToolUse("/pdf-compress"),
+				NotSmallerResult: () => undefined,
+			});
 
 			return;
 		}

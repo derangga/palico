@@ -1,17 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Option, Schema } from "effect";
 
 import { PdfPasswordTool } from "#/components/pdf-password/pdf-password-tool.tsx";
-import type { PasswordMode } from "#/lib/pdf-password/shapes.ts";
+import { PasswordMode } from "#/lib/pdf-password/shapes.ts";
 import { seoHead } from "#/lib/seo.ts";
 
-// `?mode=unlock` opens the page on Unlock, for a link from another tool. Anything
-// else is ignored and the page picks the mode from the file.
-const modeFrom = (value: unknown): PasswordMode | undefined =>
-	value === "protect" || value === "unlock" ? value : undefined;
+const decodeMode = Schema.decodeUnknownOption(PasswordMode);
+
+// The only part of the address the page reads. `?mode=unlock` opens the page on
+// Unlock, for a link from another tool. A missing or unknown mode is dropped and the
+// page picks the mode from the file.
+interface PasswordSearch {
+	readonly mode?: string;
+}
 
 export const Route = createFileRoute("/pdf-password")({
-	validateSearch: (search: Record<string, unknown>) => ({
-		mode: modeFrom(search.mode),
+	validateSearch: (search: PasswordSearch) => ({
+		mode: Option.getOrUndefined(decodeMode(search.mode)),
 	}),
 	head: () => seoHead("/pdf-password"),
 	component: PdfPasswordPage,
