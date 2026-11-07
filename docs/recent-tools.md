@@ -129,7 +129,8 @@ so a storage that refuses the write cannot touch the tool the person is using.
   is a shift on load.
 - **The returning flag.** The same script sets `data-returning="1"` on `<html>`
   when the row will show at least one tool. The home hero and "Start here" read it
-  from CSS, and `useReturningFlag` keeps it right on client-side navigation. See
+  from CSS, and `useReturningFlag` keeps it right on client-side navigation. It also
+  removes the flag when the row empties, so Start here returns. See
   `docs/home-page.md`.
 - **The one shift that stays.** A visitor with no history who stars their first
   tool, or who unstars the last one, changes the page while looking at it. The row
@@ -149,8 +150,11 @@ so a storage that refuses the write cannot touch the tool the person is using.
   the next heading in the row. After unstarring a tile in Favourites, it goes to the
   star now at that position, else the Favourites heading. After starring a tile in
   Recently used, it goes to that tool's star, which now sits in Favourites. If the
-  row is gone, it goes to the first category summary on the page (`#tools-image`, a
-  `<details>` summary, focusable already). A live region (`output`, always
+  row is gone, focus goes to the Start here heading (`#start-here-title`, also
+  `tabIndex={-1}`), because `useReturningFlag` brings Start here back when the row
+  empties. The effect checks that the heading is shown (it has client rects) before it
+  focuses it. If Start here is still hidden, focus goes to the first category summary
+  on the page (`#tools-image`, a `<details>` summary, focusable already). A live region (`output`, always
   mounted) says "Recent tools cleared" or "Removed {tool} from favourites" and
   empties after four seconds. Stars outside the row rely on `aria-pressed` alone.
 - **Blocked storage.** The stars are `aria-disabled` with a no-op click, not

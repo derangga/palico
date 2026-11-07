@@ -7,6 +7,35 @@ import { useToolHistory } from "#/hooks/use-tool-history.ts";
 const useBeforePaint =
 	typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+type FlagAction = "set" | "remove" | "keep";
+
+/**
+ * What to do with `data-returning` for this render. Pure, so the freeze rule can
+ * be tested without a DOM.
+ *
+ * - Before the first decision (`decided` false) the history decides: set the
+ *   attribute for a returning visitor, remove it otherwise. Nothing happens while
+ *   the history is still `idle`.
+ * - After that the attribute is never set again, so a first star cannot hide
+ *   Start here mid-visit.
+ * - After that it is removed once the row empties (`returning` false), so Home
+ *   does not keep an empty gap where Start here belongs.
+ */
+export function returningFlagAction(input: {
+	readonly decided: boolean;
+	readonly phase: string;
+	readonly returning: boolean;
+	readonly attributeSet: boolean;
+}): FlagAction {
+	if (!input.decided) {
+		if (input.phase === "idle") return "keep";
+
+		return input.returning ? "set" : "remove";
+	}
+
+	return input.attributeSet && !input.returning ? "remove" : "keep";
+}
+
 /**
  * Sets `data-returning` on <html> for a visitor with a favourite or recent tool,
  * which home.css reads to hide "Start here".
@@ -17,21 +46,32 @@ const useBeforePaint =
  * decision is made once per visit to Home: starring a starter tile later shows the
  * row but keeps Start here until the next visit, so the page never changes
  * character under the cursor. Blocked storage counts as a first-time visitor.
- * The attribute is removed when Home unmounts. Why: docs/home-page.md.
+ *
+ * The freeze holds in one direction only. When the history empties after the
+ * decision (Clear on the last recent tool, or unstarring the last favourite), the
+ * attribute is removed at once, before paint, so Start here comes back instead of
+ * leaving a gap. It stays removed for the rest of the visit, so a later star does
+ * not hide Start here again. The attribute is also removed when Home unmounts.
+ * Why: docs/home-page.md.
  */
 export function useReturningFlag() {
 	const history = useToolHistory();
 	const decided = useRef(false);
 
 	useBeforePaint(() => {
-		if (decided.current || history.phase === "idle") return;
-
-		decided.current = true;
-
 		const root = document.documentElement;
 
-		if (history.returning) root.dataset.returning = "1";
-		else delete root.dataset.returning;
+		const action = returningFlagAction({
+			decided: decided.current,
+			phase: history.phase,
+			returning: history.returning,
+			attributeSet: root.dataset.returning !== undefined,
+		});
+
+		if (history.phase !== "idle") decided.current = true;
+
+		if (action === "set") root.dataset.returning = "1";
+		else if (action === "remove") delete root.dataset.returning;
 	}, [history.phase, history.returning]);
 
 	// Also clears `decided`, so the extra mount React Strict Mode runs in dev

@@ -87,8 +87,8 @@ export function YourTools() {
 
 	// A click that removes the focused tile or button leaves focus on <body>.
 	// Once the lists have changed, put it somewhere useful: the next star, the
-	// tool where it moved, a heading, or the first category row when the row is
-	// gone.
+	// tool where it moved, a heading, or Start here (else the first category
+	// row) when the row is gone.
 	useEffect(() => {
 		const pending = handoff.current;
 
@@ -99,7 +99,19 @@ export function YourTools() {
 		if (!pending || Date.now() - pending.at > 1000) return;
 
 		if (!filled) {
-			document.getElementById(`tools-${toolGroups[0].id}`)?.focus();
+			// Start here comes back when the row empties: useReturningFlag removes
+			// `data-returning` in a layout effect, and every layout effect of the
+			// commit runs before this effect. Still check that the heading is shown.
+			// While the attribute is set it is display:none, has no client rects, and
+			// focus() would do nothing.
+			const startHere = document.getElementById("start-here-title");
+
+			const target =
+				startHere && startHere.getClientRects().length > 0
+					? startHere
+					: document.getElementById(`tools-${toolGroups[0].id}`);
+
+			target?.focus();
 
 			return;
 		}

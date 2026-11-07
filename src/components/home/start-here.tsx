@@ -6,7 +6,8 @@ import { m } from "#/paraglide/messages.js";
  * Four common jobs for a first-time visitor, as compact tiles with their stars.
  * It is in the prerendered page and home.css hides it with `html[data-returning]`
  * before first paint, so a visitor with history never sees it flash. Why:
- * docs/home-page.md.
+ * docs/home-page.md. The heading is `tabIndex={-1}` so your-tools.tsx can move focus
+ * to it when the row empties.
  */
 export function StartHere() {
 	return (
@@ -16,7 +17,8 @@ export function StartHere() {
 		>
 			<h2
 				id="start-here-title"
-				className="mb-3 flex h-8 items-center text-sm font-semibold text-muted-foreground"
+				tabIndex={-1}
+				className="mb-3 flex h-8 items-center text-sm font-semibold text-muted-foreground outline-none"
 			>
 				{m.home_start_here()}
 			</h2>

@@ -86,11 +86,18 @@ knows. The rule has three parts:
 2. **Client navigation.** The script does not run again when Home is reached from
    another page. `useReturningFlag` sets or removes the attribute once the history has
    first been read (`phase` leaves `idle`), in a layout effect so it lands before paint.
-3. **Frozen for the visit.** After that first decision the attribute does not change
-   while the person stays on Home. Starring a starter tile shows the Your tools row but
-   keeps Start here until the next visit, so the page does not change
-   character under the cursor. The attribute is removed when Home unmounts, so other
-   pages and the next Home visit start clean.
+3. **Frozen for the visit, with one exception.** After that first decision the
+   attribute is never set again while the person stays on Home. Starring a starter tile
+   shows the Your tools row but keeps Start here until the next visit, so the page does
+   not change character under the cursor. The exception runs the other way. When the
+   row empties (Clear on the last recent tool, or unstarring the last favourite) and
+   the attribute is set, `useReturningFlag` removes it at once, in the same layout
+   effect, so Start here comes back before paint and Home shows no empty gap. The
+   attribute then stays off for the rest of the visit, so a later star does not hide
+   Start here again. The attribute is also removed when Home unmounts, so other pages
+   and the next Home visit start clean. The decision itself is the pure
+   `returningFlagAction` in `use-returning-flag.ts`, covered by
+   `use-returning-flag.test.ts`.
 
 Blocked storage (`unavailable`) counts as a first-time visitor: Start here and no row. "Returning" is decided by the pure `isReturningVisitor` in
 `src/lib/tool-history/model.ts`: at least one favourite or recent tool the registry
@@ -106,7 +113,10 @@ Four compact tiles, with stars like any tile: Image Converter (`/converter`), Co
 Image (`/compressor`), Compress Video (`/video-compressor`) and Merge PDFs
 (`/pdf-merge`). They are registry entries (`startHereTools()` in `src/lib/start-here.ts`),
 not copies, and `start-here.test.ts` fails when a path stops being a tool. The group is
-prerendered and hidden by `html[data-returning] .start-here`.
+prerendered and hidden by `html[data-returning] .start-here`. It comes back when a
+returning visitor empties the Your tools row (see the rule above). Its heading
+(`#start-here-title`) is `tabIndex={-1}`, so `your-tools.tsx` can move focus to it
+when that happens.
 
 ## Browse by type
 
@@ -127,7 +137,8 @@ Why `<details>`:
   and visitors without JavaScript still reach every tool. Do not render the panels
   from JavaScript.
 - The summary carries the `tools-<id>` id. When the Your tools row disappears under the
-  cursor, `your-tools.tsx` puts focus on the first summary. A summary is focusable
+  cursor and Start here is not visible, `your-tools.tsx` puts focus on the first
+  summary. A summary is focusable
   already, so it has no `tabIndex`; a `tabindex="-1"` on it would take it out of the Tab
   order and stop keyboard users opening the row.
 
