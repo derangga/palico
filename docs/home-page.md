@@ -128,7 +128,11 @@ One native `<details>` per category, in registry order (`toolGroups`), closed by
 default and with no stored state. The summary is a 52px row: category dot, name, the
 tool count and a chevron that turns when the row is open (`transform`, 200ms,
 `--ease-out`; reduced motion drops the transition and keeps the turned chevron, which
-still says whether the row is open). The panel just opens: no height animation. Inside
+still says whether the row is open). The panel grows and shrinks in 240ms and fades in
+160ms, from CSS alone: the `::details-content` box gets a `height` transition (with
+`interpolate-size: allow-keywords`) and `content-visibility` with `allow-discrete`, so
+the content stays painted until a close finishes. A browser without those features
+opens the row at once. Reduced motion keeps only the fade. Inside
 is the full `ToolTile` (blurb, star, offline dot) in a grid of one column below `sm` and
 two from `sm`, an odd last tile spanning the row. From `lg` the five rows sit in two
 columns, and an open row takes only its own column.
