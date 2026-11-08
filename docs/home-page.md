@@ -52,8 +52,10 @@ loop ends exactly where it began (every chip has its own bottom margin, so half 
 lane is exactly one set). The lane has `align-self: flex-start`: with the default
 `stretch` it would be as tall as the band and the percentage would move a fraction
 of one set, so the loop would jump. The speed is constant, so the easing is `linear`, the one
-place the DESIGN.md rule for constant motion applies. A fixed mask fades the band out
-at the top and bottom.
+place the DESIGN.md rule for constant motion applies. A fixed mask on `.hero-art` (the band's
+own height, not tilted) fades the icons out over the top and bottom 16 percent of the
+band. The lanes are taller than the band, so a mask on the lanes would sit outside the
+clip and leave a hard cut.
 
 The icons are lucide glyphs in their category colour: peach for video, mauve for
 image, teal for file, blue for color, lavender for developer. A chip is the category

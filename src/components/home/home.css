@@ -257,6 +257,18 @@ html[data-your-tools] .your-tools-slot {
 	inset: 0 0 0 auto;
 	width: 42%;
 	pointer-events: none;
+	/*
+	 * Fade the icons out at the band's own top and bottom edge. The lanes are
+	 * taller than the band, so a mask on them would sit outside the clip and
+	 * the icons would still end in a hard cut.
+	 */
+	-webkit-mask-image: linear-gradient(
+		transparent,
+		#000 16%,
+		#000 84%,
+		transparent
+	);
+	mask-image: linear-gradient(transparent, #000 16%, #000 84%, transparent);
 }
 
 /*
@@ -265,7 +277,7 @@ html[data-your-tools] .your-tools-slot {
  * translateY(-50%) loop ends where it began (every chip carries its own bottom
  * margin, so half the lane is exactly one set). Constant speed, so linear.
  * Only transform moves. No filter, no blur, no hover effect. The band fades out
- * at both ends with a fixed mask.
+ * at both ends with a fixed mask on .hero-art.
  */
 .hero-lanes {
 	position: absolute;
@@ -278,13 +290,6 @@ html[data-your-tools] .your-tools-slot {
 	height: 12.25rem;
 	overflow: hidden;
 	transform: translate(-50%, -50%) rotate(10deg);
-	-webkit-mask-image: linear-gradient(
-		transparent,
-		#000 9%,
-		#000 91%,
-		transparent
-	);
-	mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent);
 }
 
 .hero-lane {
