@@ -291,6 +291,12 @@ html[data-your-tools] .your-tools-slot {
 	display: flex;
 	flex: none;
 	flex-direction: column;
+	/*
+	 * Size the lane to its ten chips. The default stretch would cap it at the
+	 * container height, and translateY(-50%) would then move a fraction of one
+	 * set, so the loop would jump at the end of every pass.
+	 */
+	align-self: flex-start;
 	/* The resting spot under reduced motion; the animation replaces it. */
 	transform: translate3d(0, var(--rest, 0%), 0);
 	animation: hero-lane-up 20s linear infinite;

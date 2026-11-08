@@ -49,7 +49,9 @@ Three lanes of five icons in a band tilted 10 degrees, like a slash. Lane 1 slid
 lane 2 down, lane 3 up, at 20, 24 and 22 seconds per pass with negative delays so the
 page opens mid-loop. Each lane renders its five icons twice, so a `translateY(-50%)`
 loop ends exactly where it began (every chip has its own bottom margin, so half the
-lane is exactly one set). The speed is constant, so the easing is `linear`, the one
+lane is exactly one set). The lane has `align-self: flex-start`: with the default
+`stretch` it would be as tall as the band and the percentage would move a fraction
+of one set, so the loop would jump. The speed is constant, so the easing is `linear`, the one
 place the DESIGN.md rule for constant motion applies. A fixed mask fades the band out
 at the top and bottom.
 
