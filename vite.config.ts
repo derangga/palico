@@ -101,12 +101,35 @@ const config = defineConfig({
 		devtools(),
 		cloudflare({ viteEnvironment: { name: "ssr" } }),
 		tailwindcss(),
-		// SPA mode: prerender a static shell instead of SSR. This app is
-		// offline-first and renders everything client-side, so SSR only bloated
-		// the Worker bundle past Cloudflare's 3 MiB limit with client-only libs
-		// (transformers, mermaid, ffmpeg). The shell serves as a static asset.
+		// Production is static files: there is no rendering Worker, because SSR
+		// bundled the client-only libs (transformers, mermaid, ffmpeg) past
+		// Cloudflare's 3 MiB limit. Two things are prerendered at build time.
+		//
+		// - Every static route, as <route>.html (the router finds them all,
+		//   so a new tool needs no entry here). Each page ships its own title,
+		//   canonical URL, description and h1, so a crawler sees the right page
+		//   before any JavaScript runs. See docs/seo.md.
+		// - The SPA shell, as /_shell.html. It is a client-rendered fallback for
+		//   what has no page of its own: the service worker serves it offline and
+		//   public/404.html is built from it. It must not be /index.html, which is
+		//   now the Home page.
 		tanstackStart({
-			spa: { enabled: true, prerender: { outputPath: "/index.html" } },
+			spa: { enabled: true, prerender: { outputPath: "/_shell" } },
+			prerender: {
+				enabled: true,
+				crawlLinks: true,
+				failOnError: true,
+				autoSubfolderIndex: false,
+			},
+			// The shell is rendered at "/" and the prerender queue skips a path it
+			// has seen, so Home needs a different path to be rendered at all. The
+			// query is ignored by the router; outputPath writes the file.
+			pages: [
+				{
+					path: "/?home",
+					prerender: { enabled: true, outputPath: "/index.html" },
+				},
+			],
 		}),
 		viteReact(),
 	],

@@ -50,6 +50,10 @@ Read the matching file before starting that kind of work.
   lanes and their pause rules, "Start here", "Browse by type", and the
   `data-returning` rule. Read it before touching `src/routes/index.tsx` or
   `src/components/home/`.
+- `docs/seo.md`: how every page is prerendered to its own HTML file, the sitemap,
+  the 404 page and the build check. Read it before touching `vite.config.ts`'s
+  `tanstackStart` options, `wrangler.deploy.jsonc`, `scripts/finish-prerender.ts` or
+  `src/lib/seo.ts`. Every new tool needs an entry in `public/sitemap.xml`.
 - `docs/search.md`: the Cmd/Ctrl+K tool palette and how it ranks results. Read it
   before touching `src/components/search/` or `src/lib/tool-search.ts`. Every
   new tool needs `keywords` in `src/lib/tool-categories.ts`.

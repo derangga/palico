@@ -9,7 +9,7 @@
     "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
-    "build": "vite build && bun scripts/build-sw.ts",
+    "build": "vite build && bun scripts/finish-prerender.ts && bun scripts/build-sw.ts",
     "preview": "vite preview",
     "test": "bun run i18n && vitest run",
     "format": "oxfmt src vite.config.ts",

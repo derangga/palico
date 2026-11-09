@@ -402,8 +402,7 @@ We set these in two places, depending on environment:
    rendering Worker (see problem 6), so there is no server response to attach
    headers to. Cloudflare's `_headers` file supplies them instead:
    - `/*` → `COOP: same-origin` + `COEP: require-corp` on the HTML document
-     (applied to every route, since the SPA fallback serves `index.html` for all
-     paths).
+     (applied to every prerendered page and `404.html`, which are all static files).
    - `/assets/*` and `/vendor/*` → `COEP: require-corp` + `CORP: same-origin`, so
      the bundled workers (image converter, ffmpeg internals) and the ZetaOffice
      runtime load under the cross-origin-isolated document rather than being
@@ -513,7 +512,8 @@ limit (`code: 10027`). This app renders everything client-side, so SSR bought us
 nothing but bundle weight. The fix was to drop the rendering Worker entirely:
 
 - `vite.config.ts` enables SPA mode (`tanstackStart({ spa: … })`), prerendering
-  a static shell to `index.html`.
+  a static shell. Production now also prerenders every page, see
+  [seo.md](seo.md).
 - `wrangler.deploy.jsonc` is an assets-only config (no `main`) pointing at
   `dist/client`; static assets have no size limit. `bun run deploy` targets it.
 - With no server response to carry them, the document COOP/COEP headers moved to

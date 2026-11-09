@@ -59,22 +59,28 @@ registerRoute(
 // deploy shows the new build without waiting for this worker's replacement to
 // precache it. The new page's chunks are not precached here yet, so they go to
 // the network too. Offline, a slow network or a server error get the precached
-// SPA shell. URLs that end in a file extension are excluded so a missing asset
-// 404s instead of returning HTML with status 200.
+// SPA shell (/_shell.html, not a page of its own: see vite.config.ts). URLs that
+// end in a file extension are excluded so a missing asset 404s instead of
+// returning HTML with status 200.
 const NETWORK_TIMEOUT_SECONDS = 3;
 
 const network = new NetworkOnly({
 	networkTimeoutSeconds: NETWORK_TIMEOUT_SECONDS,
 });
 
-const shell = createHandlerBoundToURL("/index.html");
+const shell = createHandlerBoundToURL("/_shell.html");
 
 registerRoute(
 	new NavigationRoute(
 		async (options) => {
 			const response = await network.handle(options).catch(() => undefined);
 
-			return response?.ok ? response : shell(options);
+			// A redirect (Cloudflare sends /pdf-merge/ to /pdf-merge) reaches a
+			// navigation as an opaque response, so `ok` is false. Pass it on instead
+			// of hiding it behind the shell.
+			return response?.ok || response?.type === "opaqueredirect"
+				? response
+				: shell(options);
 		},
 		{ denylist: [/\/[^/?]+\.[^/]+$/] },
 	),

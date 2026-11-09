@@ -25,7 +25,7 @@ pieces fit, why they are built this way, and how to test them.
 
 | Tier | What | How it is stored | Size |
 | --- | --- | --- | --- |
-| Precache | `index.html`, every hashed `/assets/**` except `*.wasm`, `/vendor/**`, home images, favicons, `site.webmanifest` | Workbox precache, written at install | about 19 MB on disk, about 5 MB over the wire |
+| Precache | `_shell.html`, every hashed `/assets/**` except `*.wasm`, `/vendor/**`, home images, favicons, `site.webmanifest` | Workbox precache, written at install | about 19 MB on disk, about 5 MB over the wire |
 | Opt-in, ffmpeg | core, wasm, worker | Cache API `ffmpeg-wasm-v<version>`, filled after consent | 31 MB |
 | Opt-in, ZetaOffice | `soffice.js/.wasm/.data` | Cache API `zetaoffice-wasm-free`, filled after consent | 53 MB |
 | Opt-in, qpdf | `qpdf.wasm` (PDF password tool) | Cache API `palico-qpdf-v<version>`, filled after consent | 1.3 MB |
@@ -85,8 +85,12 @@ Behavior:
   the server first (3 second timeout, with navigation preload on), so a reload after
   a deploy shows the new build at once. The new build's chunks are not in the old
   precache, so they go to the network too. Offline, on timeout or on a non-2xx
-  response the route serves the precached `/index.html`, so deep links and hard
-  reloads still work offline. URLs ending in a file extension are excluded so a
+  response the route serves the precached `/_shell.html`, so deep links and hard
+  reloads still work offline. The prerendered pages are not precached: one would
+  be served before this route, and a reload after a deploy would show the old
+  build (see [seo.md](seo.md)). `/` is network first too: `index.html` is not
+  precached, so a launch of the installed app on a slow link waits up to 3 seconds
+  before the shell appears. URLs ending in a file extension are excluded so a
   missing asset 404s instead of returning HTML.
 - Why network first: with a cache-first shell, a reload after a deploy showed the
   old build. The new worker then had to precache about 500 files (about 5 MB) before
@@ -330,7 +334,7 @@ to avoid a heavy dev dependency for one spec). It is a manual check, below. The 
 tests still guard the part most likely to drift: the header table and its parity with
 `public/_headers`.
 
-Manual check of the shell, with the real `_headers` and SPA fallback:
+Manual check of the shell, with the real `_headers` and 404 page:
 
 1. `bun run build`, then `bunx wrangler dev --config wrangler.deploy.jsonc`.
 2. Open `http://localhost:8787/` in a fresh Chrome profile. Application > Service

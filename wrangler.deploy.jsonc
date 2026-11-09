@@ -1,14 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Production is a pure static SPA — no rendering Worker. The main wrangler.jsonc
+  // Production is pure static files, with no rendering Worker. The main wrangler.jsonc
   // keeps `main` because the vite build/prerender step needs a Worker entry, but
   // deploying that Worker blows past Cloudflare's 3 MiB free-plan limit (it bundles
   // transformers/mermaid/ffmpeg). Here we ship only dist/client as static assets,
   // which have no size limit. `bun run deploy` targets this config.
+  // Every route is a prerendered file (see vite.config.ts), so an unknown URL gets
+  // dist/client/404.html with a 404 status, not the app with a 200.
   "name": "palico",
   "compatibility_date": "2025-09-02",
   "assets": {
     "directory": "./dist/client",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "404-page"
   }
 }

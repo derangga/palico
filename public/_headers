@@ -2,8 +2,8 @@
 # document's cross-origin-isolation headers — which src/server.ts used to set on
 # the SSR response — must live here. Without COOP:same-origin + COEP:require-corp
 # on the HTML document, crossOriginIsolated stays false and SharedArrayBuffer
-# (multi-threaded ffmpeg.wasm) is unavailable. Applied to every route since the
-# SPA fallback serves index.html for all paths.
+# (multi-threaded ffmpeg.wasm) is unavailable. Applied to every prerendered page
+# and the 404 page, which are all static files.
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
@@ -27,6 +27,13 @@
 # vite.config.ts's serveVendorStatic applies these instead.)
 /vendor/*
   Cross-Origin-Resource-Policy: same-origin
+
+# The shell is a fallback for the service worker, not a page. It is a copy of Home,
+# so keep it out of search results. (404.html returns status 404 and needs no tag.)
+/_shell
+  X-Robots-Tag: noindex
+/_shell.html
+  X-Robots-Tag: noindex
 
 # The service worker script must never be served from a stale HTTP cache, or a
 # fixed worker would take up to 24 h to reach users. (COOP/COEP come from /*.)

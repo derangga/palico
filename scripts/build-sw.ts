@@ -45,13 +45,16 @@ const { count, size, warnings } = await injectManifest({
 	swDest: SW,
 	globDirectory: OUT_DIR,
 	// The app shell, every hashed asset, the home images and the vendored ZetaOffice
-	// runtime (small, same-origin, needed by the opt-in Office engine).
+	// runtime (small, same-origin, needed by the opt-in Office engine). The
+	// prerendered pages (index.html, pdf-merge.html, ...) stay out on purpose: a
+	// precached page would be served before the network-first navigation route in
+	// src/sw.ts, and a reload after a deploy would show the old build.
 	globPatterns: [
-		"index.html",
+		"_shell.html",
 		"assets/**/*",
 		"vendor/**/*",
 		"palico-*.webp",
-		"favicon*",
+		"favicon*.{ico,png}",
 		"apple-touch-icon.png",
 		"site.webmanifest",
 	],
@@ -62,6 +65,21 @@ const { count, size, warnings } = await injectManifest({
 	// (served `immutable`, see public/_headers) instead of downloading them again.
 	dontCacheBustURLsMatching: /^assets\//,
 	maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+	// A page in the precache would be served before the navigation route, so fail the
+	// build if a glob above starts to match one.
+	manifestTransforms: [
+		(entries) => {
+			const pages = entries
+				.map((e) => e.url)
+				.filter((url) => url.endsWith(".html") && url !== "_shell.html");
+
+			if (pages.length > 0) {
+				throw new Error(`Pages must not be precached: ${pages.join(", ")}`);
+			}
+
+			return { manifest: entries, warnings: [] };
+		},
+	],
 });
 
 for (const w of warnings) console.warn(w);
