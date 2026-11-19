@@ -16,8 +16,8 @@ const fileOf = (path: string) => (path === "/" ? "index" : path.slice(1));
 
 const sitemap = await readFile("public/sitemap.xml", "utf8");
 
-const paths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) =>
-	new URL(m[1] ?? "").pathname,
+const paths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+	(m) => new URL(m[1] ?? "").pathname,
 );
 
 const problems: Array<string> = [];
@@ -37,12 +37,15 @@ for (const path of paths) {
 	const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
 
 	if (!title) problems.push(`${path}: no <title>`);
+
 	if (canonical !== `${SITE_URL}${path}`) {
 		problems.push(`${path}: canonical is ${canonical ?? "missing"}`);
 	}
+
 	if (!html.includes('<meta name="description" content="')) {
 		problems.push(`${path}: no meta description`);
 	}
+
 	if (!/<h1[\s>]/.test(html)) problems.push(`${path}: no <h1>`);
 
 	// The WebSite and WebApplication data describes the whole app, so it belongs on
@@ -64,9 +67,11 @@ for (const path of paths) {
 }
 
 // A route that is not in the sitemap is prerendered but would go unchecked above.
-const expected = new Set(paths.map((p) => `${fileOf(p)}.html`));
-expected.add("_shell.html");
-expected.add("404.html");
+const expected = new Set([
+	...paths.map((p) => `${fileOf(p)}.html`),
+	"_shell.html",
+	"404.html",
+]);
 
 for (const name of await readdir(OUT_DIR)) {
 	if (name.endsWith(".html") && !expected.has(name)) {
@@ -75,7 +80,9 @@ for (const name of await readdir(OUT_DIR)) {
 }
 
 if (problems.length > 0) {
-	console.error(`Prerender check failed:\n${problems.map((p) => `  ${p}`).join("\n")}`);
+	console.error(
+		`Prerender check failed:\n${problems.map((p) => `  ${p}`).join("\n")}`,
+	);
 	process.exit(1);
 }
 

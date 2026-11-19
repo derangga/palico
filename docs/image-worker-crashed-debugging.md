@@ -8,7 +8,9 @@ single toast:
 
 > Image worker crashed.
 
-With the app in Indonesian the same toast reads "Proses gambar berhenti
+The toast now reads "Image processing stopped unexpectedly. Try again."
+(`error_worker_crashed`); the older text above is kept because it is what this
+doc was written against. With the app in Indonesian the same toast reads "Proses gambar berhenti
 tiba-tiba." (`error_worker_crashed` in `messages/id.json`). The worker sends the
 browser's own error text as `detail`, and `worker-client.ts` words the failure in
 the active language, because a worker has no active language of its own.

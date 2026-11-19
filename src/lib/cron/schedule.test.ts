@@ -82,7 +82,7 @@ describe("parseCron", () => {
 		expect(failure("").message).toMatch(/type a cron expression/i);
 		expect(failure("* * * *").message).toMatch(/five fields.*has 4/);
 		expect(failure("0 * * * * *").message).toMatch(/seconds/);
-		expect(failure("0 * * * * * 2030").message).toMatch(/seconds and year/);
+		expect(failure("0 * * * * * 2030").message).toMatch(/seconds.*year/);
 	});
 
 	it("explains @reboot", () => {

@@ -5,7 +5,7 @@ import { buttonVariants } from "#/components/ui/button.tsx";
 import { cn } from "#/lib/utils.ts";
 
 interface DropzoneProps {
-	/** Prompt line, e.g. "Drag & drop images here, or". */
+	/** Prompt line, e.g. "Drag and drop images here, or". */
 	readonly label: string;
 	/** Text of the faux button under the prompt, e.g. "Choose files". */
 	readonly actionLabel: string;

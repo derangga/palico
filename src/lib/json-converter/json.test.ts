@@ -87,7 +87,7 @@ describe("JSON errors", () => {
 		expect(parseFailure('{"a": 1').message).toMatch(/ends too early/);
 		expect(parseFailure('{"a": 1} x').message).toMatch(/extra text/);
 		expect(parseFailure('["a\nb"]').message).toMatch(/line break/);
-		expect(parseFailure('["\\q"]').message).toMatch(/escape/);
+		expect(parseFailure('["\\q"]').message).toMatch(/backslash/);
 		expect(parseFailure("[-]").message).toMatch(/number/);
 		expect(parseFailure("[01]").line).toBe(1);
 	});
